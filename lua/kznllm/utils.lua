@@ -43,7 +43,7 @@ function M.handle_openai_spec_data(line)
 
   if data and data:match '"delta":' then
     local json = vim.json.decode(data)
-    if json.choices and json.choices[1] and json.choices[1].delta then
+    if json.choices and json.choices[1] and json.choices[1].delta and json.choices[1].delta.content then
       content = json.choices[1].delta.content
     end
   end

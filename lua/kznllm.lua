@@ -119,7 +119,7 @@ function M.invoke_llm_and_stream_into_editor(opts, make_curl_args_fn, handle_dat
     args = args,
     on_stdout = function(_, out)
       local content = handle_data_fn(out)
-      if content == '' then
+      if content ~= '' then
         write_content_at_cursor(content)
       end
     end,

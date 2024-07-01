@@ -48,6 +48,8 @@ local function get_visual_selection()
   if srow > erow or (srow == erow and scol > ecol) then
     srow, erow = erow, srow
     scol, ecol = ecol, scol
+    -- move cursor to the other end of visual selection
+    api.nvim_feedkeys('o', 'nx', false)
   end
 
   local lines = {}

@@ -1,17 +1,20 @@
 local M = {}
 
+local Job = require 'plenary.job'
+local utils = require 'kznllm.utils'
+local active_job = nil
+
 --- Constructs arguments for constructing an HTTP request to the OpenAI API
 --- using cURL.
 ---
----@param opts { api_key_name: string, url: string, model: string }
----@param prompt string
----@param system_prompt string
+---@param opts { api_key_name: string, url: string, model: string, system_prompt: string }
+---@param user_prompt string
 ---@return string[]
-function M.make_curl_args(opts, prompt, system_prompt)
+local function make_curl_args(opts, user_prompt)
   local url = opts.url
   local api_key = opts.api_key_name and os.getenv(opts.api_key_name)
   local data = {
-    messages = { { role = 'system', content = system_prompt }, { role = 'user', content = prompt } },
+    messages = { { role = 'system', content = opts.system_prompt }, { role = 'user', content = user_prompt } },
     model = opts.model,
     temperature = 0.7,
     stream = true,
@@ -28,17 +31,9 @@ end
 --- Process server-sent events based on OpenAI spec
 --- [See Documentation](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream)
 ---
----@param line string
+---@param data string
 ---@return string
-function M.handle_data(line)
-  -- based on sse spec (OpenAI spec uses data-only server-sent events)
-  local data, data_epos
-  _, data_epos = string.find(line, '^data: ')
-
-  if data_epos then
-    data = string.sub(line, data_epos + 1)
-  end
-
+local function handle_data(data)
   local content = ''
 
   if data and data:match '"delta":' then
@@ -49,6 +44,37 @@ function M.handle_data(line)
   end
 
   return content
+end
+
+function M.make_job(opts, user_prompt)
+  if active_job then
+    active_job:shutdown()
+    active_job = nil
+  end
+
+  active_job = Job:new {
+    command = 'curl',
+    args = make_curl_args(opts, user_prompt),
+    on_stdout = function(_, out)
+      -- based on sse spec (OpenAI spec uses data-only server-sent events)
+      local data, data_epos
+      _, data_epos = string.find(out, '^data: ')
+
+      if data_epos then
+        data = string.sub(out, data_epos + 1)
+      end
+
+      local content = handle_data(data)
+      if content ~= '' then
+        utils.write_content_at_cursor(content)
+      end
+    end,
+    on_stderr = function(_, _) end,
+    on_exit = function()
+      active_job = nil
+    end,
+  }
+  return active_job
 end
 
 return M

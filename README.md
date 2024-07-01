@@ -33,10 +33,34 @@ Key capabilities:
         model = 'llama3-70b-8192',
         api_key_name = 'GROQ_API_KEY',
         system_prompt = helpful_prompt,
-      }, spec.make_curl_args, spec.handle_data)
+      }, spec.make_job)
     end
 
     vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_help, { desc = 'Send current selection to LLM llm_help' })
   end,
-}
+},
+```
+
+or for anthropic
+```
+{
+  'chottolabs/kznllm.nvim',
+  dependencies = { 'nvim-lua/plenary.nvim' },
+  config = function()
+    local kznllm = require 'kznllm'
+    local spec = require 'kznllm.specs.anthropic'
+    ...
+
+    local function llm_help()
+      kznllm.invoke_llm_and_stream_into_editor({
+        url = 'https://api.anthropic.com/v1/messages',
+        model = 'claude-3-5-sonnet-20240620',
+        api_key_name = 'ANTHROPIC_API_KEY',
+        system_prompt = helpful_prompt,
+      }, spec.make_job)
+    end
+
+    vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_help, { desc = 'Send current selection to LLM llm_help' })
+  end,
+},
 ```

@@ -10,7 +10,6 @@ spec.
 ```
 {
   'chottolabs/kznllm',
-  dev = true,
   dependencies = { 'nvim-lua/plenary.nvim' },
   config = function()
     local kznllm = require 'kznllm'

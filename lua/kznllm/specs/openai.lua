@@ -7,7 +7,7 @@ local M = {}
 ---@param prompt string
 ---@param system_prompt string
 ---@return string[]
-function M.make_openai_spec_curl_args(opts, prompt, system_prompt)
+function M.make_curl_args(opts, prompt, system_prompt)
   local url = opts.url
   local api_key = opts.api_key_name and os.getenv(opts.api_key_name)
   local data = {
@@ -30,7 +30,7 @@ end
 ---
 ---@param line string
 ---@return string
-function M.handle_openai_spec_data(line)
+function M.handle_data(line)
   -- based on sse spec (OpenAI spec uses data-only server-sent events)
   local data, data_epos
   _, data_epos = string.find(line, '^data: ')

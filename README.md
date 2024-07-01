@@ -13,7 +13,7 @@ spec.
   dependencies = { 'nvim-lua/plenary.nvim' },
   config = function()
     local kznllm = require 'kznllm'
-    local utils = require 'kznllm.utils'
+    local spec = require 'kznllm.specs.openai'
 
     local helpful_prompt = [[
 You are an AI programming assistant integrated into a code editor. Your purpose is to help the user with programming tasks as they write code.
@@ -33,7 +33,7 @@ Key capabilities:
         model = 'llama3-70b-8192',
         api_key_name = 'GROQ_API_KEY',
         system_prompt = helpful_prompt,
-      }, utils.make_openai_spec_curl_args, utils.handle_openai_spec_data)
+      }, spec.make_curl_args, spec.handle_data)
     end
 
     vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_help, { desc = 'Send current selection to LLM llm_help' })

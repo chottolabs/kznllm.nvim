@@ -58,6 +58,10 @@ local function get_visual_selection()
   else
     lines = api.nvim_buf_get_text(0, srow - 1, scol - 1, erow - 1, ecol, {})
   end
+
+  -- after getting lines, exit visual mode and go to end of the current line
+  api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
+  api.nvim_feedkeys('$', 'nx', false)
   return lines
 end
 
@@ -73,9 +77,6 @@ local function get_prompt(lines)
 
   if lines then
     prompt = table.concat(lines, '\n')
-    -- exit visual mode, go to end of the current line
-    api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
-    api.nvim_feedkeys('$', 'nx', false)
   end
 
   return prompt

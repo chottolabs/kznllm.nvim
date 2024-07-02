@@ -1,5 +1,6 @@
 local M = {}
 local api = vim.api
+local active_job = nil
 
 --- Handle visual selection using the start of the visual selection and current
 --- cursor position in the most common modes (i.e. visual, visual lines, visual block)
@@ -52,31 +53,35 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
 
   local visual_selection = get_visual_selection()
 
-  if opts.replace then
-    api.nvim_feedkeys('d', 'nx', false)
-  else
-    -- after getting lines, exit visual mode and go to end of the current line
-    api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
-    api.nvim_feedkeys('$', 'nx', false)
-
-    -- put new line, enter visual mode to highlight the completion
-    api.nvim_put({ '' }, 'l', true, true)
-  end
-
-  local system_prompt = opts.system_prompt
-  if system_prompt == nil then
-    system_prompt = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
-  end
-
   vim.ui.input({ prompt = 'prompt: ' }, function(input)
+    if input == nil then
+      return
+    end
+
+    if opts.replace then
+      api.nvim_feedkeys('d', 'nx', false)
+    else
+      -- after getting lines, exit visual mode and go to end of the current line
+      api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
+      api.nvim_feedkeys('$', 'nx', false)
+
+      -- put new line, enter visual mode to highlight the completion
+      api.nvim_put({ '' }, 'l', true, true)
+    end
+
+    local system_prompt = opts.system_prompt
+    if system_prompt == nil then
+      system_prompt = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
+    end
+
     local user_prompt = table.concat({ visual_selection, input }, '\n')
-    local active_job = make_job_fn(opts, system_prompt, user_prompt)
+    active_job = make_job_fn(opts, system_prompt, user_prompt)
     active_job:start()
     api.nvim_create_autocmd('User', {
       group = group,
       pattern = 'LLM_Escape',
       callback = function()
-        if active_job then
+        if active_job and active_job.is_shutdown == false then
           active_job:shutdown()
           print 'LLM streaming cancelled'
         end

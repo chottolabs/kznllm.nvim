@@ -2,7 +2,6 @@ local M = {}
 
 local Job = require 'plenary.job'
 local utils = require 'kznllm.utils'
-local active_job = nil
 
 --- Constructs arguments for constructing an HTTP request to the OpenAI API
 --- using cURL.
@@ -48,12 +47,7 @@ local function handle_data(data)
 end
 
 function M.make_job(opts, system_prompt, user_prompt)
-  if active_job then
-    active_job:shutdown()
-    active_job = nil
-  end
-
-  active_job = Job:new {
+  local active_job = Job:new {
     command = 'curl',
     args = make_curl_args(opts, system_prompt, user_prompt),
     on_stdout = function(_, out)
@@ -71,9 +65,7 @@ function M.make_job(opts, system_prompt, user_prompt)
       end
     end,
     on_stderr = function(_, _) end,
-    on_exit = function()
-      active_job = nil
-    end,
+    on_exit = function() end,
   }
   return active_job
 end

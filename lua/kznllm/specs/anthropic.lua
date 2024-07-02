@@ -21,7 +21,7 @@ local function make_curl_args(opts, system_prompt, user_prompt)
     stream = true,
     max_tokens = 4096,
   }
-  local args = { '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
+  local args = { '-s', '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
   if api_key then
     table.insert(args, '-H')
     table.insert(args, 'x-api-key: ' .. api_key)

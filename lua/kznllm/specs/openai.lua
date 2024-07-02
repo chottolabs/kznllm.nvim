@@ -19,7 +19,7 @@ local function make_curl_args(opts, system_prompt, user_prompt)
     temperature = 0.7,
     stream = true,
   }
-  local args = { '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
+  local args = { '-s', '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
   if api_key then
     table.insert(args, '-H')
     table.insert(args, 'Authorization: Bearer ' .. api_key)

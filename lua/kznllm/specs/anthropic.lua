@@ -91,7 +91,7 @@ function M.make_job(opts, system_prompt, user_prompt)
         end
 
         local content = handle_data(data)
-        if #content > 0 then
+        if content and content ~= nil then
           utils.write_content_at_cursor(content)
         end
       end

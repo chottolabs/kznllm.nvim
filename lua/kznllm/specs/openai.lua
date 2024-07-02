@@ -7,14 +7,15 @@ local active_job = nil
 --- Constructs arguments for constructing an HTTP request to the OpenAI API
 --- using cURL.
 ---
----@param opts { api_key_name: string, url: string, model: string, system_prompt: string }
+---@param opts { api_key_name: string, url: string, model: string }
 ---@param user_prompt string
+---@param system_prompt string
 ---@return string[]
-local function make_curl_args(opts, user_prompt)
+local function make_curl_args(opts, system_prompt, user_prompt)
   local url = opts.url
   local api_key = opts.api_key_name and os.getenv(opts.api_key_name)
   local data = {
-    messages = { { role = 'system', content = opts.system_prompt }, { role = 'user', content = user_prompt } },
+    messages = { { role = 'system', content = system_prompt }, { role = 'user', content = user_prompt } },
     model = opts.model,
     temperature = 0.7,
     stream = true,
@@ -46,7 +47,7 @@ local function handle_data(data)
   return content
 end
 
-function M.make_job(opts, user_prompt)
+function M.make_job(opts, system_prompt, user_prompt)
   if active_job then
     active_job:shutdown()
     active_job = nil
@@ -54,7 +55,7 @@ function M.make_job(opts, user_prompt)
 
   active_job = Job:new {
     command = 'curl',
-    args = make_curl_args(opts, user_prompt),
+    args = make_curl_args(opts, system_prompt, user_prompt),
     on_stdout = function(_, out)
       -- based on sse spec (OpenAI spec uses data-only server-sent events)
       local data, data_epos

@@ -29,9 +29,6 @@ local function get_visual_selection()
     lines = api.nvim_buf_get_text(0, srow - 1, scol - 1, erow - 1, ecol, {})
   end
 
-  -- after getting lines, exit visual mode and go to end of the current line
-  api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
-  api.nvim_feedkeys('$', 'nx', false)
   local content = table.concat(lines, '\n')
 
   if content == '' then
@@ -48,35 +45,44 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 --- Must provide the function for constructing cURL arguments and a handler
 --- function for processing server-sent events.
 ---
----@param opts { api_key_name: string, url: string, model: string, system_prompt: string }
+---@param opts { api_key_name: string, url: string, model: string, system_prompt: string, replace: boolean }
 ---@param make_job_fn function
 function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }
 
-  local user_prompt = get_visual_selection()
+  local visual_selection = get_visual_selection()
 
-  if opts.system_prompt == nil then
-    opts.system_prompt = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
+  if opts.replace then
+    api.nvim_feedkeys('d', 'nx', false)
+  else
+    -- after getting lines, exit visual mode and go to end of the current line
+    api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
+    api.nvim_feedkeys('$', 'nx', false)
+
+    -- put new line, enter visual mode to highlight the completion
+    api.nvim_put({ '' }, 'l', true, true)
   end
 
-  local active_job = make_job_fn(opts, user_prompt)
+  local system_prompt = opts.system_prompt
+  if system_prompt == nil then
+    system_prompt = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
+  end
 
-  -- put new line, enter visual mode to highlight the completion
-  api.nvim_put({ '' }, 'l', true, true)
-  api.nvim_feedkeys('v', 'nx', true)
-
-  active_job:start()
-
-  api.nvim_create_autocmd('User', {
-    group = group,
-    pattern = 'LLM_Escape',
-    callback = function()
-      if active_job then
-        active_job:shutdown()
-        print 'LLM streaming cancelled'
-      end
-    end,
-  })
+  vim.ui.input({ prompt = 'prompt: ' }, function(input)
+    local user_prompt = table.concat({ visual_selection, input }, '\n')
+    local active_job = make_job_fn(opts, system_prompt, user_prompt)
+    active_job:start()
+    api.nvim_create_autocmd('User', {
+      group = group,
+      pattern = 'LLM_Escape',
+      callback = function()
+        if active_job then
+          active_job:shutdown()
+          print 'LLM streaming cancelled'
+        end
+      end,
+    })
+  end)
 
   api.nvim_set_keymap('n', '<Esc>', ':doautocmd User LLM_Escape<CR>', { noremap = true, silent = true })
 end

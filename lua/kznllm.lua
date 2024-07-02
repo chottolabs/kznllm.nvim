@@ -1,6 +1,5 @@
 local M = {}
 local api = vim.api
-local active_job = nil
 
 --- Handle visual selection using the start of the visual selection and current
 --- cursor position in the most common modes (i.e. visual, visual lines, visual block)
@@ -75,13 +74,13 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
     end
 
     local user_prompt = table.concat({ visual_selection, input }, '\n')
-    active_job = make_job_fn(opts, system_prompt, user_prompt)
+    local active_job = make_job_fn(opts, system_prompt, user_prompt)
     active_job:start()
     api.nvim_create_autocmd('User', {
       group = group,
       pattern = 'LLM_Escape',
       callback = function()
-        if active_job and active_job.is_shutdown == false then
+        if active_job.is_shutdown ~= true then
           active_job:shutdown()
           print 'LLM streaming cancelled'
         end

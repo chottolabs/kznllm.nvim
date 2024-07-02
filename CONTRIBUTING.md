@@ -1,5 +1,5 @@
 For developing any kind of plugin using `lazy.nvim` you basically just need to do this:
-- clone the repo
+- clone the repo into your workspace so that lua LSP can find dependencies (this is usually your config directory)
 - comment out or delete the original repo specifier
 - point the plugin to local directory
 - update the plugin using `:Lazy` and confirm it's looking at the local directory

@@ -7,13 +7,13 @@ the inherent coupling in the interaction between Neovim <> some LLM streaming
 spec.
 
 ## Usage
-```
+```lua
 {
   'chottolabs/kznllm',
   dependencies = { 'nvim-lua/plenary.nvim' },
   config = function()
     local kznllm = require 'kznllm'
-    local spec = require 'kznllm.specs.openai'
+    local spec = require 'kznllm.specs.anthropic'
 
     local helpful_prompt = [[
 You are an AI programming assistant integrated into a code editor. Your purpose is to help the user with programming tasks as they write code.
@@ -29,30 +29,6 @@ Key capabilities:
 
     local function llm_help()
       kznllm.invoke_llm_and_stream_into_editor({
-        url = 'https://api.groq.com/openai/v1/chat/completions',
-        model = 'llama3-70b-8192',
-        api_key_name = 'GROQ_API_KEY',
-        system_prompt = helpful_prompt,
-      }, spec.make_job)
-    end
-
-    vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_help, { desc = 'Send current selection to LLM llm_help' })
-  end,
-},
-```
-
-or for anthropic
-```
-{
-  'chottolabs/kznllm.nvim',
-  dependencies = { 'nvim-lua/plenary.nvim' },
-  config = function()
-    local kznllm = require 'kznllm'
-    local spec = require 'kznllm.specs.anthropic'
-    ...
-
-    local function llm_help()
-      kznllm.invoke_llm_and_stream_into_editor({
         url = 'https://api.anthropic.com/v1/messages',
         model = 'claude-3-5-sonnet-20240620',
         api_key_name = 'ANTHROPIC_API_KEY',
@@ -62,5 +38,41 @@ or for anthropic
 
     vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_help, { desc = 'Send current selection to LLM llm_help' })
   end,
-},
+    local replace_prompt =
+      [[You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Do not provide any backticks that surround the code. Never ever output backticks like this ```. Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone. Do not output backticks]]
+    local function llm_replace()
+      kznllm.invoke_llm_and_stream_into_editor({
+        url = 'https://api.anthropic.com/v1/messages',
+        model = 'claude-3-5-sonnet-20240620',
+        api_key_name = 'ANTHROPIC_API_KEY',
+        system_prompt = replace_prompt,
+        replace = true,
+      }, spec.make_job)
+    end
+
+    vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_replace, { desc = 'Send current selection to LLM llm_replace' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>K', llm_help, { desc = 'Send current selection to LLM llm_help' })
+}
+```
+
+or for groq
+```lua
+{
+  'chottolabs/kznllm.nvim',
+  dependencies = { 'nvim-lua/plenary.nvim' },
+  config = function()
+    local kznllm = require 'kznllm'
+    local spec = require 'kznllm.specs.openai'
+    ...
+    local function llm_help()
+      kznllm.invoke_llm_and_stream_into_editor({
+        url = 'https://api.groq.com/openai/v1/chat/completions',
+        model = 'llama3-70b-8192',
+        api_key_name = 'GROQ_API_KEY',
+        system_prompt = helpful_prompt,
+      }, spec.make_job)
+    end
+    ...
+  end,
+}
 ```

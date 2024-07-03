@@ -6,6 +6,10 @@ between neovim <> some LLM streaming spec.
 - prompt user for additional context
 - clean up and handle job state
 
+
+https://github.com/chottolabs/kznllm.nvim/assets/171991982/39da67df-1ebc-4866-b563-f6b30d393162
+
+
 ## Usage
 ```lua
 {

@@ -1,10 +1,10 @@
-Based on [dingllm.nvim](https://github.com/yacineMTB/dingllm.nvim) - not a fork
-because it'll diverge quite a bit from the original state... I was just too
-lazy to get deep into Neovim Lua documentation.
+Based on [dingllm.nvim](https://github.com/yacineMTB/dingllm.nvim) - but it'll probably diverge quite a bit from the original state.
 
-This adds some docstring annotations and refactors it to better express some of
-the inherent coupling in the interaction between Neovim <> some LLM streaming
-spec.
+- adds some docstring annotations
+- refactored to better express some of the inherent coupling in the interaction
+between neovim <> some LLM streaming spec.
+- prompt user for additional context
+- clean up and handle job state
 
 ## Usage
 ```lua

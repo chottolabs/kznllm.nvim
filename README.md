@@ -13,7 +13,7 @@ https://github.com/chottolabs/kznllm.nvim/assets/171991982/39da67df-1ebc-4866-b5
 ## Usage
 ```lua
 {
-  'chottolabs/kznllm',
+  'chottolabs/kznllm.nvim',
   dependencies = { 'nvim-lua/plenary.nvim' },
   config = function()
     local kznllm = require 'kznllm'
@@ -40,8 +40,6 @@ Key capabilities:
       }, spec.make_job)
     end
 
-    vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_help, { desc = 'Send current selection to LLM llm_help' })
-  end,
     local replace_prompt =
       [[You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Do not provide any backticks that surround the code. Never ever output backticks like this ```. Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone. Do not output backticks]]
     local function llm_replace()
@@ -56,6 +54,7 @@ Key capabilities:
 
     vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_replace, { desc = 'Send current selection to LLM llm_replace' })
     vim.keymap.set({ 'n', 'v' }, '<leader>K', llm_help, { desc = 'Send current selection to LLM llm_help' })
+  end,
 }
 ```
 

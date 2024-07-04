@@ -11,6 +11,13 @@ https://github.com/chottolabs/kznllm.nvim/assets/171991982/39da67df-1ebc-4866-b5
 
 
 ## Usage
+
+Make your API keys available via environment variables
+```
+export ANTHROPIC_API_KEY=sk-...
+export GROQ_API_KEY=gsk_...
+```
+
 ```lua
 {
   'chottolabs/kznllm.nvim',

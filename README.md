@@ -9,7 +9,9 @@ between neovim <> some LLM streaming spec.
 
 https://github.com/chottolabs/kznllm.nvim/assets/171991982/39da67df-1ebc-4866-b563-f6b30d393162
 
-https://github.com/chottolabs/kznllm.nvim/assets/171991982/c1e48e46-d00f-4b30-8013-ce19e19cc4a3
+https://github.com/chottolabs/kznllm.nvim/assets/171991982/9de0d9e7-a3ea-4996-8a47-6374a74c3dd1
+
+
 
 ## Usage
 

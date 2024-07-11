@@ -121,7 +121,7 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
       return
     end
 
-    api.nvim_feedkeys('d', 'nx', false)
+    api.nvim_feedkeys('c', 'nx', false)
   else
     -- after getting lines, exit visual mode and go to end of the current line
     api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)

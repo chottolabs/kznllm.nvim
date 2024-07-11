@@ -133,9 +133,6 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
     api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
     api.nvim_feedkeys('$', 'nx', false)
 
-    -- put new line, enter visual mode to highlight the completion
-    api.nvim_put({ '' }, 'l', true, true)
-
     create_input_window()
   end
 

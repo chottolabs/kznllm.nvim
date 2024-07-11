@@ -19,30 +19,8 @@ local api = vim.api
 function M.write_content_at_cursor(content, win_id)
   vim.schedule(function()
     local row, col = unpack(api.nvim_win_get_cursor(win_id))
-    local win_width = vim.api.nvim_win_get_width(win_id) - 4
 
-    local lines = {}
-    local current_line = api.nvim_buf_get_lines(0, row - 1, row, true)[1]
-    local remaining_width = win_width - #current_line:sub(1, col)
-
-    for _, line in ipairs(vim.split(content, '\n')) do
-      if remaining_width > 0 then
-        table.insert(lines, line:sub(1, remaining_width))
-        line = line:sub(remaining_width + 1)
-      end
-
-      while #line > 0 do
-        if #line > win_width then
-          table.insert(lines, line:sub(1, win_width))
-          line = line:sub(win_width + 1)
-        else
-          table.insert(lines, line)
-          line = ''
-        end
-      end
-
-      remaining_width = win_width
-    end
+    local lines = vim.split(content, '\n')
 
     vim.cmd 'undojoin'
     api.nvim_put(lines, 'c', true, true)

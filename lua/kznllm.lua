@@ -5,7 +5,7 @@ local api = vim.api
 local input_buf_nr = nil
 
 -- Define the function that creates the buffer and handles the input
-local function create_input_buffer()
+local function create_input_buffer(initial_content)
   -- Create a new buffer
   input_buf_nr = vim.api.nvim_create_buf(false, true)
 
@@ -26,9 +26,14 @@ local function create_input_buffer()
   vim.api.nvim_win_set_option(0, 'linebreak', true)
   vim.api.nvim_win_set_option(0, 'breakindent', true)
 
-  -- Move cursor to the end of the buffer
-  local line_count = vim.api.nvim_buf_line_count(input_buf_nr)
-  vim.api.nvim_win_set_cursor(0, { line_count, 0 })
+  -- Set initial content
+  vim.api.nvim_buf_set_lines(input_buf_nr, 0, -1, false, vim.split(initial_content, '\n'))
+
+  -- Add separator and move cursor after it
+  local new_line_count = vim.api.nvim_buf_line_count(input_buf_nr)
+  local separator = { '', '---', '', '' }
+  vim.api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, separator)
+  vim.api.nvim_win_set_cursor(0, { new_line_count + #separator, 0 })
 
   -- Set up autocmd to clear the buffer number when it's deleted
   vim.api.nvim_create_autocmd('BufDelete', {
@@ -49,38 +54,6 @@ local function create_input_buffer()
       vim.api.nvim_buf_delete(input_buf_nr, { force = true })
     end,
   })
-end
-
-local function input_text(text)
-  if input_buf_nr and vim.api.nvim_buf_is_valid(input_buf_nr) then
-    local line_count = vim.api.nvim_buf_line_count(input_buf_nr)
-    local lines_to_insert = vim.split(text, '\n')
-
-    -- Add separator after the text if the buffer is not empty
-    if line_count > 0 then
-      table.insert(lines_to_insert, '')
-      table.insert(lines_to_insert, '---')
-      table.insert(lines_to_insert, '')
-      table.insert(lines_to_insert, '')
-    end
-
-    vim.api.nvim_buf_set_lines(input_buf_nr, line_count, -1, false, lines_to_insert)
-
-    -- Switch to the buffer if it's not currently visible
-    if vim.api.nvim_get_current_buf() ~= input_buf_nr then
-      vim.api.nvim_set_current_buf(input_buf_nr)
-    end
-
-    -- Move cursor to the end of the newly inserted text
-    local new_line_count = vim.api.nvim_buf_line_count(input_buf_nr)
-
-    -- Set cursor to the last line of the inserted text
-    vim.api.nvim_win_set_cursor(0, { new_line_count, 0 })
-
-    -- Move cursor to the end of the last line
-    local last_line = vim.api.nvim_get_current_line()
-    vim.api.nvim_win_set_cursor(0, { new_line_count, #last_line })
-  end
 end
 
 --- Handle visual selection using the start of the visual selection and current
@@ -134,6 +107,11 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
 
   local visual_selection = get_visual_selection()
 
+  local system_prompt = opts.system_prompt
+  if system_prompt == nil then
+    system_prompt = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
+  end
+
   local replace_prompt = nil
   if opts.replace then
     vim.ui.input({ prompt = 'prompt: ' }, function(input)
@@ -152,21 +130,12 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
     if input_buf_nr and vim.api.nvim_buf_is_valid(input_buf_nr) then
       vim.api.nvim_set_current_buf(input_buf_nr)
     else
-      create_input_buffer()
+      create_input_buffer(table.concat({ system_prompt, visual_selection }, '\n\n---\n\n'))
     end
-  end
-
-  local system_prompt = opts.system_prompt
-  if system_prompt == nil then
-    system_prompt = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
   end
 
   local user_prompt = table.concat({ visual_selection, replace_prompt }, '\n')
 
-  if input_buf_nr ~= 0 then
-    input_text(system_prompt)
-    input_text(user_prompt)
-  end
   local active_job = make_job_fn(opts, system_prompt, user_prompt)
   active_job:start()
   api.nvim_create_autocmd('User', {

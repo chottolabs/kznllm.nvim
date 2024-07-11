@@ -7,36 +7,36 @@ local input_buf_nr = nil
 -- Define the function that creates the buffer and handles the input
 local function create_input_buffer(initial_content)
   -- Create a new buffer
-  input_buf_nr = vim.api.nvim_create_buf(false, true)
+  input_buf_nr = api.nvim_create_buf(false, true)
 
   -- Set buffer options
-  vim.api.nvim_buf_set_option(input_buf_nr, 'buftype', 'nofile')
-  vim.api.nvim_buf_set_option(input_buf_nr, 'bufhidden', 'hide')
-  vim.api.nvim_buf_set_option(input_buf_nr, 'swapfile', false)
-  vim.api.nvim_buf_set_option(input_buf_nr, 'filetype', 'input-buffer')
+  api.nvim_buf_set_option(input_buf_nr, 'buftype', 'nofile')
+  api.nvim_buf_set_option(input_buf_nr, 'bufhidden', 'hide')
+  api.nvim_buf_set_option(input_buf_nr, 'swapfile', false)
+  api.nvim_buf_set_option(input_buf_nr, 'filetype', 'input-buffer')
 
   -- Set buffer name
-  vim.api.nvim_buf_set_name(input_buf_nr, 'Input Buffer')
+  api.nvim_buf_set_name(input_buf_nr, 'Input Buffer')
 
   -- Switch to the new buffer
-  vim.api.nvim_set_current_buf(input_buf_nr)
+  api.nvim_set_current_buf(input_buf_nr)
 
   -- Enable text wrapping
-  vim.api.nvim_win_set_option(0, 'wrap', true)
-  vim.api.nvim_win_set_option(0, 'linebreak', true)
-  vim.api.nvim_win_set_option(0, 'breakindent', true)
+  api.nvim_win_set_option(0, 'wrap', true)
+  api.nvim_win_set_option(0, 'linebreak', true)
+  api.nvim_win_set_option(0, 'breakindent', true)
 
   -- Set initial content
-  vim.api.nvim_buf_set_lines(input_buf_nr, 0, -1, false, vim.split(initial_content, '\n'))
+  api.nvim_buf_set_lines(input_buf_nr, 0, -1, false, vim.split(initial_content, '\n'))
 
   -- Add separator and move cursor after it
   local new_line_count = vim.api.nvim_buf_line_count(input_buf_nr)
   local separator = { '', '---', '', '' }
-  vim.api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, separator)
-  vim.api.nvim_win_set_cursor(0, { new_line_count + #separator, 0 })
+  api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, separator)
+  api.nvim_win_set_cursor(0, { new_line_count + #separator, 0 })
 
   -- Set up autocmd to clear the buffer number when it's deleted
-  vim.api.nvim_create_autocmd('BufDelete', {
+  api.nvim_create_autocmd('BufDelete', {
     buffer = input_buf_nr,
     callback = function()
       input_buf_nr = nil
@@ -44,14 +44,14 @@ local function create_input_buffer(initial_content)
   })
 
   -- Set up key mapping to close the buffer
-  vim.api.nvim_buf_set_keymap(input_buf_nr, 'n', 'q', '', {
+  api.nvim_buf_set_keymap(input_buf_nr, 'n', 'q', '', {
     noremap = true,
     silent = true,
     callback = function()
       -- Trigger the LLM_Escape event
-      vim.api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+      api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
       -- Close the buffer
-      vim.api.nvim_buf_delete(input_buf_nr, { force = true })
+      api.nvim_buf_delete(input_buf_nr, { force = true })
     end,
   })
 end
@@ -128,11 +128,17 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
     api.nvim_feedkeys('$', 'nx', false)
 
     if input_buf_nr and vim.api.nvim_buf_is_valid(input_buf_nr) then
-      vim.api.nvim_set_current_buf(input_buf_nr)
+      api.nvim_set_current_buf(input_buf_nr)
       local new_line_count = vim.api.nvim_buf_line_count(input_buf_nr)
+
       local separator = { '', '---', '', '' }
-      vim.api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, separator)
-      vim.api.nvim_win_set_cursor(0, { new_line_count + #separator, 0 })
+      local visual_selection_lines = vim.split(visual_selection, '\n')
+      local context_lines = vim.list_extend(vim.list_extend({}, separator), visual_selection_lines)
+      context_lines = vim.list_extend(context_lines, separator)
+      vim.print(context_lines)
+
+      api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, context_lines)
+      api.nvim_win_set_cursor(0, { new_line_count + #context_lines, 0 })
     else
       create_input_buffer(table.concat({ system_prompt, visual_selection }, '\n\n---\n\n'))
     end

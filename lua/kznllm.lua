@@ -39,7 +39,16 @@ local function create_input_buffer()
   })
 
   -- Set up key mapping to close the buffer
-  vim.api.nvim_buf_set_keymap(input_buf_nr, 'n', 'q', ':bdelete<CR>:doautocmd User LLM_Escape<CR>', { noremap = true, silent = true })
+  vim.api.nvim_buf_set_keymap(input_buf_nr, 'n', 'q', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      -- Trigger the LLM_Escape event
+      vim.api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+      -- Close the buffer
+      vim.api.nvim_buf_delete(input_buf_nr, { force = true })
+    end,
+  })
 end
 
 local function input_text(text)

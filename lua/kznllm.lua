@@ -129,6 +129,10 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
 
     if input_buf_nr and vim.api.nvim_buf_is_valid(input_buf_nr) then
       vim.api.nvim_set_current_buf(input_buf_nr)
+      local new_line_count = vim.api.nvim_buf_line_count(input_buf_nr)
+      local separator = { '', '---', '', '' }
+      vim.api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, separator)
+      vim.api.nvim_win_set_cursor(0, { new_line_count + #separator, 0 })
     else
       create_input_buffer(table.concat({ system_prompt, visual_selection }, '\n\n---\n\n'))
     end

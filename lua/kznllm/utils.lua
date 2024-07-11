@@ -49,7 +49,7 @@ function M.write_content_at_cursor(content, win_id)
     api.nvim_put({}, 'c', true, true)
 
     local num_lines = #lines
-    local last_line_length = #lines[num_lines]
+    local last_line_length = num_lines > 0 and #lines[num_lines] or 0
     local new_row = row + num_lines - 1
     local new_col = (new_row == row) and (col + last_line_length) or last_line_length
     api.nvim_win_set_cursor(win_id, { new_row, new_col })

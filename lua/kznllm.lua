@@ -61,8 +61,6 @@ local function input_text(text)
     vim.api.nvim_buf_set_lines(buf, -1, -1, false, lines)
     vim.api.nvim_buf_set_lines(buf, -1, -1, false, { '', '---', '' }) -- Add an extra newline
     vim.api.nvim_win_set_cursor(input_win_id, { vim.api.nvim_buf_line_count(buf), 0 })
-  else
-    print 'Input window is not open. Use :ShowInput to open it first.'
   end
 end
 

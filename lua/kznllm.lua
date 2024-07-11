@@ -1,66 +1,76 @@
 local M = {}
 local api = vim.api
 
--- Global variable to store the window ID
-local input_win_id = nil
+-- Global variable to store the buffer number
+local input_buf_nr = nil
 
--- Define the function that creates the window and handles the input
-local function create_input_window()
-  local buf = vim.api.nvim_create_buf(false, true)
+-- Define the function that creates the buffer and handles the input
+local function create_input_buffer()
+  -- Create a new buffer
+  input_buf_nr = vim.api.nvim_create_buf(false, true)
 
-  vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
-  vim.api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
+  -- Set buffer options
+  vim.api.nvim_buf_set_option(input_buf_nr, 'buftype', 'nofile')
+  vim.api.nvim_buf_set_option(input_buf_nr, 'bufhidden', 'hide')
+  vim.api.nvim_buf_set_option(input_buf_nr, 'swapfile', false)
+  vim.api.nvim_buf_set_option(input_buf_nr, 'filetype', 'input-buffer')
 
-  local width = vim.api.nvim_get_option 'columns'
-  local height = vim.api.nvim_get_option 'lines'
+  -- Set buffer name
+  vim.api.nvim_buf_set_name(input_buf_nr, 'Input Buffer')
 
-  local win_height = math.ceil(height * 0.8)
-  local win_width = math.ceil(width * 0.8)
+  -- Switch to the new buffer
+  vim.api.nvim_set_current_buf(input_buf_nr)
 
-  local row = math.ceil((height - win_height) / 2)
-  local col = math.ceil((width - win_width) / 2)
+  -- Enable text wrapping
+  vim.api.nvim_win_set_option(0, 'wrap', true)
+  vim.api.nvim_win_set_option(0, 'linebreak', true)
+  vim.api.nvim_win_set_option(0, 'breakindent', true)
 
-  local opts = {
-    style = 'minimal',
-    relative = 'editor',
-    width = win_width,
-    height = win_height,
-    row = row,
-    col = col,
-    border = 'rounded',
-    focusable = true,
-  }
+  -- Move cursor to the end of the buffer
+  local line_count = vim.api.nvim_buf_line_count(input_buf_nr)
+  vim.api.nvim_win_set_cursor(0, { line_count, 0 })
 
-  local win = vim.api.nvim_open_win(buf, true, opts)
-  input_win_id = win -- Store the window ID
-
-  -- Set focus to the new window
-  vim.api.nvim_set_current_win(win)
-
-  vim.api.nvim_win_set_option(win, 'wrap', false)
-  vim.api.nvim_win_set_option(win, 'cursorline', true)
-
-  local content = ''
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { content })
-
-  vim.api.nvim_create_autocmd('BufLeave', {
-    buffer = buf,
+  -- Set up autocmd to clear the buffer number when it's deleted
+  vim.api.nvim_create_autocmd('BufDelete', {
+    buffer = input_buf_nr,
     callback = function()
-      vim.api.nvim_win_close(win, true)
-      input_win_id = nil -- Reset the window ID when closed
+      input_buf_nr = nil
     end,
   })
 
-  vim.api.nvim_buf_set_keymap(buf, 'n', 'q', ':close<CR>', { noremap = true, silent = true })
+  -- Set up key mapping to close the buffer
+  vim.api.nvim_buf_set_keymap(input_buf_nr, 'n', 'q', ':bdelete<CR>:doautocmd User LLM_Escape<CR>', { noremap = true, silent = true })
 end
 
 local function input_text(text)
-  if input_win_id and vim.api.nvim_win_is_valid(input_win_id) then
-    local buf = vim.api.nvim_win_get_buf(input_win_id)
-    local lines = vim.split(text, '\n')
-    vim.api.nvim_buf_set_lines(buf, -1, -1, false, lines)
-    vim.api.nvim_buf_set_lines(buf, -1, -1, false, { '', '---', '' }) -- Add an extra newline
-    vim.api.nvim_win_set_cursor(input_win_id, { vim.api.nvim_buf_line_count(buf), 0 })
+  if input_buf_nr and vim.api.nvim_buf_is_valid(input_buf_nr) then
+    local line_count = vim.api.nvim_buf_line_count(input_buf_nr)
+    local lines_to_insert = vim.split(text, '\n')
+
+    -- Add separator after the text if the buffer is not empty
+    if line_count > 0 then
+      table.insert(lines_to_insert, '')
+      table.insert(lines_to_insert, '---')
+      table.insert(lines_to_insert, '')
+      table.insert(lines_to_insert, '')
+    end
+
+    vim.api.nvim_buf_set_lines(input_buf_nr, line_count, -1, false, lines_to_insert)
+
+    -- Switch to the buffer if it's not currently visible
+    if vim.api.nvim_get_current_buf() ~= input_buf_nr then
+      vim.api.nvim_set_current_buf(input_buf_nr)
+    end
+
+    -- Move cursor to the end of the newly inserted text
+    local new_line_count = vim.api.nvim_buf_line_count(input_buf_nr)
+
+    -- Set cursor to the last line of the inserted text
+    vim.api.nvim_win_set_cursor(0, { new_line_count, 0 })
+
+    -- Move cursor to the end of the last line
+    local last_line = vim.api.nvim_get_current_line()
+    vim.api.nvim_win_set_cursor(0, { new_line_count, #last_line })
   end
 end
 
@@ -125,13 +135,16 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
     end
 
     api.nvim_feedkeys('d', 'nx', false)
-    input_win_id = 0
   else
     -- after getting lines, exit visual mode and go to end of the current line
     api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
     api.nvim_feedkeys('$', 'nx', false)
 
-    create_input_window()
+    if input_buf_nr and vim.api.nvim_buf_is_valid(input_buf_nr) then
+      vim.api.nvim_set_current_buf(input_buf_nr)
+    else
+      create_input_buffer()
+    end
   end
 
   local system_prompt = opts.system_prompt
@@ -141,11 +154,11 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
 
   local user_prompt = table.concat({ visual_selection, replace_prompt }, '\n')
 
-  if input_win_id ~= 0 then
+  if input_buf_nr ~= 0 then
     input_text(system_prompt)
     input_text(user_prompt)
   end
-  local active_job = make_job_fn(opts, system_prompt, user_prompt, input_win_id)
+  local active_job = make_job_fn(opts, system_prompt, user_prompt)
   active_job:start()
   api.nvim_create_autocmd('User', {
     group = group,

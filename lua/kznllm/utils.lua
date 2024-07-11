@@ -16,9 +16,9 @@ local api = vim.api
 --- 5. Moves the cursor to the end of the inserted content.
 ---
 --- Note: This function modifies the current buffer and cursor position.
-function M.write_content_at_cursor(content, win_id)
+function M.write_content_at_cursor(content)
   vim.schedule(function()
-    local row, col = unpack(api.nvim_win_get_cursor(win_id))
+    local row, col = unpack(api.nvim_win_get_cursor(0))
 
     local lines = vim.split(content, '\n')
 
@@ -30,7 +30,7 @@ function M.write_content_at_cursor(content, win_id)
     local last_line_length = num_lines > 0 and #lines[num_lines] or 0
     local new_row = row + num_lines - 1
     local new_col = (new_row == row) and (col + last_line_length) or last_line_length
-    api.nvim_win_set_cursor(win_id, { new_row, new_col })
+    api.nvim_win_set_cursor(0, { new_row, new_col })
   end)
 end
 

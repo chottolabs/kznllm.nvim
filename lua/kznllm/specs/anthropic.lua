@@ -68,7 +68,7 @@ local function handle_data(data)
   return content
 end
 
-function M.make_job(opts, system_prompt, user_prompt, win_id)
+function M.make_job(opts, system_prompt, user_prompt)
   local active_job = Job:new {
     command = 'curl',
     args = make_curl_args(opts, system_prompt, user_prompt),
@@ -92,7 +92,7 @@ function M.make_job(opts, system_prompt, user_prompt, win_id)
 
         local content = handle_data(data)
         if content and content ~= nil then
-          utils.write_content_at_cursor(content, win_id)
+          utils.write_content_at_cursor(content)
         end
       end
     end,

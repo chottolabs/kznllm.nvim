@@ -54,12 +54,12 @@ local function create_input_window()
   vim.api.nvim_buf_set_keymap(buf, 'n', 'q', ':close<CR>', { noremap = true, silent = true })
 end
 
--- Function to input text into the floating window
 local function input_text(text)
   if input_win_id and vim.api.nvim_win_is_valid(input_win_id) then
     local buf = vim.api.nvim_win_get_buf(input_win_id)
     local lines = vim.split(text, '\n')
     vim.api.nvim_buf_set_lines(buf, -1, -1, false, lines)
+    vim.api.nvim_buf_set_lines(buf, -1, -1, false, { '', '---', '' }) -- Add an extra newline
     vim.api.nvim_win_set_cursor(input_win_id, { vim.api.nvim_buf_line_count(buf), 0 })
   else
     print 'Input window is not open. Use :ShowInput to open it first.'
@@ -117,43 +117,51 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
 
   local visual_selection = get_visual_selection()
 
-  vim.ui.input({ prompt = 'prompt: ' }, function(input)
-    if input == nil then
+  local replace_prompt = nil
+  if opts.replace then
+    vim.ui.input({ prompt = 'prompt: ' }, function(input)
+      replace_prompt = input
+    end)
+    if replace_prompt == nil then
       return
     end
 
-    if opts.replace then
-      api.nvim_feedkeys('d', 'nx', false)
-      input_win_id = 0
-    else
-      create_input_window()
-      -- after getting lines, exit visual mode and go to end of the current line
-      api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
-      api.nvim_feedkeys('$', 'nx', false)
+    api.nvim_feedkeys('d', 'nx', false)
+    input_win_id = 0
+  else
+    -- after getting lines, exit visual mode and go to end of the current line
+    api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
+    api.nvim_feedkeys('$', 'nx', false)
 
-      -- put new line, enter visual mode to highlight the completion
-      api.nvim_put({ '' }, 'l', true, true)
-    end
+    -- put new line, enter visual mode to highlight the completion
+    api.nvim_put({ '' }, 'l', true, true)
 
-    local system_prompt = opts.system_prompt
-    if system_prompt == nil then
-      system_prompt = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
-    end
+    create_input_window()
+  end
 
-    local user_prompt = table.concat({ visual_selection, input }, '\n')
-    local active_job = make_job_fn(opts, system_prompt, user_prompt, input_win_id)
-    active_job:start()
-    api.nvim_create_autocmd('User', {
-      group = group,
-      pattern = 'LLM_Escape',
-      callback = function()
-        if active_job.is_shutdown ~= true then
-          active_job:shutdown()
-          print 'LLM streaming cancelled'
-        end
-      end,
-    })
-  end)
+  local system_prompt = opts.system_prompt
+  if system_prompt == nil then
+    system_prompt = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
+  end
+
+  local user_prompt = table.concat({ visual_selection, replace_prompt }, '\n')
+
+  if input_win_id ~= 0 then
+    input_text(system_prompt)
+    input_text(user_prompt)
+  end
+  local active_job = make_job_fn(opts, system_prompt, user_prompt, input_win_id)
+  active_job:start()
+  api.nvim_create_autocmd('User', {
+    group = group,
+    pattern = 'LLM_Escape',
+    callback = function()
+      if active_job.is_shutdown ~= true then
+        active_job:shutdown()
+        print 'LLM streaming cancelled'
+      end
+    end,
+  })
 
   api.nvim_set_keymap('n', '<Esc>', ':doautocmd User LLM_Escape<CR>', { noremap = true, silent = true })
 end

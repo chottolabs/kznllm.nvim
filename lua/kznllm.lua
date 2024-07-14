@@ -30,7 +30,7 @@ local function create_input_buffer(initial_content)
   api.nvim_buf_set_lines(input_buf_nr, 0, -1, false, vim.split(initial_content, '\n'))
 
   -- Add separator and move cursor after it
-  local new_line_count = vim.api.nvim_buf_line_count(input_buf_nr)
+  local new_line_count = api.nvim_buf_line_count(input_buf_nr)
   local separator = { '', '---', '', '' }
   api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, separator)
   api.nvim_win_set_cursor(0, { new_line_count + #separator, 0 })
@@ -127,9 +127,9 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
     api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
     api.nvim_feedkeys('$', 'nx', false)
 
-    if input_buf_nr and vim.api.nvim_buf_is_valid(input_buf_nr) then
+    if input_buf_nr and api.nvim_buf_is_valid(input_buf_nr) then
       api.nvim_set_current_buf(input_buf_nr)
-      local new_line_count = vim.api.nvim_buf_line_count(input_buf_nr)
+      local new_line_count = api.nvim_buf_line_count(input_buf_nr)
 
       local separator = { '', '---', '', '' }
       local visual_selection_lines = vim.split(visual_selection, '\n')

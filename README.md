@@ -62,7 +62,7 @@ or for groq
   config = function()
     local kznllm = require 'kznllm'
     local spec = require 'kznllm.specs.openai'
-    ...
+
     local function llm_help()
       kznllm.invoke_llm_and_stream_into_editor({
         system_prompt = spec.PROMPT_TEMPLATES.HELPFUL_PROMPT,
@@ -76,7 +76,9 @@ or for groq
         replace = true,
       }, spec.make_job)
     end
-    ...
+
+    vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_replace, { desc = 'Send current selection to LLM llm_replace' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>K', llm_help, { desc = 'Send current selection to LLM llm_help' })
   end,
 }
 ```

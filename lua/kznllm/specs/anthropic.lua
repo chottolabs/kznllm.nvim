@@ -1,4 +1,36 @@
 local M = {}
+M.API_KEY_NAME = 'ANTHROPIC_API_KEY'
+M.URL = 'https://api.anthropic.com/v1/messages'
+
+M.MODELS = {
+  SONNET_3_5 = 'claude-3-5-sonnet-20240620',
+  OPUS_3 = 'claude-3-opus-20240229',
+  HAIKU_3 = 'claude-3-haiku-20240307',
+}
+
+M.SELECTED_MODEL = M.MODELS.SONNET_3_5
+
+M.PROMPT_TEMPLATES = {
+  --- this prompt should let the model yap into a separate buffer
+  HELPFUL_PROMPT = [[You are an AI programming assistant integrated into a code editor. Your purpose is to help the user with programming tasks as they write code.
+Key capabilities:
+- Thoroughly analyze the user's code and provide insightful suggestions for improvements related to best practices, performance, readability, and maintainability. Explain your reasoning.
+- Answer coding questions in detail, using examples from the user's own code when relevant. Break down complex topics step- Spot potential bugs and logical errors. Alert the user and suggest fixes.
+- Upon request, add helpful comments explaining complex or unclear code.
+- Suggest relevant documentation, StackOverflow answers, and other resources related to the user's code and questions.
+- Engage in back-and-forth conversations to understand the user's intent and provide the most helpful information.
+- Keep concise and use markdown.
+- When asked to create code, only generate the code. No bugs.
+- Think step by step]],
+
+  --- this prompt has to be written to output valid code
+  REPLACE_PROMPT = [[You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Do not provide any backticks that surround the code. Never ever output backticks like this ```. Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone. Do not output backticks]],
+}
+
+local API_ERROR_MESSAGE = [[
+ERROR: anthropic api key is set to %s and is missing from your environment variables.
+
+Load somewhere safely from config `export %s=<api_key>`]]
 
 local Job = require 'plenary.job'
 local utils = require 'kznllm.utils'
@@ -7,17 +39,15 @@ local current_event_state = nil
 --- Constructs arguments for constructing an HTTP request to the Anthropic API
 --- using cURL.
 ---
----@param opts { api_key_name: string, url: string, model: string }
 ---@param system_prompt string
 ---@param user_prompt string
 ---@return string[]
-local function make_curl_args(opts, system_prompt, user_prompt)
-  local url = opts.url
-  local api_key = opts.api_key_name and os.getenv(opts.api_key_name)
+local function make_curl_args(system_prompt, user_prompt)
+  local api_key = os.getenv(M.API_KEY_NAME)
   local data = {
     system = system_prompt,
     messages = { { role = 'user', content = user_prompt } },
-    model = opts.model,
+    model = M.SELECTED_MODEL,
     stream = true,
     max_tokens = 4096,
   }
@@ -27,8 +57,11 @@ local function make_curl_args(opts, system_prompt, user_prompt)
     table.insert(args, 'x-api-key: ' .. api_key)
     table.insert(args, '-H')
     table.insert(args, 'anthropic-version: 2023-06-01')
+  else
+    error(string.format(API_ERROR_MESSAGE, M.API_KEY_NAME, M.API_KEY_NAME), 1)
   end
-  table.insert(args, url)
+
+  table.insert(args, M.URL)
   return args
 end
 
@@ -68,10 +101,10 @@ local function handle_data(data)
   return content
 end
 
-function M.make_job(opts, system_prompt, user_prompt)
+function M.make_job(system_prompt, user_prompt)
   local active_job = Job:new {
     command = 'curl',
-    args = make_curl_args(opts, system_prompt, user_prompt),
+    args = make_curl_args(system_prompt, user_prompt),
     on_stdout = function(_, out)
       -- based on sse spec (Anthropic spec has several distinct events)
       -- Anthropic's sse spec requires you to manage the current event state
@@ -96,7 +129,9 @@ function M.make_job(opts, system_prompt, user_prompt)
         end
       end
     end,
-    on_stderr = function(_, _) end,
+    on_stderr = function(message, _)
+      error(message, 1)
+    end,
     on_exit = function() end,
   }
   return active_job

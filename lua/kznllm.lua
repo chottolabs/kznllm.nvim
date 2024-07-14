@@ -100,7 +100,7 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 --- Must provide the function for constructing cURL arguments and a handler
 --- function for processing server-sent events.
 ---
----@param opts { api_key_name: string, url: string, model: string, system_prompt: string, replace: boolean }
+---@param opts { model: string, system_prompt: string, replace: boolean }
 ---@param make_job_fn function
 function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }
@@ -146,7 +146,7 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
 
   local user_prompt = table.concat({ visual_selection, replace_prompt }, '\n')
 
-  local active_job = make_job_fn(opts, system_prompt, user_prompt)
+  local active_job = make_job_fn(system_prompt, user_prompt)
   active_job:start()
   api.nvim_create_autocmd('User', {
     group = group,

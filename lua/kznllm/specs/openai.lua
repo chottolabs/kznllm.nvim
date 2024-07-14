@@ -94,7 +94,9 @@ function M.make_job(system_prompt, user_prompt)
         utils.write_content_at_cursor(content)
       end
     end,
-    on_stderr = function(_, _) end,
+    on_stderr = function(message, _)
+      error(message, 1)
+    end,
     on_exit = function() end,
   }
   return active_job

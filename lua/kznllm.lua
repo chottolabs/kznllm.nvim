@@ -135,7 +135,6 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
       local visual_selection_lines = vim.split(visual_selection, '\n')
       local context_lines = vim.list_extend(vim.list_extend({}, separator), visual_selection_lines)
       context_lines = vim.list_extend(context_lines, separator)
-      vim.print(context_lines)
 
       api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, context_lines)
       api.nvim_win_set_cursor(0, { new_line_count + #context_lines, 0 })

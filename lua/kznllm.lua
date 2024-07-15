@@ -4,6 +4,19 @@ local api = vim.api
 -- Global variable to store the buffer number
 local input_buf_nr = nil
 
+local context_template = [[Prompt Template:
+
+%s
+
+---
+
+Visual Selection
+
+%s
+
+---
+
+]]
 -- Define the function that creates the buffer and handles the input
 local function create_input_buffer(initial_content)
   -- Create a new buffer
@@ -31,9 +44,7 @@ local function create_input_buffer(initial_content)
 
   -- Add separator and move cursor after it
   local new_line_count = api.nvim_buf_line_count(input_buf_nr)
-  local separator = { '', '---', '', '' }
-  api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, separator)
-  api.nvim_win_set_cursor(0, { new_line_count + #separator, 0 })
+  api.nvim_win_set_cursor(0, { new_line_count, 0 })
 
   -- Set up autocmd to clear the buffer number when it's deleted
   api.nvim_create_autocmd('BufDelete', {
@@ -100,27 +111,18 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 --- Must provide the function for constructing cURL arguments and a handler
 --- function for processing server-sent events.
 ---
----@param opts { system_prompt: string, replace: boolean }
+---@param opts { prompt_template: string, replace: boolean}
 ---@param make_job_fn function
 function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }
 
   local visual_selection = get_visual_selection()
 
-  local system_prompt = opts.system_prompt
-  if system_prompt == nil then
-    system_prompt = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
+  if opts.prompt_template == nil then
+    opts.prompt_template = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
   end
 
-  local replace_prompt = nil
   if opts.replace then
-    vim.ui.input({ prompt = 'prompt: ' }, function(input)
-      replace_prompt = input
-    end)
-    if replace_prompt == nil then
-      return
-    end
-
     api.nvim_feedkeys('c', 'nx', false)
   else
     -- after getting lines, exit visual mode and go to end of the current line
@@ -139,13 +141,11 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
       api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, context_lines)
       api.nvim_win_set_cursor(0, { new_line_count + #context_lines, 0 })
     else
-      create_input_buffer(table.concat({ system_prompt, visual_selection }, '\n\n---\n\n'))
+      create_input_buffer(opts.prompt_template:format(visual_selection))
     end
   end
 
-  local user_prompt = table.concat({ visual_selection, replace_prompt }, '\n')
-
-  local active_job = make_job_fn(system_prompt, user_prompt)
+  local active_job = make_job_fn(opts.prompt_template, visual_selection)
   active_job:start()
   api.nvim_create_autocmd('User', {
     group = group,

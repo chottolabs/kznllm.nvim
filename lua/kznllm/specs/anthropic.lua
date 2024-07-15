@@ -24,7 +24,40 @@ Key capabilities:
 - Think step by step]],
 
   --- this prompt has to be written to output valid code
-  REPLACE_PROMPT = [[You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Do not provide any backticks that surround the code. Never ever output backticks like this ```. Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone. Do not output backticks]],
+  REPLACE_PROMPT = [[You will be given a code snippet with comments. Your task is to fix any errors in the code and implement any unfinished functionality indicated in the comments. Only output valid code in the provided language.
+
+Here is the code snippet:
+
+<code_snippet>
+%s
+</code_snippet>
+
+Follow these steps to complete the task:
+
+1. Carefully read through the entire code snippet, including all comments.
+
+2. Identify any syntax errors, logical errors, or unimplemented functionality mentioned in the comments.
+
+3. Fix all errors you've identified. This may include:
+   - Correcting syntax mistakes
+   - Addressing logical errors
+   - Implementing missing functionality as described in the comments
+
+4. Ensure that your changes maintain the original intent of the code while improving its functionality and correctness.
+
+5. If there are multiple ways to implement a feature or fix an error, choose the most efficient and clear approach.
+
+6. Do not add any new features or functionality beyond what is explicitly mentioned in the code or comments.
+
+7. Maintain the original code style and formatting as much as possible, unless it directly contributes to the errors.
+
+8. Remove any comments that are no longer relevant after your changes.
+
+9. If you make any significant changes or implementations, add brief comments explaining your modifications.
+
+Output your corrected and implemented code. Ensure that the code you output is complete, valid, and ready to run in the language of the original snippet.
+
+Remember, only output valid code. Do not include any explanations, notes, or anything other than the corrected code itself.]],
 }
 
 local API_ERROR_MESSAGE = [[
@@ -39,13 +72,11 @@ local current_event_state = nil
 --- Constructs arguments for constructing an HTTP request to the Anthropic API
 --- using cURL.
 ---
----@param system_prompt string
 ---@param user_prompt string
 ---@return string[]
-local function make_curl_args(system_prompt, user_prompt)
+local function make_curl_args(user_prompt)
   local api_key = os.getenv(M.API_KEY_NAME)
   local data = {
-    system = system_prompt,
     messages = { { role = 'user', content = user_prompt } },
     model = M.SELECTED_MODEL.name,
     stream = true,
@@ -105,10 +136,10 @@ local function handle_data(data)
   return content
 end
 
-function M.make_job(system_prompt, user_prompt)
+function M.make_job(prompt_template, user_prompt)
   local active_job = Job:new {
     command = 'curl',
-    args = make_curl_args(system_prompt, user_prompt),
+    args = make_curl_args(prompt_template:format(user_prompt)),
     on_stdout = function(_, out)
       -- based on sse spec (Anthropic spec has several distinct events)
       -- Anthropic's sse spec requires you to manage the current event state

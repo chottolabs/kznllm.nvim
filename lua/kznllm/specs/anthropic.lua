@@ -3,9 +3,9 @@ M.API_KEY_NAME = 'ANTHROPIC_API_KEY'
 M.URL = 'https://api.anthropic.com/v1/messages'
 
 M.MODELS = {
-  SONNET_3_5 = 'claude-3-5-sonnet-20240620',
-  OPUS_3 = 'claude-3-opus-20240229',
-  HAIKU_3 = 'claude-3-haiku-20240307',
+  SONNET_3_5 = { name = 'claude-3-5-sonnet-20240620', max_tokens = 8192 },
+  OPUS_3 = { name = 'claude-3-opus-20240229', max_tokens = 4096 },
+  HAIKU_3 = { name = 'claude-3-haiku-20240307', max_tokens = 4096 },
 }
 
 M.SELECTED_MODEL = M.MODELS.SONNET_3_5
@@ -47,9 +47,9 @@ local function make_curl_args(system_prompt, user_prompt)
   local data = {
     system = system_prompt,
     messages = { { role = 'user', content = user_prompt } },
-    model = M.SELECTED_MODEL,
+    model = M.SELECTED_MODEL.name,
     stream = true,
-    max_tokens = 8192,
+    max_tokens = M.SELECTED_MODEL.max_tokens,
   }
   local args = { '-s', '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
   if api_key then

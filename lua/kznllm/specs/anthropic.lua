@@ -49,7 +49,7 @@ local function make_curl_args(system_prompt, user_prompt)
     messages = { { role = 'user', content = user_prompt } },
     model = M.SELECTED_MODEL,
     stream = true,
-    max_tokens = 4096,
+    max_tokens = 8192,
   }
   local args = { '-s', '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
   if api_key then
@@ -57,6 +57,8 @@ local function make_curl_args(system_prompt, user_prompt)
     table.insert(args, 'x-api-key: ' .. api_key)
     table.insert(args, '-H')
     table.insert(args, 'anthropic-version: 2023-06-01')
+    table.insert(args, '-H')
+    table.insert(args, 'anthropic-beta: max-tokens-3-5-sonnet-2024-07-15')
   else
     error(string.format(API_ERROR_MESSAGE, M.API_KEY_NAME, M.API_KEY_NAME), 1)
   end

@@ -122,9 +122,22 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
     opts.prompt_template = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
   end
 
+  local user_prompt_args = { visual_selection }
   if opts.replace then
     api.nvim_feedkeys('c', 'nx', false)
   else
+    local user_input = nil
+    vim.ui.input({ prompt = 'prompt: ' }, function(input)
+      if input ~= nil then
+        user_input = input
+      end
+    end)
+
+    if user_input == nil then
+      return
+    end
+    vim.list_extend(user_prompt_args, { user_input })
+
     -- after getting lines, exit visual mode and go to end of the current line
     api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
     api.nvim_feedkeys('$', 'nx', false)
@@ -141,11 +154,11 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
       api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, context_lines)
       api.nvim_win_set_cursor(0, { new_line_count + #context_lines, 0 })
     else
-      create_input_buffer(opts.prompt_template:format(visual_selection))
+      create_input_buffer(context_template:format(opts.prompt_template, visual_selection))
     end
   end
 
-  local active_job = make_job_fn(opts.prompt_template, visual_selection)
+  local active_job = make_job_fn(opts.prompt_template, user_prompt_args)
   active_job:start()
   api.nvim_create_autocmd('User', {
     group = group,

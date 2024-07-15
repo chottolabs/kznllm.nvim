@@ -76,7 +76,7 @@ Follow these steps to complete the task:
 
 7. Maintain the original code style and formatting as much as possible, unless it directly contributes to the errors.
 
-8. Remove any comments that are no longer relevant after your changes.
+8. Keep any comments that were used to make changes.
 
 9. If you make any significant changes or implementations, add brief comments explaining your modifications.
 

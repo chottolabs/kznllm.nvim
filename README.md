@@ -35,16 +35,14 @@ export GROQ_API_KEY=gsk_...
     local spec = require 'kznllm.specs.anthropic'
 
     local function llm_help()
-      kznllm.invoke_llm_and_stream_into_editor({
-        system_prompt = spec.PROMPT_TEMPLATES.HELPFUL_PROMPT,
-        replace = false,
+      kznllm.invoke_llm_buffer_mode({
+        prompt_template = spec.PROMPT_TEMPLATES.HELPFUL_PROMPT,
       }, spec.make_job)
     end
 
     local function llm_replace()
-      kznllm.invoke_llm_and_stream_into_editor({
-        system_prompt = spec.PROMPT_TEMPLATES.REPLACE_PROMPT,
-        replace = true,
+      kznllm.invoke_llm_replace_mode({
+        prompt_template = spec.PROMPT_TEMPLATES.REPLACE_PROMPT,
       }, spec.make_job)
     end
 
@@ -64,16 +62,14 @@ or for groq
     local spec = require 'kznllm.specs.openai'
 
     local function llm_help()
-      kznllm.invoke_llm_and_stream_into_editor({
-        system_prompt = spec.PROMPT_TEMPLATES.HELPFUL_PROMPT,
-        replace = false,
+      kznllm.invoke_llm_buffer_mode({
+        prompt_template = spec.PROMPT_TEMPLATES.HELPFUL_PROMPT,
       }, spec.make_job)
     end
 
     local function llm_replace()
-      kznllm.invoke_llm_and_stream_into_editor({
-        system_prompt = spec.PROMPT_TEMPLATES.REPLACE_PROMPT,
-        replace = true,
+      kznllm.invoke_llm_replace_mode({
+        prompt_template = spec.PROMPT_TEMPLATES.REPLACE_PROMPT,
       }, spec.make_job)
     end
 

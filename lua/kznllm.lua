@@ -106,14 +106,14 @@ end
 
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
---- Invokes an LLM via a supported API spec
+--- Invokes an LLM via a supported API spec in "buffer" mode
 ---
 --- Must provide the function for constructing cURL arguments and a handler
 --- function for processing server-sent events.
 ---
 ---@param opts { prompt_template: string, replace: boolean}
 ---@param make_job_fn function
-function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
+function M.invoke_llm_buffer_mode(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }
 
   local visual_selection = get_visual_selection()
@@ -123,40 +123,72 @@ function M.invoke_llm_and_stream_into_editor(opts, make_job_fn)
   end
 
   local user_prompt_args = { visual_selection }
-  if opts.replace then
-    api.nvim_feedkeys('c', 'nx', false)
-  else
-    local user_input = nil
-    vim.ui.input({ prompt = 'prompt: ' }, function(input)
-      if input ~= nil then
-        user_input = input
-      end
-    end)
-
-    if user_input == nil then
-      return
+  local user_input = nil
+  vim.ui.input({ prompt = 'prompt: ' }, function(input)
+    if input ~= nil then
+      user_input = input
     end
-    vim.list_extend(user_prompt_args, { user_input })
+  end)
 
-    -- after getting lines, exit visual mode and go to end of the current line
-    api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
-    api.nvim_feedkeys('$', 'nx', false)
-
-    if input_buf_nr and api.nvim_buf_is_valid(input_buf_nr) then
-      api.nvim_set_current_buf(input_buf_nr)
-      local new_line_count = api.nvim_buf_line_count(input_buf_nr)
-
-      local separator = { '', '---', '', '' }
-      local visual_selection_lines = vim.split(visual_selection, '\n')
-      local context_lines = vim.list_extend(vim.list_extend({}, separator), visual_selection_lines)
-      context_lines = vim.list_extend(context_lines, separator)
-
-      api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, context_lines)
-      api.nvim_win_set_cursor(0, { new_line_count + #context_lines, 0 })
-    else
-      create_input_buffer(context_template:format(opts.prompt_template, visual_selection))
-    end
+  if user_input == nil then
+    return
   end
+
+  vim.list_extend(user_prompt_args, { user_input })
+
+  -- after getting lines, exit visual mode and go to end of the current line
+  api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
+  api.nvim_feedkeys('$', 'nx', false)
+
+  if input_buf_nr and api.nvim_buf_is_valid(input_buf_nr) then
+    api.nvim_set_current_buf(input_buf_nr)
+    local new_line_count = api.nvim_buf_line_count(input_buf_nr)
+
+    local separator = { '', '---', '', '' }
+    local visual_selection_lines = vim.split(visual_selection, '\n')
+    local context_lines = vim.list_extend(vim.list_extend({}, separator), visual_selection_lines)
+    context_lines = vim.list_extend(context_lines, separator)
+
+    api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, context_lines)
+    api.nvim_win_set_cursor(0, { new_line_count + #context_lines, 0 })
+  else
+    create_input_buffer(context_template:format(opts.prompt_template, visual_selection))
+  end
+
+  local active_job = make_job_fn(opts.prompt_template, user_prompt_args)
+  active_job:start()
+  api.nvim_create_autocmd('User', {
+    group = group,
+    pattern = 'LLM_Escape',
+    callback = function()
+      if active_job.is_shutdown ~= true then
+        active_job:shutdown()
+        print 'LLM streaming cancelled'
+      end
+    end,
+  })
+
+  api.nvim_set_keymap('n', '<Esc>', ':doautocmd User LLM_Escape<CR>', { noremap = true, silent = true })
+end
+
+--- Invokes an LLM via a supported API spec in "replace" mode
+---
+--- Must provide the function for constructing cURL arguments and a handler
+--- function for processing server-sent events.
+---
+---@param opts { prompt_template: string, replace: boolean}
+---@param make_job_fn function
+function M.invoke_llm_replace_mode(opts, make_job_fn)
+  api.nvim_clear_autocmds { group = group }
+
+  local visual_selection = get_visual_selection()
+
+  if opts.prompt_template == nil then
+    opts.prompt_template = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
+  end
+
+  local user_prompt_args = { visual_selection }
+  api.nvim_feedkeys('c', 'nx', false)
 
   local active_job = make_job_fn(opts.prompt_template, user_prompt_args)
   active_job:start()

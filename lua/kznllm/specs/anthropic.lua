@@ -49,7 +49,7 @@ Provide your final answer within <answer> tags. If you need to include code in y
 Remember to maintain a balance between solving the immediate problem and creating a generic, flexible solution that adheres to best practices in machine learning development.]],
 
   --- this prompt has to be written to output valid code
-  REPLACE_PROMPT = [[You will be given a code snippet with comments. Your task is to fix any errors in the code and implement any unfinished functionality indicated in the comments. Only output valid code in the provided language.
+  REPLACE_PROMPT = [[You will be given a code snippet with comments. Your task is to fix any errors in the code and implement any unfinished functionality indicated in the comments. Only output valid code fragment in the provided language.
 
 Here is the code snippet:
 
@@ -78,11 +78,11 @@ Follow these steps to complete the task:
 
 8. Keep any comments that were used to make changes.
 
-9. If you make any significant changes or implementations, add brief comments explaining your modifications.
+9. If you make any significant changes or implementations, add brief comments on a separate line explaining your modifications.
 
-Output your corrected and implemented code. Ensure that the code you output is complete, valid, and ready to run in the language of the original snippet.
+Output your corrected and implemented code. Ensure that the code fragment you output is valid, and ready to run in the language of the original snippet.
 
-Remember, only output valid code. Do not include any explanations, notes, or anything other than the corrected code itself.]],
+Remember, only output valid code without any backticks. Do not include any explanations, notes, or anything other than the corrected code itself.]],
 }
 
 local API_ERROR_MESSAGE = [[

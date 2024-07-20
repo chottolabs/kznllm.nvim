@@ -7,7 +7,7 @@ For developing any kind of plugin using `lazy.nvim` you basically just need to d
 {
   'chottolabs/kznllm.nvim',
   dev = true,
-  dir = '/home/chottolabs/.config/nvim/plugins/kznllm.nvim',
+  dir = '$HOME/.config/nvim/plugins/kznllm.nvim',
   dependencies = { 'nvim-lua/plenary.nvim' },
   ...
 },

@@ -5,7 +5,19 @@ local utils = require 'kznllm.utils'
 -- Global variable to store the buffer number
 local input_buf_nr = nil
 
-local context_template = [[%s
+local context_template = [[
+
+---
+
+Arguments:
+
+<supporting_context>
+%s
+</supporting_context>
+
+<user_query>
+%s
+</user_query>
 
 ---
 
@@ -93,7 +105,7 @@ local function get_visual_selection()
     lines = api.nvim_buf_get_text(0, srow - 1, scol - 1, erow - 1, ecol, {})
   end
 
-  local content = table.concat(lines, '\n')
+  local content = table.concat(lines, '\n\n')
 
   if content == '' then
     vim.print 'no prompt selection found... use a [v]isual selection mode'
@@ -138,19 +150,17 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
   api.nvim_feedkeys(api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
   api.nvim_feedkeys('$', 'nx', false)
 
+  -- if buffer is already open, make job from full buffer
   if input_buf_nr and api.nvim_buf_is_valid(input_buf_nr) then
     api.nvim_set_current_buf(input_buf_nr)
     local new_line_count = api.nvim_buf_line_count(input_buf_nr)
 
-    local separator = { '', '---', '', '' }
-    local visual_selection_lines = vim.split(visual_selection, '\n')
-    local context_lines = vim.list_extend(vim.list_extend({}, separator), visual_selection_lines)
-    context_lines = vim.list_extend(context_lines, separator)
+    local context_lines = vim.split(context_template:format(unpack(user_prompt_args)), '\n')
 
     api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, context_lines)
     api.nvim_win_set_cursor(0, { new_line_count + #context_lines, 0 })
   else
-    create_input_buffer(context_template:format(opts.prompt_template:format(unpack(user_prompt_args))))
+    create_input_buffer(table.concat { opts.prompt_template, context_template:format(unpack(user_prompt_args)) })
   end
 
   local active_job = make_job_fn(opts.prompt_template, user_prompt_args)

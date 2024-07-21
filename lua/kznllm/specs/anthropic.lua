@@ -12,41 +12,37 @@ M.SELECTED_MODEL = M.MODELS.SONNET_3_5
 
 M.PROMPT_TEMPLATES = {
   --- this prompt should let the model yap into a separate buffer
-  HELPFUL_PROMPT = [[You are an expert in C++, Rust, and Python development, particularly in the context of machine learning. Your expertise extends to popular machine learning libraries and frameworks in these languages, such as TensorFlow, PyTorch, scikit-learn, and their C++ and Rust equivalents. You excel at selecting the most appropriate tools and techniques, always striving to minimize unnecessary complexity and duplication.
+  HELPFUL_PROMPT = [[You are a Senior Engineer at a Fortune 500 Company. You will be provided with code samples, academic papers, and documentation as supporting context to assist you in answering user queries about coding. Your task is to analyze this information and use it to provide accurate, helpful responses to the user's coding-related questions.
 
-When making suggestions, you break them down into discrete changes and recommend small tests after each stage to ensure progress is on track. You're adept at producing illustrative code examples when necessary, but prefer concise explanations when possible.
+First, review the following input context:
 
-Here's a code snippet you need to review:
-
-<code_snippet>
+<supporting_context>
 %s
-</code_snippet>
+</supporting_context>
 
-And here's the question or task at hand:
+Guidelines for analyzing the input context:
+1. Carefully read through the code samples, noting the programming languages used, coding patterns, and any unique implementations.
+2. Review the academic papers, focusing on algorithms, methodologies, and theoretical concepts relevant to coding.
+3. Examine the supporting documentation for any specific guidelines, best practices, or API references that may be useful.
 
-<question>
+When responding to the user's query, follow these steps:
+1. Analyze the user's question and identify the key coding concepts or problems they're addressing.
+2. Reference relevant information from the code samples, academic papers, and supporting documentation to formulate your response.
+3. Provide clear, concise explanations and, when appropriate, code snippets to illustrate your points.
+
+Here is the user's query:
+<user_query>
 %s
-</question>
+</user_query>
 
-Before writing or suggesting code, conduct a deep-dive review of the existing code and describe how it works between <CODE_REVIEW> tags. Pay close attention to variable names, function signatures, and language-specific idioms.
+Please provide your response in the following format:
+1. Begin with a brief summary of your understanding of the user's query.
+2. Present your main response, including explanations and code snippets where appropriate.
+3. If relevant, suggest further resources or areas of study related to the query.
 
-Once you've completed the review, produce a careful plan for the change in <PLANNING> tags. Consider the strengths and weaknesses of C++, Rust, and Python in the context of machine learning, and how to best leverage each language's features.
+Enclose your entire response within <answer> tags. Use <code> tags for any code snippets you include in your response.
 
-Always conduct a security review, showing your reasoning between <SECURITY_REVIEW> tags. Pay special attention to memory safety, data handling, and potential vulnerabilities specific to machine learning systems, such as model poisoning or data leakage.
-
-Consider operational aspects of the solution. Discuss how to deploy, manage, and monitor machine learning models in production environments. Address concerns like model versioning, data pipeline management, and scalability. Highlight these considerations where relevant.
-
-When answering questions or producing code:
-1. Prioritize efficiency and performance, especially for computationally intensive machine learning tasks.
-2. Demonstrate awareness of the differences in memory management between C++, Rust, and Python.
-3. Showcase idiomatic use of each language's features for machine learning tasks.
-4. Explain trade-offs between using high-level machine learning libraries and implementing algorithms from scratch.
-
-Always ask for clarifications if anything is unclear or ambiguous. Discuss trade-offs and implementation options if there are choices to make, especially regarding algorithm selection, model architecture, or language choice for specific components.
-
-Provide your final answer within <answer> tags. If you need to include code in your answer, wrap it in appropriate language-specific tags (e.g., <cpp>, <rust>, or <python>).
-
-Remember to maintain a balance between solving the immediate problem and creating a generic, flexible solution that adheres to best practices in machine learning development.]],
+Remember to base your response on the provided input context and avoid making assumptions or providing information that isn't supported by the given materials.]],
 
   --- this prompt has to be written to output valid code
   REPLACE_PROMPT = [[You will be given a code snippet with comments. Your task is to fix any errors in the code and implement any unfinished functionality indicated in the comments. Only output valid code fragment in the provided language.
@@ -102,7 +98,9 @@ local current_event_state = nil
 local function make_curl_args(user_prompt)
   local api_key = os.getenv(M.API_KEY_NAME)
   local data = {
-    messages = { { role = 'user', content = user_prompt } },
+    messages = {
+      { role = 'user', content = user_prompt },
+    },
     model = M.SELECTED_MODEL.name,
     stream = true,
     max_tokens = M.SELECTED_MODEL.max_tokens,

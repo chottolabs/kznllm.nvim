@@ -1,24 +1,20 @@
 local M = {}
 local api = vim.api
+local utils = require 'kznllm.utils'
 
 -- Global variable to store the buffer number
 local input_buf_nr = nil
 
-local context_template = [[Prompt Template:
-
-%s
-
----
-
-Visual Selection
-
-%s
+local context_template = [[%s
 
 ---
 
 ]]
 -- Define the function that creates the buffer and handles the input
 local function create_input_buffer(initial_content)
+  -- Convert timestamp to string and append .txt extension
+  local filename = tostring(os.time()) .. '.txt'
+
   -- Create a new buffer
   input_buf_nr = api.nvim_create_buf(false, true)
 
@@ -29,7 +25,7 @@ local function create_input_buffer(initial_content)
   api.nvim_buf_set_option(input_buf_nr, 'filetype', 'input-buffer')
 
   -- Set buffer name
-  api.nvim_buf_set_name(input_buf_nr, 'Input Buffer')
+  api.nvim_buf_set_name(input_buf_nr, filename)
 
   -- Switch to the new buffer
   api.nvim_set_current_buf(input_buf_nr)
@@ -61,6 +57,8 @@ local function create_input_buffer(initial_content)
     callback = function()
       -- Trigger the LLM_Escape event
       api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+
+      utils.save_buffer(input_buf_nr, filename)
       -- Close the buffer
       api.nvim_buf_delete(input_buf_nr, { force = true })
     end,
@@ -152,7 +150,7 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
     api.nvim_buf_set_lines(input_buf_nr, new_line_count, new_line_count, false, context_lines)
     api.nvim_win_set_cursor(0, { new_line_count + #context_lines, 0 })
   else
-    create_input_buffer(context_template:format(opts.prompt_template, visual_selection))
+    create_input_buffer(context_template:format(opts.prompt_template:format(unpack(user_prompt_args))))
   end
 
   local active_job = make_job_fn(opts.prompt_template, user_prompt_args)

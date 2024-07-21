@@ -105,7 +105,7 @@ local function get_visual_selection()
     lines = api.nvim_buf_get_text(0, srow - 1, scol - 1, erow - 1, ecol, {})
   end
 
-  local content = table.concat(lines, '\n\n')
+  local content = table.concat(lines, '\n')
 
   if content == '' then
     vim.print 'no prompt selection found... use a [v]isual selection mode'

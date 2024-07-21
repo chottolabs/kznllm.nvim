@@ -40,6 +40,14 @@ function M.save_buffer(buf, filename)
   local target_directory = home .. '/.cache/kznllm/history/'
   local full_path = target_directory .. filename
 
+  -- Create a new buffer with the saved content
+  local new_buf = api.nvim_create_buf(true, false)
+  api.nvim_buf_set_lines(new_buf, 0, -1, false, lines)
+  api.nvim_buf_set_name(new_buf, full_path)
+
+  -- Set the buffer as listed to keep it in the buffer list
+  api.nvim_buf_set_option(new_buf, 'buflisted', true)
+
   -- Ensure the target directory exists
   local success, error_message = os.execute('mkdir -p "' .. target_directory .. '"')
   if not success then

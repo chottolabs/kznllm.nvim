@@ -142,7 +142,7 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 --- Must provide the function for constructing cURL arguments and a handler
 --- function for processing server-sent events.
 ---
----@param opts { prompt_template: string, replace: boolean}
+---@param opts { prompt_template: string }
 ---@param make_job_fn function
 function M.invoke_llm_buffer_mode(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }
@@ -205,7 +205,7 @@ end
 --- Must provide the function for constructing cURL arguments and a handler
 --- function for processing server-sent events.
 ---
----@param opts { prompt_template: string, replace: boolean}
+---@param opts { prompt_template: string }
 ---@param make_job_fn function
 function M.invoke_llm_replace_mode(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }

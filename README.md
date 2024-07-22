@@ -18,7 +18,7 @@ https://github.com/user-attachments/assets/89331af3-3c69-41e3-9293-83b4549a6025
 
 # How it works
 
-`Buffer Mode` - like a long-form chat mode. 
+**Buffer Mode** - like a long-form chat mode
 - **Usage**: (1) make a visual selection (2) `leader + shift + K` (3) type out your query/prompt (4) quit and save with `q` or type `:q!` to quit without saving
 - **Behavior**: 
   - (initial) opens up a buffer, copies in the prompt template + arguments, and then streams the answer out at the bottom.
@@ -26,7 +26,7 @@ https://github.com/user-attachments/assets/89331af3-3c69-41e3-9293-83b4549a6025
   - (quit) hit `w` to interrupt + quit and save the buffer to `$HOME/.cache/kznllm/history` as `<timestamp>.txt` and returns back to you previous buffer. You can also interrupt + quit without saving + delete the buffer from history using `q`
   - (search history) if you quit with `w` the buffer stays listed and you can find it in open buffers again (e.g. using kickstart defaults it would be `space + space`), if you quit with `q` it deletes the buffer and won't clutter up open buffers list
 
-`Replace Mode` - basically infill specifically for coding
+**Replace Mode** - basically infill specifically for coding
 - **Usage**: (1) make a visual selection (2) `leader + k`
 - **Behavior**: replaces current selection and rewrites the selection based on context provdied by comments + fixing any errors 
 

@@ -67,7 +67,7 @@ local function create_input_buffer(initial_content)
   })
 
   -- Set up key mapping to close the buffer
-  api.nvim_buf_set_keymap(input_buf_nr, 'n', 'q', '', {
+  api.nvim_buf_set_keymap(input_buf_nr, 'n', 'w', '', {
     noremap = true,
     silent = true,
     callback = function()
@@ -80,6 +80,20 @@ local function create_input_buffer(initial_content)
 
       -- Switch to the previous buffer
       api.nvim_command 'buffer #'
+    end,
+  })
+
+  -- Set up key mapping to close the buffer
+  api.nvim_buf_set_keymap(input_buf_nr, 'n', 'q', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      -- Trigger the LLM_Escape event
+      api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+
+      api.nvim_buf_call(input_buf_nr, function()
+        vim.cmd 'bdelete!'
+      end)
     end,
   })
 end

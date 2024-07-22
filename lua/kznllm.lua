@@ -35,18 +35,11 @@ local function create_input_buffer(initial_content)
   -- Convert timestamp to string and append .txt extension
   local filename = tostring(os.time()) .. '.txt'
 
-  -- Create a new buffer
   input_buf_nr = api.nvim_create_buf(true, false)
-
   api.nvim_buf_set_name(input_buf_nr, M.CACHE_DIRECTORY .. filename)
-
-  -- Set the buffer as listed to keep it in the buffer list
   api.nvim_set_option_value('buflisted', true, { buf = input_buf_nr })
 
-  -- Switch to the new buffer
   api.nvim_set_current_buf(input_buf_nr)
-
-  -- Enable text wrapping
   api.nvim_set_option_value('wrap', true, { win = 0 })
   api.nvim_set_option_value('linebreak', true, { win = 0 })
   api.nvim_set_option_value('breakindent', true, { win = 0 })
@@ -54,9 +47,8 @@ local function create_input_buffer(initial_content)
   -- Set initial content
   api.nvim_buf_set_lines(input_buf_nr, 0, -1, false, vim.split(initial_content, '\n'))
 
-  -- Add separator and move cursor after it
-  local new_line_count = api.nvim_buf_line_count(input_buf_nr)
-  api.nvim_win_set_cursor(0, { new_line_count, 0 })
+  local num_lines = api.nvim_buf_line_count(input_buf_nr)
+  api.nvim_win_set_cursor(0, { num_lines, 0 })
 
   -- Set up autocmd to clear the buffer number when it's deleted
   api.nvim_create_autocmd('BufDelete', {

@@ -34,35 +34,4 @@ function M.write_content_at_cursor(content)
   end)
 end
 
-function M.save_buffer(buf, filename)
-  local lines = api.nvim_buf_get_lines(buf, 0, -1, false)
-  local home = os.getenv 'HOME' or os.getenv 'USERPROFILE'
-  local target_directory = home .. '/.cache/kznllm/history/'
-  local full_path = target_directory .. filename
-
-  -- Create a new buffer with the saved content
-  local new_buf = api.nvim_create_buf(true, false)
-  api.nvim_buf_set_lines(new_buf, 0, -1, false, lines)
-  api.nvim_buf_set_name(new_buf, full_path)
-
-  -- Set the buffer as listed to keep it in the buffer list
-  api.nvim_buf_set_option(new_buf, 'buflisted', true)
-
-  -- Ensure the target directory exists
-  local success, error_message = os.execute('mkdir -p "' .. target_directory .. '"')
-  if not success then
-    print('Error creating directory: ' .. error_message)
-    return
-  end
-
-  local file, err = io.open(full_path, 'w')
-  if file then
-    file:write(table.concat(lines, '\n'))
-    file:close()
-    print('File saved: ' .. full_path)
-  else
-    print('Error: Unable to save file - ' .. (err or 'unknown error'))
-  end
-end
-
 return M

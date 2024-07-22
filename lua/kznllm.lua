@@ -1,6 +1,5 @@
 local M = {}
 local api = vim.api
-local utils = require 'kznllm.utils'
 
 -- Global variable to store the buffer number
 local input_buf_nr = nil
@@ -26,18 +25,16 @@ Arguments:
 local function create_input_buffer(initial_content)
   -- Convert timestamp to string and append .txt extension
   local filename = tostring(os.time()) .. '.txt'
+  -- Specify the path where you want to save the file
+  local save_path = (os.getenv 'HOME' or os.getenv 'USERPROFILE') .. '/.cache/kznllm/history/' .. filename
 
   -- Create a new buffer
-  input_buf_nr = api.nvim_create_buf(false, true)
+  input_buf_nr = api.nvim_create_buf(true, false)
 
-  -- Set buffer options
-  api.nvim_buf_set_option(input_buf_nr, 'buftype', 'nofile')
-  api.nvim_buf_set_option(input_buf_nr, 'bufhidden', 'hide')
-  api.nvim_buf_set_option(input_buf_nr, 'swapfile', false)
-  api.nvim_buf_set_option(input_buf_nr, 'filetype', 'input-buffer')
+  api.nvim_buf_set_name(input_buf_nr, save_path)
 
-  -- Set buffer name
-  api.nvim_buf_set_name(input_buf_nr, filename)
+  -- Set the buffer as listed to keep it in the buffer list
+  api.nvim_buf_set_option(input_buf_nr, 'buflisted', true)
 
   -- Switch to the new buffer
   api.nvim_set_current_buf(input_buf_nr)
@@ -70,9 +67,12 @@ local function create_input_buffer(initial_content)
       -- Trigger the LLM_Escape event
       api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
 
-      utils.save_buffer(input_buf_nr, filename)
-      -- Close the buffer
-      api.nvim_buf_delete(input_buf_nr, { force = true })
+      api.nvim_buf_call(input_buf_nr, function()
+        vim.cmd 'write'
+      end)
+
+      -- Switch to the previous buffer
+      api.nvim_command 'buffer #'
     end,
   })
 end

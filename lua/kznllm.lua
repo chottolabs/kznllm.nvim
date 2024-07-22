@@ -1,6 +1,15 @@
 local M = {}
 local api = vim.api
 
+-- Specify the path where you want to save the file
+M.CACHE_DIRECTORY = (os.getenv 'HOME' or os.getenv 'USERPROFILE') .. '/.cache/kznllm/history/'
+
+local success, error_message = os.execute('mkdir -p "' .. M.CACHE_DIRECTORY .. '"')
+if not success then
+  print('Error creating directory: ' .. error_message)
+  return
+end
+
 -- Global variable to store the buffer number
 local input_buf_nr = nil
 
@@ -26,19 +35,10 @@ local function create_input_buffer(initial_content)
   -- Convert timestamp to string and append .txt extension
   local filename = tostring(os.time()) .. '.txt'
 
-  -- Specify the path where you want to save the file
-  local target_directory = (os.getenv 'HOME' or os.getenv 'USERPROFILE') .. '/.cache/kznllm/history/'
-
-  local success, error_message = os.execute('mkdir -p "' .. target_directory .. '"')
-  if not success then
-    print('Error creating directory: ' .. error_message)
-    return
-  end
-
   -- Create a new buffer
   input_buf_nr = api.nvim_create_buf(true, false)
 
-  api.nvim_buf_set_name(input_buf_nr, target_directory .. filename)
+  api.nvim_buf_set_name(input_buf_nr, M.CACHE_DIRECTORY .. filename)
 
   -- Set the buffer as listed to keep it in the buffer list
   api.nvim_buf_set_option(input_buf_nr, 'buflisted', true)

@@ -41,15 +41,15 @@ local function create_input_buffer(initial_content)
   api.nvim_buf_set_name(input_buf_nr, M.CACHE_DIRECTORY .. filename)
 
   -- Set the buffer as listed to keep it in the buffer list
-  api.nvim_buf_set_option(input_buf_nr, 'buflisted', true)
+  api.nvim_set_option_value('buflisted', true, { buf = input_buf_nr })
 
   -- Switch to the new buffer
   api.nvim_set_current_buf(input_buf_nr)
 
   -- Enable text wrapping
-  api.nvim_win_set_option(0, 'wrap', true)
-  api.nvim_win_set_option(0, 'linebreak', true)
-  api.nvim_win_set_option(0, 'breakindent', true)
+  api.nvim_set_option_value('wrap', true, { win = 0 })
+  api.nvim_set_option_value('linebreak', true, { win = 0 })
+  api.nvim_set_option_value('breakindent', true, { win = 0 })
 
   -- Set initial content
   api.nvim_buf_set_lines(input_buf_nr, 0, -1, false, vim.split(initial_content, '\n'))

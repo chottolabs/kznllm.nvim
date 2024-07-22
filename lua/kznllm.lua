@@ -188,8 +188,6 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
       end
     end,
   })
-
-  api.nvim_set_keymap('n', '<Esc>', ':doautocmd User LLM_Escape<CR>', { noremap = true, silent = true })
 end
 
 --- Invokes an LLM via a supported API spec in "replace" mode
@@ -213,6 +211,7 @@ function M.invoke_llm_replace_mode(opts, make_job_fn)
 
   local active_job = make_job_fn(opts.prompt_template, user_prompt_args)
   active_job:start()
+
   api.nvim_create_autocmd('User', {
     group = group,
     pattern = 'LLM_Escape',
@@ -223,8 +222,14 @@ function M.invoke_llm_replace_mode(opts, make_job_fn)
       end
     end,
   })
-
-  api.nvim_set_keymap('n', '<Esc>', ':doautocmd User LLM_Escape<CR>', { noremap = true, silent = true })
 end
+
+api.nvim_set_keymap('n', '<Esc>', '', {
+  noremap = true,
+  silent = true,
+  callback = function()
+    api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+  end,
+})
 
 return M

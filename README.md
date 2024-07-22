@@ -16,7 +16,18 @@ https://github.com/chottolabs/kznllm.nvim/assets/171991982/39da67df-1ebc-4866-b5
 
 https://github.com/user-attachments/assets/89331af3-3c69-41e3-9293-83b4549a6025
 
+# How it works
+`Buffer Mode` - like a long-form chat mode. 
+- **Usage**: (1) make a visual selection (2) `leader + shift + K` (3) type out your query/prompt (4) quit and save with `q` or type `:q!` to quit without saving
+- **Behavior**: 
+  - (initial) opens up a buffer, copies in the prompt template + arguments, and then streams the answer out at the bottom.
+  - (continuation) when you make a selection within that same buffer without closing out of it, it will paste in your new arguments and continue from the bottom of the buffer.
+  - (quit) hit `q` to save the buffer to `$HOME/.cache/kznllm/history` as `<timestamp>.txt` and returns back to you previous buffer. You can also quit without saving by typing out the usual `:q!`
+  - (search history) the buffer is listed and you can find it in open buffers again (e.g. using kickstart defaults it would be `space + space`)
 
+`Replace Mode` - basically infill specifically for coding
+- **Usage**: (1) make a visual selection (2) `leader + k`
+- **Behavior**: replaces current selection and rewrites the selection based on context provdied by comments + fixing any errors 
 
 ## Usage
 

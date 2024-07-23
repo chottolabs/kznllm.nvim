@@ -37,13 +37,13 @@ end
 function M.write_content_at_end(content)
   vim.schedule(function()
     local current_pos = vim.api.nvim_win_get_cursor(0)
-    vim.cmd 'normal! G'
 
     local srow, erow, scol, ecol = -1, -1, -1, -1
     vim.cmd 'undojoin'
     local lines = vim.split(content, '\n')
     api.nvim_buf_set_text(0, srow, scol, erow, ecol, lines)
 
+    vim.cmd 'normal! G'
     api.nvim_win_set_cursor(0, current_pos)
   end)
 end

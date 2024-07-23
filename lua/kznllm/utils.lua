@@ -103,6 +103,7 @@ function M.create_input_buffer(input_buf_nr, filepath, initial_content)
       end)
     end,
   })
+  return input_buf_nr
 end
 
 --- Handle visual selection using the start of the visual selection and current

@@ -164,6 +164,10 @@ function M.make_job(prompt_template, user_prompt_args)
     command = 'curl',
     args = make_curl_args(prompt_template:format(unpack(user_prompt_args))),
     on_stdout = function(_, out)
+      if out == '' then
+        return
+      end
+
       -- based on sse spec (Anthropic spec has several distinct events)
       -- Anthropic's sse spec requires you to manage the current event state
       local _, event_epos = string.find(out, '^event: ')
@@ -185,6 +189,24 @@ function M.make_job(prompt_template, user_prompt_args)
         if content and content ~= nil then
           utils.write_content_at_cursor(content)
         end
+      elseif current_event_state == 'message_start' then
+        local data, data_epos
+        _, data_epos = string.find(out, '^data: ')
+
+        if data_epos then
+          data = string.sub(out, data_epos + 1)
+        end
+
+        vim.print(data)
+      elseif current_event_state == 'message_delta' then
+        local data, data_epos
+        _, data_epos = string.find(out, '^data: ')
+
+        if data_epos then
+          data = string.sub(out, data_epos + 1)
+        end
+
+        vim.print(data)
       end
     end,
     on_stderr = function(message, _)

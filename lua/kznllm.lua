@@ -79,7 +79,7 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
     api.nvim_win_set_cursor(0, { new_line_count + #context_lines, 0 })
   else
     local filepath = M.CACHE_DIRECTORY .. tostring(os.time()) .. '.txt'
-    utils.create_input_buffer(
+    input_buf_nr = utils.create_input_buffer(
       input_buf_nr,
       filepath,
       table.concat {

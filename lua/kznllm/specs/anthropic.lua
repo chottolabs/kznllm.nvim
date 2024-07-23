@@ -87,7 +87,6 @@ ERROR: anthropic api key is set to %s and is missing from your environment varia
 Load somewhere safely from config `export %s=<api_key>`]]
 
 local Job = require 'plenary.job'
-local utils = require 'kznllm.utils'
 local current_event_state = nil
 
 --- Constructs arguments for constructing an HTTP request to the Anthropic API
@@ -159,7 +158,7 @@ local function handle_data(data)
   return content
 end
 
-function M.make_job(prompt_template, user_prompt_args)
+function M.make_job(prompt_template, user_prompt_args, writer_fn)
   local active_job = Job:new {
     command = 'curl',
     args = make_curl_args(prompt_template:format(unpack(user_prompt_args))),
@@ -187,7 +186,7 @@ function M.make_job(prompt_template, user_prompt_args)
 
         local content = handle_data(data)
         if content and content ~= nil then
-          utils.write_content_at_cursor(content)
+          writer_fn(content)
         end
       elseif current_event_state == 'message_start' then
         local data, data_epos

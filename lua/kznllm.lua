@@ -89,7 +89,7 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
     )
   end
 
-  local active_job = make_job_fn(opts.prompt_template, user_prompt_args)
+  local active_job = make_job_fn(opts.prompt_template, user_prompt_args, utils.write_content_at_end)
   active_job:start()
   api.nvim_create_autocmd('User', {
     group = group,
@@ -122,7 +122,7 @@ function M.invoke_llm_replace_mode(opts, make_job_fn)
   local user_prompt_args = { visual_selection }
   api.nvim_feedkeys('c', 'nx', false)
 
-  local active_job = make_job_fn(opts.prompt_template, user_prompt_args)
+  local active_job = make_job_fn(opts.prompt_template, user_prompt_args, utils.write_content_at_cursor)
   active_job:start()
   api.nvim_create_autocmd('User', {
     group = group,

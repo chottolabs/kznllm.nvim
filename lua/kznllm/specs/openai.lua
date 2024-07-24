@@ -70,13 +70,15 @@ local function handle_data(data)
     local json = vim.json.decode(data)
     if json.choices and json.choices[1] and json.choices[1].delta and json.choices[1].delta.content then
       content = json.choices[1].delta.content
+    else
+      vim.print(data)
     end
   end
 
   return content
 end
 
----@param rendered_messages { system_message: string, user_messages: string[] }
+---@param rendered_messages { system_message: string[], user_messages: string[][] }
 ---@param writer_fn fun(content: string)
 function M.make_job(rendered_messages, writer_fn)
   local active_job = Job:new {

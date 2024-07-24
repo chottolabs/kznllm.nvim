@@ -82,14 +82,18 @@ or for groq
     local function llm_help()
       kznllm.invoke_llm_buffer_mode({
         system_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.BUFFER_MODE_SYSTEM_PROMPT,
-        user_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.BUFFER_MODE_USER_PROMPT,
+        user_prompt_templates = {
+          self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.BUFFER_MODE_USER_PROMPT,
+        },
       }, spec.make_job)
     end
 
     local function llm_replace()
       kznllm.invoke_llm_replace_mode({
         system_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.REPLACE_MODE_SYSTEM_PROMPT,
-        user_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.REPLACE_MODE_USER_PROMPT,
+        user_prompt_templates = {
+          self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.REPLACE_MODE_USER_PROMPT,
+        },
       }, spec.make_job)
     end
 

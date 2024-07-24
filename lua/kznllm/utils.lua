@@ -1,5 +1,17 @@
+local Job = require 'plenary.job'
 local M = {}
 local api = vim.api
+
+-- Specify the path where you want to save the file
+M.CACHE_DIRECTORY = vim.fn.stdpath 'cache' .. '/kznllm/history/'
+
+local success, error_message
+
+success, error_message = os.execute('mkdir -p "' .. M.CACHE_DIRECTORY .. '"')
+if not success then
+  print('Error creating directory: ' .. error_message)
+  return
+end
 
 --- Inserts content at the current cursor position in the active Neovim buffer.
 ---
@@ -24,7 +36,6 @@ function M.write_content_at_cursor(content)
 
     vim.cmd 'undojoin'
     api.nvim_put(lines, 'c', true, true)
-    api.nvim_put({}, 'c', true, true)
 
     local num_lines = #lines
     local last_line_length = num_lines > 0 and #lines[num_lines] or 0
@@ -34,6 +45,7 @@ function M.write_content_at_cursor(content)
   end)
 end
 
+---@param content string
 function M.write_content_at_end(content)
   vim.schedule(function()
     local current_pos = vim.api.nvim_win_get_cursor(0)
@@ -48,9 +60,80 @@ function M.write_content_at_end(content)
   end)
 end
 
--- Define the function that creates the buffer and handles the input
-function M.create_input_buffer(input_buf_nr, filepath, initial_content)
-  input_buf_nr = api.nvim_create_buf(true, false)
+---Renders a prompt template using minijinja-cli and returns the rendered lines
+---
+---@param prompt_template_filename string
+---@param user_prompt_args { code_snippet?: string, supporting_context?: string, user_query?:string }
+---@return string[]
+function M.make_prompt_from_template(prompt_template_filename, user_prompt_args)
+  local json_data = vim.json.encode(user_prompt_args)
+  local active_job = Job:new {
+    command = 'minijinja-cli',
+    args = { '-f', 'json', vim.fn.expand(prompt_template_filename), '-' },
+    writer = json_data,
+    on_stderr = function(message, _)
+      error(message, 1)
+    end,
+  }
+
+  active_job:sync()
+  return active_job:result()
+end
+
+local function make_scratch_buffer(debug_args)
+  local scratch_buf_nr = api.nvim_create_buf(false, true)
+
+  -- Set buffer options
+  api.nvim_set_option_value('buftype', 'nofile', { buf = scratch_buf_nr })
+  api.nvim_set_option_value('bufhidden', 'hide', { buf = scratch_buf_nr })
+  api.nvim_set_option_value('swapfile', false, { buf = scratch_buf_nr })
+  api.nvim_set_option_value('filetype', 'input-buffer', { buf = scratch_buf_nr })
+
+  -- Switch to the new buffer
+  api.nvim_set_current_buf(scratch_buf_nr)
+
+  -- Enable text wrapping
+  api.nvim_set_option_value('wrap', true, { win = 0 })
+  api.nvim_set_option_value('linebreak', true, { win = 0 })
+  api.nvim_set_option_value('breakindent', true, { win = 0 })
+
+  if debug_args.system_prompt_template ~= nil then
+    api.nvim_buf_set_lines(scratch_buf_nr, -2, -2, false, { 'system_message:', '', '---', '' })
+    local rendered_system_message = M.make_prompt_from_template(debug_args.system_prompt_template, debug_args.user_prompt_args)
+    api.nvim_buf_set_lines(scratch_buf_nr, -2, -2, false, rendered_system_message)
+  end
+
+  for _, user_prompt_template in ipairs(debug_args.user_prompt_templates) do
+    api.nvim_buf_set_lines(scratch_buf_nr, -2, -2, false, { '', '---', '', 'user_message:', '' })
+    local rendered_user_message = M.make_prompt_from_template(user_prompt_template, debug_args.user_prompt_args)
+    api.nvim_buf_set_lines(scratch_buf_nr, -2, -2, false, rendered_user_message)
+  end
+
+  -- Set up key mapping to close the buffer
+  api.nvim_buf_set_keymap(scratch_buf_nr, 'n', 'q', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      -- Trigger the LLM_Escape event
+      api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+
+      api.nvim_buf_call(scratch_buf_nr, function()
+        vim.cmd 'bdelete!'
+      end)
+    end,
+  })
+end
+
+--- Define the function that creates the buffer and handles the input
+---
+---@param return_buf integer
+---@param debug_args { system_prompt_template: string, user_prompt_templates: string[], user_prompt_args: { code_snippet?: string, supporting_context?: string, user_query?:string } }
+---@return integer
+function M.create_input_buffer(return_buf, debug_args)
+  local prompt_save_dir = M.CACHE_DIRECTORY .. tostring(os.time()) .. '/'
+  local filepath = prompt_save_dir .. 'output.xml'
+
+  local input_buf_nr = api.nvim_create_buf(true, false)
   api.nvim_buf_set_name(input_buf_nr, filepath)
   api.nvim_set_option_value('buflisted', true, { buf = input_buf_nr })
 
@@ -59,19 +142,8 @@ function M.create_input_buffer(input_buf_nr, filepath, initial_content)
   api.nvim_set_option_value('linebreak', true, { win = 0 })
   api.nvim_set_option_value('breakindent', true, { win = 0 })
 
-  -- Set initial content
-  api.nvim_buf_set_lines(input_buf_nr, 0, -1, false, vim.split(initial_content, '\n'))
-
   local num_lines = api.nvim_buf_line_count(input_buf_nr)
   api.nvim_win_set_cursor(0, { num_lines, 0 })
-
-  -- Set up autocmd to clear the buffer number when it's deleted
-  api.nvim_create_autocmd('BufDelete', {
-    buffer = input_buf_nr,
-    callback = function()
-      input_buf_nr = nil
-    end,
-  })
 
   -- Set up key mapping to close the buffer
   api.nvim_buf_set_keymap(input_buf_nr, 'n', 'w', '', {
@@ -81,12 +153,27 @@ function M.create_input_buffer(input_buf_nr, filepath, initial_content)
       -- Trigger the LLM_Escape event
       api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
 
+      success, error_message = os.execute('mkdir -p "' .. prompt_save_dir .. '"')
+      if not success then
+        error('Error creating directory: ' .. error_message)
+      end
+
       api.nvim_buf_call(input_buf_nr, function()
         vim.cmd 'write'
       end)
 
-      -- Switch to the previous buffer
-      api.nvim_command 'buffer #'
+      local args_file = prompt_save_dir .. 'args.json'
+      local file = io.open(args_file, 'w')
+      if file then
+        file:write(vim.json.encode(debug_args))
+        file:close()
+        print('Data written to ' .. args_file)
+      else
+        print('Unable to open file ' .. args_file)
+      end
+
+      -- Switch to the return buffer provided
+      api.nvim_set_current_buf(return_buf)
     end,
   })
 
@@ -101,6 +188,18 @@ function M.create_input_buffer(input_buf_nr, filepath, initial_content)
       api.nvim_buf_call(input_buf_nr, function()
         vim.cmd 'bdelete!'
       end)
+    end,
+  })
+
+  -- render input prompt for debugging
+  api.nvim_buf_set_keymap(input_buf_nr, 'n', 'd', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      -- Trigger the LLM_Escape event
+      api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+      -- Create a new buffer
+      make_scratch_buffer(debug_args)
     end,
   })
   return input_buf_nr

@@ -8,20 +8,14 @@ M.MODELS = {
 M.SELECTED_MODEL = M.MODELS.LLAMA_3_70B
 
 M.PROMPT_TEMPLATES = {
+
   --- this prompt should let the model yap into a separate buffer
-  HELPFUL_PROMPT = [[You are an AI programming assistant integrated into a code editor. Your purpose is to help the user with programming tasks as they write code.
-Key capabilities:
-- Thoroughly analyze the user's code and provide insightful suggestions for improvements related to best practices, performance, readability, and maintainability. Explain your reasoning.
-- Answer coding questions in detail, using examples from the user's own code when relevant. Break down complex topics step- Spot potential bugs and logical errors. Alert the user and suggest fixes.
-- Upon request, add helpful comments explaining complex or unclear code.
-- Suggest relevant documentation, StackOverflow answers, and other resources related to the user's code and questions.
-- Engage in back-and-forth conversations to understand the user's intent and provide the most helpful information.
-- Keep concise and use markdown.
-- When asked to create code, only generate the code. No bugs.
-- Think step by step]],
+  BUFFER_MODE_SYSTEM_PROMPT = 'groq/buffer_mode_system_prompt.xml.jinja',
+  BUFFER_MODE_USER_PROMPT = 'groq/buffer_mode_user_prompt.xml.jinja',
 
   --- this prompt has to be written to output valid code
-  REPLACE_PROMPT = [[You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Do not provide any backticks that surround the code. Never ever output backticks like this ```. Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone. Do not output backticks]],
+  REPLACE_MODE_SYSTEM_PROMPT = 'groq/replace_mode_system_prompt.xml.jinja',
+  REPLACE_MODE_USER_PROMPT = 'groq/replace_mode_user_prompt.xml.jinja',
 }
 
 local API_ERROR_MESSAGE = [[
@@ -34,14 +28,19 @@ local Job = require 'plenary.job'
 --- Constructs arguments for constructing an HTTP request to the OpenAI API
 --- using cURL.
 ---
----@param user_prompt string
----@param system_prompt string
+---@param rendered_messages { system_message: string[], user_messages: string[][] }
 ---@return string[]
-local function make_curl_args(system_prompt, user_prompt)
+local function make_curl_args(rendered_messages)
   local url = M.URL
   local api_key = os.getenv(M.API_KEY_NAME)
+  local messages = {}
+
+  table.insert(messages, { role = 'system', content = table.concat(rendered_messages.system_message, '\n') })
+  for _, user_message in ipairs(rendered_messages.user_messages) do
+    table.insert(messages, { role = 'user', content = table.concat(user_message, '\n') })
+  end
   local data = {
-    messages = { { role = 'system', content = system_prompt }, { role = 'user', content = user_prompt } },
+    messages = messages,
     model = M.SELECTED_MODEL,
     temperature = 0.7,
     stream = true,
@@ -75,10 +74,12 @@ local function handle_data(data)
   return content
 end
 
-function M.make_job(system_prompt, user_prompt, writer_fn)
+---@param rendered_messages { system_message: string, user_messages: string[] }
+---@param writer_fn fun(content: string)
+function M.make_job(rendered_messages, writer_fn)
   local active_job = Job:new {
     command = 'curl',
-    args = make_curl_args(system_prompt, user_prompt),
+    args = make_curl_args(rendered_messages),
     on_stdout = function(_, out)
       -- based on sse spec (OpenAI spec uses data-only server-sent events)
       local data, data_epos

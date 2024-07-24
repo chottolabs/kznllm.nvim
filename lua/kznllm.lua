@@ -61,24 +61,24 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
   -- if buffer is already open, make job from full buffer
   if input_buf_nr and api.nvim_buf_is_valid(input_buf_nr) then
     api.nvim_set_current_buf(input_buf_nr)
-    -- clear the buffer before proceeding
-    api.nvim_buf_set_lines(input_buf_nr, 0, -1, false, {})
-  else
-    local cur_buf = api.nvim_get_current_buf()
-    local debug_args = {
-      system_prompt_template = opts.system_prompt_template,
-      user_prompt_templates = opts.user_prompt_templates,
-      user_prompt_args = user_prompt_args,
-    }
-    input_buf_nr = utils.create_input_buffer(cur_buf, debug_args)
-    -- Set up autocmd to clear the buffer number when it's deleted
-    api.nvim_create_autocmd('BufDelete', {
-      buffer = input_buf_nr,
-      callback = function()
-        input_buf_nr = nil
-      end,
-    })
+    api.nvim_buf_call(input_buf_nr, function()
+      vim.cmd 'bdelete!'
+    end)
   end
+  local cur_buf = api.nvim_get_current_buf()
+  local debug_args = {
+    system_prompt_template = opts.system_prompt_template,
+    user_prompt_templates = opts.user_prompt_templates,
+    user_prompt_args = user_prompt_args,
+  }
+  input_buf_nr = utils.create_input_buffer(cur_buf, debug_args)
+  -- Set up autocmd to clear the buffer number when it's deleted
+  api.nvim_create_autocmd('BufDelete', {
+    buffer = input_buf_nr,
+    callback = function()
+      input_buf_nr = nil
+    end,
+  })
 
   local active_job = make_job_fn(rendered_messages, utils.write_content_at_end)
   active_job:start()

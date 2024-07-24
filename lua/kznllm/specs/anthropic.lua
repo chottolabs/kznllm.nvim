@@ -12,73 +12,12 @@ M.SELECTED_MODEL = M.MODELS.SONNET_3_5
 
 M.PROMPT_TEMPLATES = {
   --- this prompt should let the model yap into a separate buffer
-  HELPFUL_PROMPT = [[You are a Senior Engineer at a Fortune 500 Company. You will be provided with code samples, academic papers, and documentation as supporting context to assist you in answering user queries about coding. Your task is to analyze this information and use it to provide accurate, helpful responses to the user's coding-related questions.
-
-First, review the following input context:
-
-<supporting_context>
-%s
-</supporting_context>
-
-Guidelines for analyzing the input context:
-1. Carefully read through the code samples, noting the programming languages used, coding patterns, and any unique implementations.
-2. Review the academic papers, focusing on algorithms, methodologies, and theoretical concepts relevant to coding.
-3. Examine the supporting documentation for any specific guidelines, best practices, or API references that may be useful.
-
-When responding to the user's query, follow these steps:
-1. Analyze the user's question and identify the key coding concepts or problems they're addressing.
-2. Reference relevant information from the code samples, academic papers, and supporting documentation to formulate your response.
-3. Provide clear, concise explanations and, when appropriate, code snippets to illustrate your points.
-
-Here is the user's query:
-<user_query>
-%s
-</user_query>
-
-Please provide your response in the following format:
-1. Begin with a brief summary of your understanding of the user's query.
-2. Present your main response, including explanations and code snippets where appropriate.
-3. If relevant, suggest further resources or areas of study related to the query.
-
-Enclose your entire response within <answer> tags. Use <code> tags for any code snippets you include in your response.
-
-Remember to base your response on the provided input context and avoid making assumptions or providing information that isn't supported by the given materials.]],
+  BUFFER_MODE_SYSTEM_PROMPT = 'anthropic/buffer_mode_system_prompt.xml.jinja',
+  BUFFER_MODE_USER_PROMPT = 'anthropic/buffer_mode_user_prompt.xml.jinja',
 
   --- this prompt has to be written to output valid code
-  REPLACE_PROMPT = [[You will be given a code snippet with comments. Your task is to fix any errors in the code and implement any unfinished functionality indicated in the comments. Only output valid code fragment in the provided language.
-
-Here is the code snippet:
-
-<code_snippet>
-%s
-</code_snippet>
-
-Follow these steps to complete the task:
-
-1. Carefully read through the entire code snippet, including all comments.
-
-2. Identify any syntax errors, logical errors, or unimplemented functionality mentioned in the comments.
-
-3. Fix all errors you've identified. This may include:
-   - Correcting syntax mistakes
-   - Addressing logical errors
-   - Implementing missing functionality as described in the comments
-
-4. Ensure that your changes maintain the original intent of the code while improving its functionality and correctness.
-
-5. If there are multiple ways to implement a feature or fix an error, choose the most efficient and clear approach.
-
-6. Do not add any new features or functionality beyond what is explicitly mentioned in the code or comments.
-
-7. Maintain the original code style and formatting as much as possible, unless it directly contributes to the errors.
-
-8. Keep any comments that were used to make changes.
-
-9. If you make any significant changes or implementations, add brief comments on a separate line explaining your modifications.
-
-Output your corrected and implemented code. Ensure that the code fragment you output is valid, and ready to run in the language of the original snippet.
-
-Remember, only output valid code without any backticks. Do not include any explanations, notes, or anything other than the corrected code itself.]],
+  REPLACE_MODE_SYSTEM_PROMPT = 'anthropic/replace_mode_system_prompt.xml.jinja',
+  REPLACE_MODE_USER_PROMPT = 'anthropic/replace_mode_user_prompt.xml.jinja',
 }
 
 local API_ERROR_MESSAGE = [[
@@ -92,18 +31,26 @@ local current_event_state = nil
 --- Constructs arguments for constructing an HTTP request to the Anthropic API
 --- using cURL.
 ---
----@param user_prompt string
+---@param rendered_messages { system_message: string[], user_messages: string[][] }
 ---@return string[]
-local function make_curl_args(user_prompt)
+local function make_curl_args(rendered_messages)
+  vim.print(rendered_messages)
   local api_key = os.getenv(M.API_KEY_NAME)
+  local messages = {}
+  for _, user_message in ipairs(rendered_messages.user_messages) do
+    table.insert(messages, { role = 'user', content = table.concat(user_message, '\n') })
+  end
   local data = {
-    messages = {
-      { role = 'user', content = user_prompt },
-    },
+    messages = messages,
     model = M.SELECTED_MODEL.name,
     stream = true,
     max_tokens = M.SELECTED_MODEL.max_tokens,
   }
+
+  if rendered_messages.system_message ~= nil then
+    data.system = table.concat(rendered_messages.system_message, '\n')
+  end
+
   local args = { '-s', '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
   if api_key then
     args = vim.list_extend(args, {
@@ -158,10 +105,10 @@ local function handle_data(data)
   return content
 end
 
-function M.make_job(prompt_template, user_prompt_args, writer_fn)
+function M.make_job(rendered_messages, writer_fn)
   local active_job = Job:new {
     command = 'curl',
-    args = make_curl_args(prompt_template:format(unpack(user_prompt_args))),
+    args = make_curl_args(rendered_messages),
     on_stdout = function(_, out)
       if out == '' then
         return

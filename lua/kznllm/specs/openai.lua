@@ -3,9 +3,11 @@ M.API_KEY_NAME = 'GROQ_API_KEY'
 M.URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 M.MODELS = {
-  LLAMA_3_70B = 'llama3-70b-8192',
+  LLAMA_3_1_405B = { name = 'llama-3.1-405b-reasoning', max_tokens = 131072 },
+  LLAMA_3_1_70B = { name = 'llama-3.1-70b-versatile', max_tokens = 131072 },
+  LLAMA_3_70B = { name = 'llama3-70b-8192', max_tokens = 8192 },
 }
-M.SELECTED_MODEL = M.MODELS.LLAMA_3_70B
+M.SELECTED_MODEL = M.MODELS.LLAMA_3_1_70B
 
 M.PROMPT_TEMPLATES = {
 
@@ -41,7 +43,7 @@ local function make_curl_args(rendered_messages)
   end
   local data = {
     messages = messages,
-    model = M.SELECTED_MODEL,
+    model = M.SELECTED_MODEL.name,
     temperature = 0.7,
     stream = true,
   }

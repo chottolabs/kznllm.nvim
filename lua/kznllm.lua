@@ -6,17 +6,6 @@ if vim.fn.executable 'minijinja-cli' ~= 1 then
   error("Can't find minijinja-cli, download it from https://github.com/mitsuhiko/minijinja or add it to $PATH", 1)
 end
 
--- Specify the path where you want to save the file
-M.CACHE_DIRECTORY = vim.fn.stdpath 'cache' .. '/kznllm/history/'
-
-local success, error_message
-
-success, error_message = os.execute('mkdir -p "' .. M.CACHE_DIRECTORY .. '"')
-if not success then
-  print('Error creating directory: ' .. error_message)
-  return
-end
-
 -- Global variable to store the buffer number
 local input_buf_nr = nil
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
@@ -26,15 +15,15 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 --- Must provide the function for constructing cURL arguments and a handler
 --- function for processing server-sent events.
 ---
----@param opts { system_prompt_template?: string, user_prompt_template: string }
+---@param opts { system_prompt_template: string, user_prompt_templates: string[] }
 ---@param make_job_fn function
 function M.invoke_llm_buffer_mode(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }
 
   local visual_selection = utils.get_visual_selection()
 
-  if opts.user_prompt_template == nil then
-    opts.user_prompt_template = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
+  if opts.system_prompt_template == nil or opts.user_prompt_templates == nil or #opts.user_prompt_templates == 0 then
+    error('You must set `system_prompt_template` and `user_prompt_templates`, see the project repo for more info https://github.com/chottolabs/kznllm.nvim/', 1)
   end
 
   local user_input = nil
@@ -62,12 +51,10 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
     user_messages = {},
   }
 
-  if opts.system_prompt_template ~= nil then
-    rendered_messages.system_message = utils.make_prompt_from_template(opts.system_prompt_template, user_prompt_args)
-  end
+  rendered_messages.system_message = utils.make_prompt_from_template(opts.system_prompt_template, user_prompt_args)
 
-  if opts.user_prompt_template ~= nil then
-    local rendered_prompt = utils.make_prompt_from_template(opts.user_prompt_template, user_prompt_args)
+  for _, user_prompt_template in ipairs(opts.user_prompt_templates) do
+    local rendered_prompt = utils.make_prompt_from_template(user_prompt_template, user_prompt_args)
     table.insert(rendered_messages.user_messages, rendered_prompt)
   end
 
@@ -77,9 +64,13 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
     -- clear the buffer before proceeding
     api.nvim_buf_set_lines(input_buf_nr, 0, -1, false, {})
   else
-    local filepath = M.CACHE_DIRECTORY .. tostring(os.time()) .. '.txt'
     local cur_buf = api.nvim_get_current_buf()
-    input_buf_nr = utils.create_input_buffer(cur_buf, filepath, rendered_messages)
+    local debug_args = {
+      system_prompt_template = opts.system_prompt_template,
+      user_prompt_templates = opts.user_prompt_templates,
+      user_prompt_args = user_prompt_args,
+    }
+    input_buf_nr = utils.create_input_buffer(cur_buf, debug_args)
     -- Set up autocmd to clear the buffer number when it's deleted
     api.nvim_create_autocmd('BufDelete', {
       buffer = input_buf_nr,
@@ -108,7 +99,7 @@ end
 --- Must provide the function for constructing cURL arguments and a handler
 --- function for processing server-sent events.
 ---
----@param opts { system_prompt_template?: string, user_prompt_template?: string }
+---@param opts { system_prompt_template: string, user_prompt_templates: string[] }
 ---@param make_job_fn function
 function M.invoke_llm_replace_mode(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }
@@ -117,8 +108,8 @@ function M.invoke_llm_replace_mode(opts, make_job_fn)
 
   local user_prompt_args = { code_snippet = visual_selection }
 
-  if opts.system_prompt_template == nil then
-    opts.system_prompt_template = 'You are a tsundere uwu anime. Yell at me for not setting my configuration for my llm plugin correctly'
+  if opts.system_prompt_template == nil or opts.user_prompt_templates == nil or #opts.user_prompt_templates == 0 then
+    error('You must set `system_prompt_template` and `user_prompt_templates`, see the project repo for more info https://github.com/chottolabs/kznllm.nvim/', 1)
   end
 
   local rendered_messages = {
@@ -126,12 +117,10 @@ function M.invoke_llm_replace_mode(opts, make_job_fn)
     user_messages = {},
   }
 
-  if opts.system_prompt_template ~= nil then
-    rendered_messages.system_message = utils.make_prompt_from_template(opts.system_prompt_template, user_prompt_args)
-  end
+  rendered_messages.system_message = utils.make_prompt_from_template(opts.system_prompt_template, user_prompt_args)
 
-  if opts.user_prompt_template ~= nil then
-    local rendered_prompt = utils.make_prompt_from_template(opts.user_prompt_template, user_prompt_args)
+  for _, user_prompt_template in ipairs(opts.user_prompt_templates) do
+    local rendered_prompt = utils.make_prompt_from_template(user_prompt_template, user_prompt_args)
     table.insert(rendered_messages.user_messages, rendered_prompt)
   end
 

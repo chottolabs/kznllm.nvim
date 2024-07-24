@@ -2,6 +2,17 @@ local Job = require 'plenary.job'
 local M = {}
 local api = vim.api
 
+-- Specify the path where you want to save the file
+M.CACHE_DIRECTORY = vim.fn.stdpath 'cache' .. '/kznllm/history/'
+
+local success, error_message
+
+success, error_message = os.execute('mkdir -p "' .. M.CACHE_DIRECTORY .. '"')
+if not success then
+  print('Error creating directory: ' .. error_message)
+  return
+end
+
 --- Inserts content at the current cursor position in the active Neovim buffer.
 ---
 --- This function schedules the insertion to occur on the next event loop iteration,
@@ -69,7 +80,7 @@ function M.make_prompt_from_template(prompt_template_filename, user_prompt_args)
   return active_job:result()
 end
 
-local function make_scratch_buffer(rendered_messages)
+local function make_scratch_buffer(debug_args)
   local scratch_buf_nr = api.nvim_create_buf(false, true)
 
   -- Set buffer options
@@ -89,10 +100,16 @@ local function make_scratch_buffer(rendered_messages)
   api.nvim_set_option_value('linebreak', true, { win = 0 })
   api.nvim_set_option_value('breakindent', true, { win = 0 })
 
-  api.nvim_buf_set_lines(scratch_buf_nr, 0, -1, false, rendered_messages.system_message)
+  if debug_args.system_prompt_template ~= nil then
+    api.nvim_buf_set_lines(scratch_buf_nr, 0, -1, false, { 'system_message:', '', '---', '' })
+    local rendered_system_message = M.make_prompt_from_template(debug_args.system_prompt_template, debug_args.user_prompt_args)
+    api.nvim_buf_set_lines(scratch_buf_nr, 0, -1, false, rendered_system_message)
+  end
 
-  for _, user_messages in ipairs(rendered_messages.user_messages) do
-    api.nvim_buf_set_lines(scratch_buf_nr, 0, -1, false, user_messages)
+  for _, user_prompt_template in ipairs(debug_args.user_prompt_templates) do
+    api.nvim_buf_set_lines(scratch_buf_nr, 0, -1, false, { 'user_message:', '', '---', '' })
+    local rendered_user_message = M.make_prompt_from_template(user_prompt_template, debug_args.user_prompt_args)
+    api.nvim_buf_set_lines(scratch_buf_nr, 0, -1, false, rendered_user_message)
   end
 
   -- Set up key mapping to close the buffer
@@ -110,8 +127,19 @@ local function make_scratch_buffer(rendered_messages)
   })
 end
 
--- Define the function that creates the buffer and handles the input
-function M.create_input_buffer(return_buf, filepath, rendered_messages)
+--- Define the function that creates the buffer and handles the input
+---
+---@param return_buf integer
+---@param debug_args { system_prompt_template: string, user_prompt_templates: string[], user_prompt_args: { code_snippet?: string, supporting_context?: string, user_query?:string } }
+---@return integer
+function M.create_input_buffer(return_buf, debug_args)
+  local prompt_save_dir = M.CACHE_DIRECTORY .. tostring(os.time()) .. '/'
+  local filepath = prompt_save_dir .. 'output.xml'
+  success, error_message = os.execute('mkdir -p "' .. prompt_save_dir .. '"')
+  if not success then
+    error('Error creating directory: ' .. error_message)
+  end
+
   local input_buf_nr = api.nvim_create_buf(true, false)
   api.nvim_buf_set_name(input_buf_nr, filepath)
   api.nvim_set_option_value('buflisted', true, { buf = input_buf_nr })
@@ -135,6 +163,16 @@ function M.create_input_buffer(return_buf, filepath, rendered_messages)
       api.nvim_buf_call(input_buf_nr, function()
         vim.cmd 'write'
       end)
+
+      local args_file = prompt_save_dir .. 'args.json'
+      local file = io.open(args_file, 'w')
+      if file then
+        file:write(vim.json.encode(debug_args))
+        file:close()
+        print('Data written to ' .. args_file)
+      else
+        print('Unable to open file ' .. args_file)
+      end
 
       -- Switch to the return buffer provided
       api.nvim_set_current_buf(return_buf)
@@ -163,7 +201,7 @@ function M.create_input_buffer(return_buf, filepath, rendered_messages)
       -- Trigger the LLM_Escape event
       api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
       -- Create a new buffer
-      make_scratch_buffer(rendered_messages)
+      make_scratch_buffer(debug_args)
     end,
   })
   return input_buf_nr

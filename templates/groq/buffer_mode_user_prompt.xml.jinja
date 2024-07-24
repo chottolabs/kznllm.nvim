@@ -1,5 +1,9 @@
+{% if supporting_context -%}
 ```
 {{supporting_context}}
 ```
 
 {{user_query}}
+{%- else -%}
+{{user_query}}
+{%- endif -%}

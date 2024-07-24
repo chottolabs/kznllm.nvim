@@ -34,7 +34,6 @@ local current_event_state = nil
 ---@param rendered_messages { system_message: string[], user_messages: string[][] }
 ---@return string[]
 local function make_curl_args(rendered_messages)
-  vim.print(rendered_messages)
   local api_key = os.getenv(M.API_KEY_NAME)
   local messages = {}
   for _, user_message in ipairs(rendered_messages.user_messages) do

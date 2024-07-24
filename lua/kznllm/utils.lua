@@ -89,9 +89,6 @@ local function make_scratch_buffer(debug_args)
   api.nvim_set_option_value('swapfile', false, { buf = scratch_buf_nr })
   api.nvim_set_option_value('filetype', 'input-buffer', { buf = scratch_buf_nr })
 
-  -- Set buffer name
-  api.nvim_buf_set_name(scratch_buf_nr, 'Rendered Prompt')
-
   -- Switch to the new buffer
   api.nvim_set_current_buf(scratch_buf_nr)
 
@@ -101,15 +98,15 @@ local function make_scratch_buffer(debug_args)
   api.nvim_set_option_value('breakindent', true, { win = 0 })
 
   if debug_args.system_prompt_template ~= nil then
-    api.nvim_buf_set_lines(scratch_buf_nr, 0, -1, false, { 'system_message:', '', '---', '' })
+    api.nvim_buf_set_lines(scratch_buf_nr, -2, -2, false, { 'system_message:', '', '---', '' })
     local rendered_system_message = M.make_prompt_from_template(debug_args.system_prompt_template, debug_args.user_prompt_args)
-    api.nvim_buf_set_lines(scratch_buf_nr, 0, -1, false, rendered_system_message)
+    api.nvim_buf_set_lines(scratch_buf_nr, -2, -2, false, rendered_system_message)
   end
 
   for _, user_prompt_template in ipairs(debug_args.user_prompt_templates) do
-    api.nvim_buf_set_lines(scratch_buf_nr, 0, -1, false, { 'user_message:', '', '---', '' })
+    api.nvim_buf_set_lines(scratch_buf_nr, -2, -2, false, { '', '---', '', 'user_message:', '' })
     local rendered_user_message = M.make_prompt_from_template(user_prompt_template, debug_args.user_prompt_args)
-    api.nvim_buf_set_lines(scratch_buf_nr, 0, -1, false, rendered_user_message)
+    api.nvim_buf_set_lines(scratch_buf_nr, -2, -2, false, rendered_user_message)
   end
 
   -- Set up key mapping to close the buffer
@@ -135,10 +132,6 @@ end
 function M.create_input_buffer(return_buf, debug_args)
   local prompt_save_dir = M.CACHE_DIRECTORY .. tostring(os.time()) .. '/'
   local filepath = prompt_save_dir .. 'output.xml'
-  success, error_message = os.execute('mkdir -p "' .. prompt_save_dir .. '"')
-  if not success then
-    error('Error creating directory: ' .. error_message)
-  end
 
   local input_buf_nr = api.nvim_create_buf(true, false)
   api.nvim_buf_set_name(input_buf_nr, filepath)
@@ -159,6 +152,11 @@ function M.create_input_buffer(return_buf, debug_args)
     callback = function()
       -- Trigger the LLM_Escape event
       api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+
+      success, error_message = os.execute('mkdir -p "' .. prompt_save_dir .. '"')
+      if not success then
+        error('Error creating directory: ' .. error_message)
+      end
 
       api.nvim_buf_call(input_buf_nr, function()
         vim.cmd 'write'

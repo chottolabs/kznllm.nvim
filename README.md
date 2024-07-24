@@ -30,6 +30,8 @@ https://github.com/user-attachments/assets/89331af3-3c69-41e3-9293-83b4549a6025
 - **Usage**: (1) make a visual selection (2) `leader + k`
 - **Behavior**: replaces current selection and rewrites the selection based on context provdied by comments + fixing any errors 
 
+_Note: this plugin depends on `minijinja-cli`, install it from https://github.com/mitsuhiko/minijinja (probably using `cargo install minijinja-cli`, but double-check for your own safety) - it makes the it way easier to compose prompts_
+
 Hit `esc` to interrupt and stay in the buffer.
 
 ## Usage
@@ -50,13 +52,15 @@ export GROQ_API_KEY=gsk_...
 
     local function llm_help()
       kznllm.invoke_llm_buffer_mode({
-        prompt_template = spec.PROMPT_TEMPLATES.HELPFUL_PROMPT,
+        system_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.BUFFER_MODE_SYSTEM_PROMPT,
+        user_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.BUFFER_MODE_USER_PROMPT,
       }, spec.make_job)
     end
 
     local function llm_replace()
       kznllm.invoke_llm_replace_mode({
-        prompt_template = spec.PROMPT_TEMPLATES.REPLACE_PROMPT,
+        system_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.REPLACE_MODE_SYSTEM_PROMPT,
+        user_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.REPLACE_MODE_USER_PROMPT,
       }, spec.make_job)
     end
 
@@ -77,13 +81,15 @@ or for groq
 
     local function llm_help()
       kznllm.invoke_llm_buffer_mode({
-        prompt_template = spec.PROMPT_TEMPLATES.HELPFUL_PROMPT,
+        system_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.BUFFER_MODE_SYSTEM_PROMPT,
+        user_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.BUFFER_MODE_USER_PROMPT,
       }, spec.make_job)
     end
 
     local function llm_replace()
       kznllm.invoke_llm_replace_mode({
-        prompt_template = spec.PROMPT_TEMPLATES.REPLACE_PROMPT,
+        system_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.REPLACE_MODE_SYSTEM_PROMPT,
+        user_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.REPLACE_MODE_USER_PROMPT,
       }, spec.make_job)
     end
 

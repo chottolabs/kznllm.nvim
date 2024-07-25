@@ -37,9 +37,13 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
     return
   end
 
-  local user_prompt_args = {
-    supporting_context = visual_selection,
-    user_query = user_input,
+  local prompt_args = {
+    system_prompt_template = opts.system_prompt_template,
+    user_prompt_templates = opts.user_prompt_templates,
+    user_prompt_args = {
+      supporting_context = visual_selection,
+      user_query = user_input,
+    },
   }
 
   -- after getting lines, exit visual mode and go to end of the current line
@@ -51,10 +55,10 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
     user_messages = {},
   }
 
-  rendered_messages.system_message = utils.make_prompt_from_template(opts.system_prompt_template, user_prompt_args)
+  rendered_messages.system_message = utils.make_prompt_from_template(opts.system_prompt_template, prompt_args)
 
   for _, user_prompt_template in ipairs(opts.user_prompt_templates) do
-    local rendered_prompt = utils.make_prompt_from_template(user_prompt_template, user_prompt_args)
+    local rendered_prompt = utils.make_prompt_from_template(user_prompt_template, prompt_args)
     table.insert(rendered_messages.user_messages, rendered_prompt)
   end
 
@@ -66,12 +70,8 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
     end)
   end
   local cur_buf = api.nvim_get_current_buf()
-  local debug_args = {
-    system_prompt_template = opts.system_prompt_template,
-    user_prompt_templates = opts.user_prompt_templates,
-    user_prompt_args = user_prompt_args,
-  }
-  input_buf_nr = utils.create_input_buffer(cur_buf, debug_args)
+
+  input_buf_nr = utils.create_input_buffer(cur_buf, prompt_args)
   -- Set up autocmd to clear the buffer number when it's deleted
   api.nvim_create_autocmd('BufDelete', {
     buffer = input_buf_nr,
@@ -106,7 +106,13 @@ function M.invoke_llm_replace_mode(opts, make_job_fn)
 
   local visual_selection = utils.get_visual_selection()
 
-  local user_prompt_args = { code_snippet = visual_selection }
+  local prompt_args = {
+    system_prompt_template = opts.system_prompt_template,
+    user_prompt_templates = opts.user_prompt_templates,
+    user_prompt_args = {
+      code_snippet = visual_selection,
+    },
+  }
 
   if opts.system_prompt_template == nil or opts.user_prompt_templates == nil or #opts.user_prompt_templates == 0 then
     error('You must set `system_prompt_template` and `user_prompt_templates`, see the project repo for more info https://github.com/chottolabs/kznllm.nvim/', 1)
@@ -117,10 +123,10 @@ function M.invoke_llm_replace_mode(opts, make_job_fn)
     user_messages = {},
   }
 
-  rendered_messages.system_message = utils.make_prompt_from_template(opts.system_prompt_template, user_prompt_args)
+  rendered_messages.system_message = utils.make_prompt_from_template(opts.system_prompt_template, prompt_args)
 
   for _, user_prompt_template in ipairs(opts.user_prompt_templates) do
-    local rendered_prompt = utils.make_prompt_from_template(user_prompt_template, user_prompt_args)
+    local rendered_prompt = utils.make_prompt_from_template(user_prompt_template, prompt_args)
     table.insert(rendered_messages.user_messages, rendered_prompt)
   end
 

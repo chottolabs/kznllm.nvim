@@ -1,0 +1,11 @@
+<SystemMessage>
+{% include system_prompt_template %}
+</SystemMessage>
+
+<UserMessages>
+{%- for user_template in user_prompt_templates %}
+<UserMessage>
+{% include user_template %}
+</UserMessage>
+{%- endfor %}
+</UserMessages>

@@ -1,9 +1,9 @@
-{% if supporting_context -%}
+{% if user_prompt_args.supporting_context -%}
 ```
-{{supporting_context}}
+{{user_prompt_args.supporting_context}}
 ```
 
-{{user_query}}
+{{user_prompt_args.user_query}}
 {%- else -%}
-{{user_query}}
+{{user_prompt_args.user_query}}
 {%- endif -%}

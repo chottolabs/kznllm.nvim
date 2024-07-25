@@ -1,11 +1,11 @@
-{% if supporting_context -%}
+{% if user_prompt_args.supporting_context -%}
 First, review the following input context:
 
 <supporting_context>
-{{supporting_context}}
+{{user_prompt_args.supporting_context}}
 </supporting_context>
-{%- endif -%}
 
+{% endif -%}
 Guidelines for analyzing the input context:
 1. Carefully read through the code samples, noting the programming languages used, coding patterns, and any unique implementations.
 2. Review the academic papers, focusing on algorithms, methodologies, and theoretical concepts relevant to coding.
@@ -18,7 +18,7 @@ When responding to the user's query, follow these steps:
 
 Here is the user's query:
 <user_query>
-{{user_query}}
+{{user_prompt_args.user_query}}
 </user_query>
 
 Please provide your response in the following format:

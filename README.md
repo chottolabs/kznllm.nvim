@@ -48,19 +48,26 @@ export GROQ_API_KEY=gsk_...
   dependencies = { 'nvim-lua/plenary.nvim' },
   config = function()
     local kznllm = require 'kznllm'
+    local utils = require 'kznllm.utils'
     local spec = require 'kznllm.specs.anthropic'
+
+    utils.TEMPLATE_DIRECTORY = self.dir .. '/templates/'
 
     local function llm_help()
       kznllm.invoke_llm_buffer_mode({
-        system_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.BUFFER_MODE_SYSTEM_PROMPT,
-        user_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.BUFFER_MODE_USER_PROMPT,
+        system_prompt_template = spec.PROMPT_TEMPLATES.BUFFER_MODE_SYSTEM_PROMPT,
+        user_prompt_templates = {
+          spec.PROMPT_TEMPLATES.BUFFER_MODE_USER_PROMPT,
+        },
       }, spec.make_job)
     end
 
     local function llm_replace()
       kznllm.invoke_llm_replace_mode({
-        system_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.REPLACE_MODE_SYSTEM_PROMPT,
-        user_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.REPLACE_MODE_USER_PROMPT,
+        system_prompt_template = spec.PROMPT_TEMPLATES.REPLACE_MODE_SYSTEM_PROMPT,
+        user_prompt_templates = {
+          spec.PROMPT_TEMPLATES.REPLACE_MODE_USER_PROMPT,
+        },
       }, spec.make_job)
     end
 
@@ -77,22 +84,25 @@ or for groq
   dependencies = { 'nvim-lua/plenary.nvim' },
   config = function()
     local kznllm = require 'kznllm'
+    local utils = require 'kznllm.utils'
     local spec = require 'kznllm.specs.openai'
+
+    utils.TEMPLATE_DIRECTORY = self.dir .. '/templates/'
 
     local function llm_help()
       kznllm.invoke_llm_buffer_mode({
-        system_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.BUFFER_MODE_SYSTEM_PROMPT,
+        system_prompt_template = spec.PROMPT_TEMPLATES.BUFFER_MODE_SYSTEM_PROMPT,
         user_prompt_templates = {
-          self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.BUFFER_MODE_USER_PROMPT,
+          spec.PROMPT_TEMPLATES.BUFFER_MODE_USER_PROMPT,
         },
       }, spec.make_job)
     end
 
     local function llm_replace()
       kznllm.invoke_llm_replace_mode({
-        system_prompt_template = self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.REPLACE_MODE_SYSTEM_PROMPT,
+        system_prompt_template = spec.PROMPT_TEMPLATES.REPLACE_MODE_SYSTEM_PROMPT,
         user_prompt_templates = {
-          self.dir .. '/templates/' .. spec.PROMPT_TEMPLATES.REPLACE_MODE_USER_PROMPT,
+          spec.PROMPT_TEMPLATES.REPLACE_MODE_USER_PROMPT,
         },
       }, spec.make_job)
     end

@@ -99,7 +99,7 @@ or for groq
 {
   'chottolabs/kznllm.nvim',
   dependencies = { 'nvim-lua/plenary.nvim' },
-  config = function()
+  config = function(self)
     local kznllm = require 'kznllm'
     local utils = require 'kznllm.utils'
     local spec = require 'kznllm.specs.openai'

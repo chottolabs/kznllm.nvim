@@ -12,12 +12,6 @@ We're at a point in history where "AI-powered editor" is probably one of the bes
 
 See [CONTRIBUTING](CONTRIBUTING.md) to understand the typical development workflow for Neovim plugins using `Lazy`.
 
-https://github.com/chottolabs/kznllm.nvim/assets/171991982/39da67df-1ebc-4866-b563-f6b30d393162
-
-https://github.com/user-attachments/assets/cfa01851-f2f5-42b5-b042-0bb1fc55e3f7
-
-https://github.com/user-attachments/assets/89331af3-3c69-41e3-9293-83b4549a6025
-
 # How it works
 
 **Buffer Mode** - like a long-form chat mode
@@ -28,14 +22,20 @@ https://github.com/user-attachments/assets/89331af3-3c69-41e3-9293-83b4549a6025
   - (quit) hit `w` to interrupt + quit and save the buffer to `$HOME/.cache/kznllm/history` as `<timestamp>.txt` and returns back to you previous buffer. You can also interrupt + quit without saving + delete the buffer from history using `q`
   - (search history) if you quit with `w` the buffer stays listed and you can find it in open buffers again (e.g. using kickstart defaults it would be `space + space`), if you quit with `q` it deletes the buffer and won't clutter up open buffers list
 
+https://github.com/user-attachments/assets/89331af3-3c69-41e3-9293-83b4549a6025
+
 **Project Mode** - same as buffer mode, but lets you retrieve any files using an `fd` call and formats it into multi-document context
 - **Usage**: (1) make a visual selection (2) `leader + kp` (3) input arguments to `fd` (4) navigate the picker and hit tab to select the files you want in the context (5) same as buffer mode
 
 _Note: experimental and mainly built for claude
 
+https://github.com/user-attachments/assets/cfa01851-f2f5-42b5-b042-0bb1fc55e3f7
+
 **Replace Mode** - basically infill specifically for coding
 - **Usage**: (1) make a visual selection (2) `leader + shift + k`
 - **Behavior**: replaces current selection and rewrites the selection based on context provdied by comments + fixing any errors 
+
+https://github.com/chottolabs/kznllm.nvim/assets/171991982/39da67df-1ebc-4866-b563-f6b30d393162
 
 _Note: this plugin depends on `fd` and `minijinja-cli`, install it from https://github.com/mitsuhiko/minijinja (probably using `cargo install minijinja-cli`, but double-check for your own safety)- it makes the it way easier to compose prompts. You should have `fd` already from telescope, if not https://github.com/sharkdp/fd_
 

@@ -1,0 +1,42 @@
+<documents>
+{% for file_path in user_prompt_args.selected_files -%}
+<document index="{{loop.index}}">
+<source>{{file_path}}</source>
+<document_content>
+{% include file_path %}
+</document_content>
+</document>
+{%- endfor %}
+<documents>
+
+{% if user_prompt_args.supporting_context -%}
+First, review the following input context:
+
+<supporting_context>
+{{user_prompt_args.supporting_context}}
+</supporting_context>
+
+{% endif -%}
+Guidelines for analyzing the input context:
+1. Carefully read through the code samples, noting the programming languages used, coding patterns, and any unique implementations.
+2. Review the academic papers, focusing on algorithms, methodologies, and theoretical concepts relevant to coding.
+3. Examine the supporting documentation for any specific guidelines, best practices, or API references that may be useful.
+
+When responding to the user's query, follow these steps:
+1. Analyze the user's question and identify the key coding concepts or problems they're addressing.
+2. Reference relevant information from the code samples, academic papers, and supporting documentation to formulate your response.
+3. Provide clear, concise explanations and, when appropriate, code snippets to illustrate your points.
+
+Here is the user's query:
+<user_query>
+{{user_prompt_args.user_query}}
+</user_query>
+
+Please provide your response in the following format:
+1. Begin with a brief summary of your understanding of the user's query.
+2. Present your main response, including explanations and code snippets where appropriate.
+3. If relevant, suggest further resources or areas of study related to the query.
+
+Enclose your entire response within <answer> tags. Use <code> tags for any code snippets you include in your response.
+
+Remember to base your response on the provided input context and avoid making assumptions or providing information that isn't supported by the given materials.

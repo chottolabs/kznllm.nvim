@@ -15,6 +15,10 @@ M.PROMPT_TEMPLATES = {
   BUFFER_MODE_SYSTEM_PROMPT = 'anthropic/buffer_mode_system_prompt.xml.jinja',
   BUFFER_MODE_USER_PROMPT = 'anthropic/buffer_mode_user_prompt.xml.jinja',
 
+  --- this prompt should format a bunch of files into long context multi-document format
+  PROJECT_MODE_SYSTEM_PROMPT = 'anthropic/buffer_mode_system_prompt.xml.jinja',
+  PROJECT_MODE_USER_PROMPT = 'anthropic/project_mode_user_prompt.xml.jinja',
+
   --- this prompt has to be written to output valid code
   REPLACE_MODE_SYSTEM_PROMPT = 'anthropic/replace_mode_system_prompt.xml.jinja',
   REPLACE_MODE_USER_PROMPT = 'anthropic/replace_mode_user_prompt.xml.jinja',

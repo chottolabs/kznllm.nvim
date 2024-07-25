@@ -35,7 +35,7 @@ _Note: experimental and mainly built for claude
 - **Usage**: (1) make a visual selection (2) `leader + shift + k`
 - **Behavior**: replaces current selection and rewrites the selection based on context provdied by comments + fixing any errors 
 
-_Note: this plugin depends on `minijinja-cli`, install it from https://github.com/mitsuhiko/minijinja (probably using `cargo install minijinja-cli`, but double-check for your own safety) - it makes the it way easier to compose prompts_
+_Note: this plugin depends on `fd` and `minijinja-cli`, install it from https://github.com/mitsuhiko/minijinja (probably using `cargo install minijinja-cli`, but double-check for your own safety)- it makes the it way easier to compose prompts. You should have `fd` already from telescope, if not https://github.com/sharkdp/fd_
 
 Hit `esc` to interrupt and stay in the buffer.
 

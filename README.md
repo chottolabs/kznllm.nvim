@@ -12,6 +12,9 @@ We're at a point in history where "AI-powered editor" is probably one of the bes
 
 See [CONTRIBUTING](CONTRIBUTING.md) to understand the typical development workflow for Neovim plugins using `Lazy`.
 
+> [!NOTE]
+> This plugin depends on `fd` and `minijinja-cli`, install it from https://github.com/mitsuhiko/minijinja (probably using `cargo install minijinja-cli`, but double-check for your own safety)- it makes the it way easier to compose prompts. You should have `fd` already from telescope, if not https://github.com/sharkdp/fd
+
 # How it works
 
 **Buffer Mode** - like a long-form chat mode
@@ -25,9 +28,10 @@ See [CONTRIBUTING](CONTRIBUTING.md) to understand the typical development workfl
 https://github.com/user-attachments/assets/89331af3-3c69-41e3-9293-83b4549a6025
 
 **Project Mode** - same as buffer mode, but lets you retrieve any files using an `fd` call and formats it into multi-document context
-- **Usage**: (1) make a visual selection (2) `leader + Kp` (3) input arguments to `fd` (4) navigate the picker and hit tab to select the files you want in the context (5) same as buffer mode
+- **Usage**: (1) make a visual selection (2) `leader + Kp` (3) input arguments to `fd` (4) navigate the picker and hit `Tab` to select the files you want in the context (5) same as buffer mode
 
-_Note: experimental and mainly built for claude
+> [!WARNING]
+> experimental and mainly built for claude
 
 https://github.com/user-attachments/assets/cfa01851-f2f5-42b5-b042-0bb1fc55e3f7
 
@@ -36,10 +40,6 @@ https://github.com/user-attachments/assets/cfa01851-f2f5-42b5-b042-0bb1fc55e3f7
 - **Behavior**: replaces current selection and rewrites the selection based on context provdied by comments + fixing any errors 
 
 https://github.com/chottolabs/kznllm.nvim/assets/171991982/39da67df-1ebc-4866-b563-f6b30d393162
-
-_Note: this plugin depends on `fd` and `minijinja-cli`, install it from https://github.com/mitsuhiko/minijinja (probably using `cargo install minijinja-cli`, but double-check for your own safety)- it makes the it way easier to compose prompts. You should have `fd` already from telescope, if not https://github.com/sharkdp/fd_
-
-Hit `esc` to interrupt and stay in the buffer.
 
 ## Usage
 

@@ -15,7 +15,7 @@ See [CONTRIBUTING](CONTRIBUTING.md) to understand the typical development workfl
 # How it works
 
 **Buffer Mode** - like a long-form chat mode
-- **Usage**: (1) make a visual selection (2) `leader + kb` (3) type out your query/prompt (4) quit and save with `q` or type `:q!` to quit without saving
+- **Usage**: (1) make a visual selection (2) `leader + k` (3) type out your query/prompt (4) quit and save with `q` or type `:q!` to quit without saving
 - **Behavior**: 
   - (initial) opens up a buffer, copies in the prompt template + arguments, and then streams the answer out at the bottom.
   - (debug / render input templates) if you hit `d` while in the completion buffer, it will interrupt (if it is still writing) and open up a buffer with a debug template showing the rendered input context
@@ -25,14 +25,14 @@ See [CONTRIBUTING](CONTRIBUTING.md) to understand the typical development workfl
 https://github.com/user-attachments/assets/89331af3-3c69-41e3-9293-83b4549a6025
 
 **Project Mode** - same as buffer mode, but lets you retrieve any files using an `fd` call and formats it into multi-document context
-- **Usage**: (1) make a visual selection (2) `leader + kp` (3) input arguments to `fd` (4) navigate the picker and hit tab to select the files you want in the context (5) same as buffer mode
+- **Usage**: (1) make a visual selection (2) `leader + Kp` (3) input arguments to `fd` (4) navigate the picker and hit tab to select the files you want in the context (5) same as buffer mode
 
 _Note: experimental and mainly built for claude
 
 https://github.com/user-attachments/assets/cfa01851-f2f5-42b5-b042-0bb1fc55e3f7
 
 **Replace Mode** - basically infill specifically for coding
-- **Usage**: (1) make a visual selection (2) `leader + shift + k`
+- **Usage**: (1) make a visual selection (2) `leader + Kr`
 - **Behavior**: replaces current selection and rewrites the selection based on context provdied by comments + fixing any errors 
 
 https://github.com/chottolabs/kznllm.nvim/assets/171991982/39da67df-1ebc-4866-b563-f6b30d393162
@@ -87,9 +87,9 @@ export GROQ_API_KEY=gsk_...
       }, spec.make_job)
     end
 
-    vim.keymap.set({ 'n', 'v' }, '<leader>kb', llm_buffer, { desc = 'Send current selection to LLM llm_buffer' })
-    vim.keymap.set({ 'n', 'v' }, '<leader>kp', llm_project, { desc = 'Send current selection to LLM llm_project' })
-    vim.keymap.set({ 'n', 'v' }, '<leader>K', llm_replace, { desc = 'Send current selection to LLM llm_replace' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_buffer, { desc = 'Send current selection to LLM llm_buffer' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>Kp', llm_project, { desc = 'Send current selection to LLM llm_project' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>Kr', llm_replace, { desc = 'Send current selection to LLM llm_replace' })
   end,
 },
 ```
@@ -124,8 +124,8 @@ or for groq
       }, spec.make_job)
     end
 
-    vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_replace, { desc = 'Send current selection to LLM llm_replace' })
-    vim.keymap.set({ 'n', 'v' }, '<leader>K', llm_help, { desc = 'Send current selection to LLM llm_help' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>K', llm_replace, { desc = 'Send current selection to LLM llm_replace' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_help, { desc = 'Send current selection to LLM llm_help' })
   end,
 }
 ```

@@ -13,7 +13,7 @@ We're at a point in history where "AI-powered editor" is probably one of the bes
 See [CONTRIBUTING](CONTRIBUTING.md) to understand the typical development workflow for Neovim plugins using `Lazy`.
 
 > [!NOTE]
-> This plugin depends on `fd` and `minijinja-cli`, install it from https://github.com/mitsuhiko/minijinja (probably using `cargo install minijinja-cli`, but double-check for your own safety)- it makes the it way easier to compose prompts. You should have `fd` already from telescope, if not https://github.com/sharkdp/fd
+> This plugin depends on [fd](https://github.com/sharkdp/fd) and [minijinja-cli](https://github.com/mitsuhiko/minijinja) (`cargo install minijinja-cli`, but double-check) - way easier to compose prompts. You should have `fd` already from telescope
 
 # How it works
 

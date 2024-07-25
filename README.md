@@ -14,6 +14,8 @@ See [CONTRIBUTING](CONTRIBUTING.md) to understand the typical development workfl
 
 https://github.com/chottolabs/kznllm.nvim/assets/171991982/39da67df-1ebc-4866-b563-f6b30d393162
 
+https://github.com/user-attachments/assets/cfa01851-f2f5-42b5-b042-0bb1fc55e3f7
+
 https://github.com/user-attachments/assets/89331af3-3c69-41e3-9293-83b4549a6025
 
 # How it works

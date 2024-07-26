@@ -17,7 +17,7 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 --- function for processing server-sent events.
 ---
 ---@param opts { system_prompt_template: string, user_prompt_templates: string[] }
----@param make_job_fn function
+---@param make_job_fn fun(rendered_messages: { system_message: string[], user_messages: string[][] }, writer_fn: fun(content: string))
 function M.invoke_llm_project_mode(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }
 
@@ -64,7 +64,6 @@ function M.invoke_llm_project_mode(opts, make_job_fn)
     rendered_messages.system_message = utils.make_prompt_from_template(opts.system_prompt_template, prompt_args)
 
     for _, user_prompt_template in ipairs(opts.user_prompt_templates) do
-      vim.print(prompt_args)
       local rendered_prompt = utils.make_prompt_from_template(user_prompt_template, prompt_args)
       table.insert(rendered_messages.user_messages, rendered_prompt)
     end
@@ -108,7 +107,7 @@ end
 --- function for processing server-sent events.
 ---
 ---@param opts { system_prompt_template: string, user_prompt_templates: string[] }
----@param make_job_fn function
+---@param make_job_fn fun(rendered_messages: { system_message: string[], user_messages: string[][] }, writer_fn: fun(content: string))
 function M.invoke_llm_buffer_mode(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }
 
@@ -192,7 +191,7 @@ end
 --- function for processing server-sent events.
 ---
 ---@param opts { system_prompt_template: string, user_prompt_templates: string[] }
----@param make_job_fn function
+---@param make_job_fn fun(rendered_messages: { system_message: string[], user_messages: string[][] }, writer_fn: fun(content: string))
 function M.invoke_llm_replace_mode(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }
 

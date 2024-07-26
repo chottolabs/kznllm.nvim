@@ -102,6 +102,7 @@ local function make_scratch_buffer(prompt_args)
 
   local rendered_debug_content = M.make_prompt_from_template('debug_template.xml.jinja', prompt_args)
   api.nvim_buf_set_lines(scratch_buf_nr, -2, -2, false, rendered_debug_content)
+  vim.cmd 'normal! gg'
 
   -- Set up key mapping to close the buffer
   api.nvim_buf_set_keymap(scratch_buf_nr, 'n', 'q', '', {

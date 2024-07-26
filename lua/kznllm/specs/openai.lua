@@ -40,10 +40,10 @@ local function make_curl_args(rendered_messages)
   local url = M.URL
   local api_key = os.getenv(M.API_KEY_NAME)
 
-  local system_message = { role = 'system', content = rendered_messages.system_prompt }
-  table.insert(rendered_messages.messages, 1, system_message)
+  local messages = { { role = 'system', content = rendered_messages.system_prompt } }
+  messages = vim.list_extend(messages, rendered_messages.messages)
   local data = {
-    messages = rendered_messages.messages,
+    messages = messages,
     model = M.SELECTED_MODEL.name,
     temperature = 0.7,
     stream = true,

@@ -3,8 +3,8 @@
 </SystemMessage>
 
 <UserMessages>
-{%- for message in messages %}
-{% if message.role == 'assistant' %}
+{% for message in messages -%}
+{%- if message.role == 'assistant' %}
 <AssistantMessage>
 {{message.content}}
 </AssistantMessage>
@@ -12,6 +12,6 @@
 <UserMessage>
 {{message.content}}
 </UserMessage>
-{% endif %}
+{% endif -%}
 {%- endfor %}
 </UserMessages>

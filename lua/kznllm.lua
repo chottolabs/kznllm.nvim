@@ -162,7 +162,6 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
 
   local rendered_prompt = utils.make_prompt_from_template(opts.user_prompt_template, prompt_args)
   table.insert(rendered_messages.messages, { role = 'user', content = rendered_prompt })
-  vim.print(rendered_messages)
 
   local cur_buf = api.nvim_get_current_buf()
 

@@ -1,11 +1,17 @@
 <SystemMessage>
-{% include system_prompt_template %}
+{{system_prompt}}
 </SystemMessage>
 
 <UserMessages>
-{%- for user_template in user_prompt_templates %}
+{%- for message in messages %}
+{% if message.role == 'assistant' %}
+<AssistantMessage>
+{{message.content}}
+</AssistantMessage>
+{% else %}
 <UserMessage>
-{% include user_template %}
+{{message.content}}
 </UserMessage>
+{% endif %}
 {%- endfor %}
 </UserMessages>

@@ -66,8 +66,8 @@ end
 ---Renders a prompt template using minijinja-cli and returns the rendered lines
 ---
 ---@param prompt_template_filename string
----@param prompt_args { user_prompt_args: { code_snippet?: string, supporting_context?: string, user_query?:string } }
----@return string[]
+---@param prompt_args table
+---@return string
 function M.make_prompt_from_template(prompt_template_filename, prompt_args)
   local json_data = vim.json.encode(prompt_args)
   local active_job = Job:new {
@@ -80,10 +80,11 @@ function M.make_prompt_from_template(prompt_template_filename, prompt_args)
   }
 
   active_job:sync()
-  return active_job:result()
+  return table.concat(active_job:result(), '\n')
 end
 
-local function make_scratch_buffer(prompt_args)
+---@param rendered_messages { system_prompt: string, messages: { role: string, content: string }[] }
+local function make_scratch_buffer(rendered_messages)
   local scratch_buf_nr = api.nvim_create_buf(false, true)
 
   -- Set buffer options
@@ -100,8 +101,8 @@ local function make_scratch_buffer(prompt_args)
   api.nvim_set_option_value('linebreak', true, { win = 0 })
   api.nvim_set_option_value('breakindent', true, { win = 0 })
 
-  local rendered_debug_content = M.make_prompt_from_template('debug_template.xml.jinja', prompt_args)
-  api.nvim_buf_set_lines(scratch_buf_nr, -2, -2, false, rendered_debug_content)
+  local rendered_debug_content = M.make_prompt_from_template('debug_template.xml.jinja', rendered_messages)
+  api.nvim_buf_set_lines(scratch_buf_nr, -2, -2, false, vim.split(rendered_debug_content, '\n'))
   vim.cmd 'normal! gg'
 
   -- Set up key mapping to close the buffer
@@ -122,9 +123,9 @@ end
 --- Define the function that creates the buffer and handles the input
 ---
 ---@param return_buf integer
----@param prompt_args { system_prompt_template: string, user_prompt_templates: string[], user_prompt_args: { code_snippet?: string, supporting_context?: string, user_query?:string } }
+---@param rendered_messages { system_prompt: string, messages: { role: string, content: string }[] }
 ---@return integer
-function M.create_input_buffer(return_buf, prompt_args)
+function M.create_input_buffer(return_buf, rendered_messages)
   local prompt_save_dir = M.CACHE_DIRECTORY .. tostring(os.time()) .. '/'
   local filepath = prompt_save_dir .. 'output.xml'
 
@@ -158,14 +159,14 @@ function M.create_input_buffer(return_buf, prompt_args)
         vim.cmd 'write'
       end)
 
-      local args_file = prompt_save_dir .. 'args.json'
-      local file = io.open(args_file, 'w')
+      local messages_file = prompt_save_dir .. 'messages.json'
+      local file = io.open(messages_file, 'w')
       if file then
-        file:write(vim.json.encode(prompt_args))
+        file:write(vim.json.encode(rendered_messages))
         file:close()
-        print('Data written to ' .. args_file)
+        print('Data written to ' .. messages_file)
       else
-        print('Unable to open file ' .. args_file)
+        print('Unable to open file ' .. messages_file)
       end
 
       -- Switch to the return buffer provided
@@ -195,7 +196,7 @@ function M.create_input_buffer(return_buf, prompt_args)
       -- Trigger the LLM_Escape event
       api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
       -- Create a new buffer
-      make_scratch_buffer(prompt_args)
+      make_scratch_buffer(rendered_messages)
     end,
   })
   return input_buf_nr

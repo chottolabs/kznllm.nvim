@@ -34,19 +34,16 @@ local Job = require 'plenary.job'
 --- Constructs arguments for constructing an HTTP request to the OpenAI API
 --- using cURL.
 ---
----@param rendered_messages { system_message: string[], user_messages: string[][] }
+---@param rendered_messages { system_prompt: string, messages: { role: string, content: string }[] }
 ---@return string[]
 local function make_curl_args(rendered_messages)
   local url = M.URL
   local api_key = os.getenv(M.API_KEY_NAME)
-  local messages = {}
 
-  table.insert(messages, { role = 'system', content = table.concat(rendered_messages.system_message, '\n') })
-  for _, user_message in ipairs(rendered_messages.user_messages) do
-    table.insert(messages, { role = 'user', content = table.concat(user_message, '\n') })
-  end
+  local system_message = { role = 'system', content = rendered_messages.system_prompt }
+  table.insert(rendered_messages.messages, 1, system_message)
   local data = {
-    messages = messages,
+    messages = rendered_messages.messages,
     model = M.SELECTED_MODEL.name,
     temperature = 0.7,
     stream = true,
@@ -82,7 +79,7 @@ local function handle_data(data)
   return content
 end
 
----@param rendered_messages { system_message: string[], user_messages: string[][] }
+---@param rendered_messages { system_prompt: string, messages: { role: string, content: string }[] }
 ---@param writer_fn fun(content: string)
 function M.make_job(rendered_messages, writer_fn)
   local active_job = Job:new {

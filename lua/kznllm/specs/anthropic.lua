@@ -35,24 +35,17 @@ local current_event_state = nil
 --- Constructs arguments for constructing an HTTP request to the Anthropic API
 --- using cURL.
 ---
----@param rendered_messages { system_message: string[], user_messages: string[][] }
+---@param rendered_messages { system_prompt: string, messages: { role: string, content: string }[] }
 ---@return string[]
 local function make_curl_args(rendered_messages)
   local api_key = os.getenv(M.API_KEY_NAME)
-  local messages = {}
-  for _, user_message in ipairs(rendered_messages.user_messages) do
-    table.insert(messages, { role = 'user', content = table.concat(user_message, '\n') })
-  end
   local data = {
-    messages = messages,
+    system = rendered_messages.system_prompt,
+    messages = rendered_messages.messages,
     model = M.SELECTED_MODEL.name,
     stream = true,
     max_tokens = M.SELECTED_MODEL.max_tokens,
   }
-
-  if rendered_messages.system_message ~= nil then
-    data.system = table.concat(rendered_messages.system_message, '\n')
-  end
 
   local args = { '-s', '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
   if api_key then
@@ -108,6 +101,7 @@ local function handle_data(data)
   return content
 end
 
+---@param rendered_messages { system_prompt: string, messages: { role: string, content: string }[] }
 function M.make_job(rendered_messages, writer_fn)
   local active_job = Job:new {
     command = 'curl',

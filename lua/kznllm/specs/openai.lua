@@ -15,6 +15,10 @@ M.PROMPT_TEMPLATES = {
   BUFFER_MODE_SYSTEM_PROMPT = 'groq/buffer_mode_system_prompt.xml.jinja',
   BUFFER_MODE_USER_PROMPT = 'groq/buffer_mode_user_prompt.xml.jinja',
 
+  --- this prompt should let the model yap into a separate buffer
+  PROJECT_MODE_SYSTEM_PROMPT = 'groq/buffer_mode_system_prompt.xml.jinja',
+  PROJECT_MODE_USER_PROMPT = 'anthropic/project_mode_user_prompt.xml.jinja',
+
   --- this prompt has to be written to output valid code
   REPLACE_MODE_SYSTEM_PROMPT = 'groq/replace_mode_system_prompt.xml.jinja',
   REPLACE_MODE_USER_PROMPT = 'groq/replace_mode_user_prompt.xml.jinja',

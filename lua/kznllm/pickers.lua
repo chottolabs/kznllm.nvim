@@ -19,7 +19,7 @@ function M.find_files_custom_fd(opts, callback_fn)
   local user_args = vim.fn.input 'Enter fd arguments (e.g., --type f): '
 
   -- Construct the fd command
-  local fd_command = { 'fd' }
+  local fd_command = { 'fd', '-a' }
   for arg in user_args:gmatch '%S+' do
     table.insert(fd_command, arg)
   end

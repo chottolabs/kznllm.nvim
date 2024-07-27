@@ -2,11 +2,11 @@ local Job = require 'plenary.job'
 local M = {}
 local api = vim.api
 
--- Specify the path where you want to save the file
-M.CACHE_DIRECTORY = vim.fn.stdpath 'cache' .. '/kznllm/history/'
-
 -- Default lazy plugin location... not sure how to get the plugin dir neatly, will likely need to be overwritten by user in init.lua
 M.TEMPLATE_DIRECTORY = vim.fn.stdpath 'data' .. '/lazy/kznllm/templates/'
+
+-- Specify the path where you want to save the file
+M.CACHE_DIRECTORY = vim.fn.stdpath 'cache' .. '/kznllm/history/'
 
 local success, error_message
 
@@ -65,14 +65,14 @@ end
 
 ---Renders a prompt template using minijinja-cli and returns the rendered lines
 ---
----@param prompt_template_filename string
+---@param prompt_template_path string
 ---@param prompt_args table
 ---@return string
-function M.make_prompt_from_template(prompt_template_filename, prompt_args)
+function M.make_prompt_from_template(prompt_template_path, prompt_args)
   local json_data = vim.json.encode(prompt_args)
   local active_job = Job:new {
     command = 'minijinja-cli',
-    args = { '-f', 'json', vim.fn.expand(M.TEMPLATE_DIRECTORY) .. prompt_template_filename, '-' },
+    args = { '-f', 'json', prompt_template_path, '-' },
     writer = json_data,
     on_stderr = function(message, _)
       error(message, 1)
@@ -83,8 +83,8 @@ function M.make_prompt_from_template(prompt_template_filename, prompt_args)
   return table.concat(active_job:result(), '\n')
 end
 
----@param rendered_messages { system_prompt: string, messages: { role: string, content: string }[] }
-local function make_scratch_buffer(rendered_messages)
+---@param rendered_content string[]
+function M.make_scratch_buffer(rendered_content)
   local scratch_buf_nr = api.nvim_create_buf(false, true)
 
   -- Set buffer options
@@ -101,8 +101,7 @@ local function make_scratch_buffer(rendered_messages)
   api.nvim_set_option_value('linebreak', true, { win = 0 })
   api.nvim_set_option_value('breakindent', true, { win = 0 })
 
-  local rendered_debug_content = M.make_prompt_from_template('debug_template.xml.jinja', rendered_messages)
-  api.nvim_buf_set_lines(scratch_buf_nr, -2, -2, false, vim.split(rendered_debug_content, '\n'))
+  api.nvim_buf_set_lines(scratch_buf_nr, -2, -2, false, rendered_content)
   vim.cmd 'normal! gg'
 
   -- Set up key mapping to close the buffer
@@ -122,15 +121,11 @@ end
 
 --- Define the function that creates the buffer and handles the input
 ---
----@param return_buf integer
----@param rendered_messages { system_prompt: string, messages: { role: string, content: string }[] }
+---@param buffer_filepath string
 ---@return integer
-function M.create_input_buffer(return_buf, rendered_messages)
-  local prompt_save_dir = M.CACHE_DIRECTORY .. tostring(os.time()) .. '/'
-  local filepath = prompt_save_dir .. 'output.xml'
-
+function M.create_input_buffer(buffer_filepath)
   local input_buf_nr = api.nvim_create_buf(true, false)
-  api.nvim_buf_set_name(input_buf_nr, filepath)
+  api.nvim_buf_set_name(input_buf_nr, buffer_filepath)
   api.nvim_set_option_value('buflisted', true, { buf = input_buf_nr })
   api.nvim_set_option_value('filetype', 'xml', { buf = input_buf_nr })
 
@@ -141,38 +136,6 @@ function M.create_input_buffer(return_buf, rendered_messages)
 
   local num_lines = api.nvim_buf_line_count(input_buf_nr)
   api.nvim_win_set_cursor(0, { num_lines, 0 })
-
-  -- Set up key mapping to close the buffer
-  api.nvim_buf_set_keymap(input_buf_nr, 'n', 'w', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      -- Trigger the LLM_Escape event
-      api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
-
-      success, error_message = os.execute('mkdir -p "' .. prompt_save_dir .. '"')
-      if not success then
-        error('Error creating directory: ' .. error_message)
-      end
-
-      api.nvim_buf_call(input_buf_nr, function()
-        vim.cmd 'write'
-      end)
-
-      local messages_file = prompt_save_dir .. 'messages.json'
-      local file = io.open(messages_file, 'w')
-      if file then
-        file:write(vim.json.encode(rendered_messages))
-        file:close()
-        print('Data written to ' .. messages_file)
-      else
-        print('Unable to open file ' .. messages_file)
-      end
-
-      -- Switch to the return buffer provided
-      api.nvim_set_current_buf(return_buf)
-    end,
-  })
 
   -- Set up key mapping to close the buffer
   api.nvim_buf_set_keymap(input_buf_nr, 'n', 'q', '', {
@@ -188,17 +151,6 @@ function M.create_input_buffer(return_buf, rendered_messages)
     end,
   })
 
-  -- render input prompt for debugging
-  api.nvim_buf_set_keymap(input_buf_nr, 'n', 'd', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      -- Trigger the LLM_Escape event
-      api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
-      -- Create a new buffer
-      make_scratch_buffer(rendered_messages)
-    end,
-  })
   return input_buf_nr
 end
 

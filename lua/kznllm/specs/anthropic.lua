@@ -102,7 +102,7 @@ local function handle_data(data)
 end
 
 ---@param rendered_messages { system_prompt: string, messages: { role: string, content: string }[] }
-function M.make_job(rendered_messages, writer_fn)
+function M.make_job(rendered_messages, writer_fn, completed_callback_fn)
   local active_job = Job:new {
     command = 'curl',
     args = make_curl_args(rendered_messages),
@@ -155,7 +155,9 @@ function M.make_job(rendered_messages, writer_fn)
     on_stderr = function(message, _)
       error(message, 1)
     end,
-    on_exit = function() end,
+    on_exit = function()
+      completed_callback_fn()
+    end,
   }
   return active_job
 end

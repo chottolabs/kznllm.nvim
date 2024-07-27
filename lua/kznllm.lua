@@ -21,7 +21,7 @@ local rendered_messages = {
 --- function for processing server-sent events.
 ---
 ---@param opts { system_prompt_template: string, user_prompt_template: string, assistant_prompt_template?: string }
----@param make_job_fn fun(rendered_messages: { system_prompt: string, messages: { role: string, content: string }[] }, writer_fn: fun(content: string))
+---@param make_job_fn fun(rendered_messages: { system_prompt: string, messages: { role: string, content: string }[] }, writer_fn: fun(content: string), completed_callback_fn: fun())
 function M.invoke_llm_project_mode(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }
 
@@ -62,25 +62,71 @@ function M.invoke_llm_project_mode(opts, make_job_fn)
 
     -- if buffer is already open, make job from full buffer
     if input_buf_nr and api.nvim_buf_is_valid(input_buf_nr) then
-      api.nvim_set_current_buf(input_buf_nr)
-      local lines = api.nvim_buf_get_lines(input_buf_nr, 0, -2, false)
-      table.insert(rendered_messages.messages, { role = 'assistant', content = table.concat(lines, '\n') })
       api.nvim_buf_call(input_buf_nr, function()
         vim.cmd 'bdelete!'
       end)
     else
       rendered_messages = {
-        system_prompt = utils.make_prompt_from_template(opts.system_prompt_template, prompt_args),
+        system_prompt = utils.make_prompt_from_template(utils.TEMPLATE_DIRECTORY .. opts.system_prompt_template, prompt_args),
         messages = {},
       }
     end
 
-    local rendered_prompt = utils.make_prompt_from_template(opts.user_prompt_template, prompt_args)
+    local rendered_prompt = utils.make_prompt_from_template(utils.TEMPLATE_DIRECTORY .. opts.user_prompt_template, prompt_args)
     table.insert(rendered_messages.messages, { role = 'user', content = rendered_prompt })
 
     local cur_buf = api.nvim_get_current_buf()
 
-    input_buf_nr = utils.create_input_buffer(cur_buf, rendered_messages)
+    local prompt_save_dir = utils.CACHE_DIRECTORY .. tostring(os.time()) .. '/'
+    local buffer_filepath = prompt_save_dir .. 'output.xml'
+    input_buf_nr = utils.create_input_buffer(buffer_filepath)
+
+    -- render input prompt for debugging
+    api.nvim_buf_set_keymap(input_buf_nr, 'n', 'd', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        -- Trigger the LLM_Escape event
+        api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+
+        local rendered_debug_content = utils.make_prompt_from_template(utils.TEMPLATE_DIRECTORY .. 'debug_template.xml.jinja', rendered_messages)
+        -- Create a new buffer
+        utils.make_scratch_buffer(vim.split(rendered_debug_content, '\n'))
+      end,
+    })
+
+    -- Set up key mapping to close the buffer
+    api.nvim_buf_set_keymap(input_buf_nr, 'n', 'w', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+
+        local success, error_message
+        success, error_message = os.execute('mkdir -p "' .. prompt_save_dir .. '"')
+        if not success then
+          error('Error creating directory: ' .. error_message)
+        end
+
+        api.nvim_buf_call(input_buf_nr, function()
+          vim.cmd 'write'
+        end)
+
+        local messages_file = prompt_save_dir .. 'messages.json'
+        local file = io.open(messages_file, 'w')
+        if file then
+          file:write(vim.json.encode(rendered_messages))
+          file:close()
+          print('Data written to ' .. messages_file)
+        else
+          print('Unable to open file ' .. messages_file)
+        end
+
+        -- Switch to the return buffer provided
+        api.nvim_set_current_buf(cur_buf)
+      end,
+    })
+
     -- Set up autocmd to clear the buffer number when it's deleted
     api.nvim_create_autocmd('BufDelete', {
       buffer = input_buf_nr,
@@ -89,7 +135,12 @@ function M.invoke_llm_project_mode(opts, make_job_fn)
       end,
     })
 
-    local active_job = make_job_fn(rendered_messages, utils.write_content_at_end)
+    local active_job = make_job_fn(rendered_messages, utils.write_content_at_end, function()
+      vim.schedule(function()
+        local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+        table.insert(rendered_messages.messages, { role = 'assistant', content = table.concat(lines, '\n') })
+      end)
+    end)
     active_job:start()
     api.nvim_create_autocmd('User', {
       group = group,
@@ -110,7 +161,7 @@ end
 --- function for processing server-sent events.
 ---
 ---@param opts { system_prompt_template: string, user_prompt_template: string }
----@param make_job_fn fun(rendered_messages: { system_prompt: string, messages: { role: string, content: string }[] }, writer_fn: fun(content: string))
+---@param make_job_fn fun(rendered_messages: { system_prompt: string, messages: { role: string, content: string }[] }, writer_fn: fun(content: string), completed_callback_fn: fun())
 function M.invoke_llm_buffer_mode(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }
 
@@ -146,26 +197,72 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
 
   -- if buffer is already open, make job from full buffer
   if input_buf_nr and api.nvim_buf_is_valid(input_buf_nr) then
-    api.nvim_set_current_buf(input_buf_nr)
-    local lines = api.nvim_buf_get_lines(input_buf_nr, 0, -2, false)
-    table.insert(rendered_messages.messages, { role = 'assistant', content = table.concat(lines, '\n') })
     api.nvim_buf_call(input_buf_nr, function()
       vim.cmd 'bdelete!'
     end)
     vim.print 'continuing...'
   else
     rendered_messages = {
-      system_prompt = utils.make_prompt_from_template(opts.system_prompt_template, prompt_args),
+      system_prompt = utils.make_prompt_from_template(utils.TEMPLATE_DIRECTORY .. opts.system_prompt_template, prompt_args),
       messages = {},
     }
   end
 
-  local rendered_prompt = utils.make_prompt_from_template(opts.user_prompt_template, prompt_args)
+  local rendered_prompt = utils.make_prompt_from_template(utils.TEMPLATE_DIRECTORY .. opts.user_prompt_template, prompt_args)
   table.insert(rendered_messages.messages, { role = 'user', content = rendered_prompt })
 
   local cur_buf = api.nvim_get_current_buf()
 
-  input_buf_nr = utils.create_input_buffer(cur_buf, rendered_messages)
+  local prompt_save_dir = utils.CACHE_DIRECTORY .. tostring(os.time()) .. '/'
+  local buffer_filepath = prompt_save_dir .. 'output.xml'
+  input_buf_nr = utils.create_input_buffer(buffer_filepath)
+
+  -- render input prompt for debugging
+  api.nvim_buf_set_keymap(input_buf_nr, 'n', 'd', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      -- Trigger the LLM_Escape event
+      api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+
+      local rendered_debug_content = utils.make_prompt_from_template(utils.TEMPLATE_DIRECTORY .. 'debug_template.xml.jinja', rendered_messages)
+      -- Create a new buffer
+      utils.make_scratch_buffer(vim.split(rendered_debug_content, '\n'))
+    end,
+  })
+
+  -- Set up key mapping to close the buffer
+  api.nvim_buf_set_keymap(input_buf_nr, 'n', 'w', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+
+      local success, error_message
+      success, error_message = os.execute('mkdir -p "' .. prompt_save_dir .. '"')
+      if not success then
+        error('Error creating directory: ' .. error_message)
+      end
+
+      api.nvim_buf_call(input_buf_nr, function()
+        vim.cmd 'write'
+      end)
+
+      local messages_file = prompt_save_dir .. 'messages.json'
+      local file = io.open(messages_file, 'w')
+      if file then
+        file:write(vim.json.encode(rendered_messages))
+        file:close()
+        print('Data written to ' .. messages_file)
+      else
+        print('Unable to open file ' .. messages_file)
+      end
+
+      -- Switch to the return buffer provided
+      api.nvim_set_current_buf(cur_buf)
+    end,
+  })
+
   -- Set up autocmd to clear the buffer number when it's deleted
   api.nvim_create_autocmd('BufDelete', {
     buffer = input_buf_nr,
@@ -174,7 +271,13 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
     end,
   })
 
-  local active_job = make_job_fn(rendered_messages, utils.write_content_at_end)
+  local active_job = make_job_fn(rendered_messages, utils.write_content_at_end, function()
+    vim.schedule(function()
+      local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+      table.insert(rendered_messages.messages, { role = 'assistant', content = table.concat(lines, '\n') })
+    end)
+  end)
+
   active_job:start()
   api.nvim_create_autocmd('User', {
     group = group,
@@ -194,7 +297,7 @@ end
 --- function for processing server-sent events.
 ---
 ---@param opts { system_prompt_template: string, user_prompt_template: string }
----@param make_job_fn fun(rendered_messages: { system_prompt: string, messages: { role: string, content: string }[] }, writer_fn: fun(content: string))
+---@param make_job_fn fun(rendered_messages: { system_prompt: string, messages: { role: string, content: string }[] }, writer_fn: fun(content: string), completed_callback_fn: fun())
 function M.invoke_llm_replace_mode(opts, make_job_fn)
   api.nvim_clear_autocmds { group = group }
 
@@ -217,14 +320,14 @@ function M.invoke_llm_replace_mode(opts, make_job_fn)
     messages = {},
   }
 
-  rendered_messages.system_prompt = utils.make_prompt_from_template(opts.system_prompt_template, prompt_args)
+  rendered_messages.system_prompt = utils.make_prompt_from_template(utils.TEMPLATE_DIRECTORY .. opts.system_prompt_template, prompt_args)
 
-  local rendered_prompt = utils.make_prompt_from_template(opts.user_prompt_template, prompt_args)
+  local rendered_prompt = utils.make_prompt_from_template(utils.TEMPLATE_DIRECTORY .. opts.user_prompt_template, prompt_args)
   table.insert(rendered_messages.messages, { role = 'user', content = rendered_prompt })
 
   api.nvim_feedkeys('c', 'nx', false)
 
-  local active_job = make_job_fn(rendered_messages, utils.write_content_at_cursor)
+  local active_job = make_job_fn(rendered_messages, utils.write_content_at_cursor, function() end)
   active_job:start()
   api.nvim_create_autocmd('User', {
     group = group,

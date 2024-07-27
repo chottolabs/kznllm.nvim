@@ -1,3 +1,5 @@
+local Path = require 'plenary.path'
+
 local utils = require 'kznllm.utils'
 local pickers = require 'kznllm.pickers'
 local M = {}
@@ -77,9 +79,9 @@ function M.invoke_llm_project_mode(opts, make_job_fn)
 
     local cur_buf = api.nvim_get_current_buf()
 
-    local prompt_save_dir = utils.CACHE_DIRECTORY .. tostring(os.time()) .. '/'
-    local buffer_filepath = prompt_save_dir .. 'output.xml'
-    input_buf_nr = utils.create_input_buffer(buffer_filepath)
+    local prompt_save_path = Path:new(utils.CACHE_DIRECTORY) / tostring(os.time())
+    local buffer_filepath = prompt_save_path / 'output.xml'
+    input_buf_nr = utils.create_input_buffer(buffer_filepath:absolute())
 
     -- render input prompt for debugging
     api.nvim_buf_set_keymap(input_buf_nr, 'n', 'd', '', {
@@ -102,26 +104,17 @@ function M.invoke_llm_project_mode(opts, make_job_fn)
       callback = function()
         api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
 
-        local success, error_message
-        success, error_message = os.execute('mkdir -p "' .. prompt_save_dir .. '"')
-        if not success then
-          error('Error creating directory: ' .. error_message)
+        local filepath = prompt_save_path / 'messages.json'
+        if not filepath:parent():mkdir { parents = true, exists_ok = true } then
+          print('Error creating directory: ' .. filepath:error())
+          return
         end
 
         api.nvim_buf_call(input_buf_nr, function()
           vim.cmd 'write'
         end)
 
-        local messages_file = prompt_save_dir .. 'messages.json'
-        local file = io.open(messages_file, 'w')
-        if file then
-          file:write(vim.json.encode(rendered_messages))
-          file:close()
-          print('Data written to ' .. messages_file)
-        else
-          print('Unable to open file ' .. messages_file)
-        end
-
+        filepath:write(vim.json.encode(rendered_messages), 'w')
         -- Switch to the return buffer provided
         api.nvim_set_current_buf(cur_buf)
       end,
@@ -213,9 +206,9 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
 
   local cur_buf = api.nvim_get_current_buf()
 
-  local prompt_save_dir = utils.CACHE_DIRECTORY .. tostring(os.time()) .. '/'
-  local buffer_filepath = prompt_save_dir .. 'output.xml'
-  input_buf_nr = utils.create_input_buffer(buffer_filepath)
+  local prompt_save_path = Path:new(utils.CACHE_DIRECTORY) / tostring(os.time())
+  local buffer_filepath = prompt_save_path / 'output.xml'
+  input_buf_nr = utils.create_input_buffer(buffer_filepath:absolute())
 
   -- render input prompt for debugging
   api.nvim_buf_set_keymap(input_buf_nr, 'n', 'd', '', {
@@ -238,26 +231,16 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
     callback = function()
       api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
 
-      local success, error_message
-      success, error_message = os.execute('mkdir -p "' .. prompt_save_dir .. '"')
-      if not success then
-        error('Error creating directory: ' .. error_message)
+      local filepath = prompt_save_path / 'messages.json'
+      if not filepath:parent():mkdir { parents = true, exists_ok = true } then
+        print('Error creating directory: ' .. filepath:error())
+        return
       end
-
       api.nvim_buf_call(input_buf_nr, function()
         vim.cmd 'write'
       end)
 
-      local messages_file = prompt_save_dir .. 'messages.json'
-      local file = io.open(messages_file, 'w')
-      if file then
-        file:write(vim.json.encode(rendered_messages))
-        file:close()
-        print('Data written to ' .. messages_file)
-      else
-        print('Unable to open file ' .. messages_file)
-      end
-
+      filepath:write(vim.json.encode(rendered_messages), 'w')
       -- Switch to the return buffer provided
       api.nvim_set_current_buf(cur_buf)
     end,

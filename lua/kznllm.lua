@@ -71,19 +71,19 @@ function M.invoke_llm_project_mode(opts, make_job_fn)
       end)
     else
       rendered_messages = {
-        system_prompt = utils.make_prompt_from_template((template_path / opts.system_prompt_template):normalize(), prompt_args),
+        system_prompt = utils.make_prompt_from_template((template_path / opts.system_prompt_template):absolute(), prompt_args),
         messages = {},
       }
     end
 
-    local rendered_prompt = utils.make_prompt_from_template((template_path / opts.user_prompt_template):normalize(), prompt_args)
+    local rendered_prompt = utils.make_prompt_from_template((template_path / opts.user_prompt_template):absolute(), prompt_args)
     table.insert(rendered_messages.messages, { role = 'user', content = rendered_prompt })
 
     local cur_buf = api.nvim_get_current_buf()
 
     local prompt_save_path = cache_path / tostring(os.time())
     local buffer_filepath = prompt_save_path / 'output.xml'
-    input_buf_nr = utils.create_input_buffer(buffer_filepath:normalize())
+    input_buf_nr = utils.create_input_buffer(buffer_filepath:absolute())
 
     -- render input prompt for debugging
     api.nvim_buf_set_keymap(input_buf_nr, 'n', 'd', '', {
@@ -93,7 +93,7 @@ function M.invoke_llm_project_mode(opts, make_job_fn)
         -- Trigger the LLM_Escape event
         api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
 
-        local rendered_debug_content = utils.make_prompt_from_template((template_path / 'debug_template.xml.jinja'):normalize(), rendered_messages)
+        local rendered_debug_content = utils.make_prompt_from_template((template_path / 'debug_template.xml.jinja'):absolute(), rendered_messages)
         -- Create a new buffer
         utils.make_scratch_buffer(vim.split(rendered_debug_content, '\n'))
       end,
@@ -200,19 +200,19 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
     vim.print 'continuing...'
   else
     rendered_messages = {
-      system_prompt = utils.make_prompt_from_template((template_path / opts.system_prompt_template):normalize(), prompt_args),
+      system_prompt = utils.make_prompt_from_template((template_path / opts.system_prompt_template):absolute(), prompt_args),
       messages = {},
     }
   end
 
-  local rendered_prompt = utils.make_prompt_from_template((template_path / opts.user_prompt_template):normalize(), prompt_args)
+  local rendered_prompt = utils.make_prompt_from_template((template_path / opts.user_prompt_template):absolute(), prompt_args)
   table.insert(rendered_messages.messages, { role = 'user', content = rendered_prompt })
 
   local cur_buf = api.nvim_get_current_buf()
 
   local prompt_save_path = cache_path / tostring(os.time())
   local buffer_filepath = prompt_save_path / 'output.xml'
-  input_buf_nr = utils.create_input_buffer(buffer_filepath:normalize())
+  input_buf_nr = utils.create_input_buffer(buffer_filepath:absolute())
 
   -- render input prompt for debugging
   api.nvim_buf_set_keymap(input_buf_nr, 'n', 'd', '', {
@@ -222,7 +222,7 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
       -- Trigger the LLM_Escape event
       api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
 
-      local rendered_debug_content = utils.make_prompt_from_template((template_path / 'debug_template.xml.jinja'):normalize(), rendered_messages)
+      local rendered_debug_content = utils.make_prompt_from_template((template_path / 'debug_template.xml.jinja'):absolute(), rendered_messages)
       -- Create a new buffer
       utils.make_scratch_buffer(vim.split(rendered_debug_content, '\n'))
     end,
@@ -309,9 +309,9 @@ function M.invoke_llm_replace_mode(opts, make_job_fn)
     messages = {},
   }
 
-  rendered_messages.system_prompt = utils.make_prompt_from_template((template_path / opts.system_prompt_template):normalize(), prompt_args)
+  rendered_messages.system_prompt = utils.make_prompt_from_template((template_path / opts.system_prompt_template):absolute(), prompt_args)
 
-  local rendered_prompt = utils.make_prompt_from_template((template_path / opts.user_prompt_template):normalize(), prompt_args)
+  local rendered_prompt = utils.make_prompt_from_template((template_path / opts.user_prompt_template):absolute(), prompt_args)
   table.insert(rendered_messages.messages, { role = 'user', content = rendered_prompt })
 
   api.nvim_feedkeys('c', 'nx', false)

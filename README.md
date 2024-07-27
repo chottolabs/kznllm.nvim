@@ -58,7 +58,7 @@ export GROQ_API_KEY=gsk_...
     local utils = require 'kznllm.utils'
     local spec = require 'kznllm.specs.anthropic'
 
-    utils.TEMPLATE_DIRECTORY = self.dir .. '/templates/'
+    utils.TEMPLATE_DIRECTORY = vim.fn.expand(self.dir) .. '/templates/'
 
     local function llm_buffer()
       kznllm.invoke_llm_buffer_mode({
@@ -98,11 +98,18 @@ or for groq
     local utils = require 'kznllm.utils'
     local spec = require 'kznllm.specs.openai'
 
-    utils.TEMPLATE_DIRECTORY = self.dir .. '/templates/'
+    utils.TEMPLATE_DIRECTORY = vim.fn.expand(self.dir) .. '/templates/'
 
     local function llm_help()
       kznllm.invoke_llm_buffer_mode({
         system_prompt_template = spec.PROMPT_TEMPLATES.BUFFER_MODE_SYSTEM_PROMPT,
+        user_prompt_templates = spec.PROMPT_TEMPLATES.REPLACE_MODE_USER_PROMPT,
+      }, spec.make_job)
+    end
+
+    local function llm_project()
+      kznllm.invoke_llm_project_mode({
+        system_prompt_template = spec.PROMPT_TEMPLATES.PROJECT_MODE_SYSTEM_PROMPT,
         user_prompt_templates = spec.PROMPT_TEMPLATES.REPLACE_MODE_USER_PROMPT,
       }, spec.make_job)
     end
@@ -114,8 +121,9 @@ or for groq
       }, spec.make_job)
     end
 
-    vim.keymap.set({ 'n', 'v' }, '<leader>K', llm_replace, { desc = 'Send current selection to LLM llm_replace' })
-    vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_help, { desc = 'Send current selection to LLM llm_help' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_buffer, { desc = 'Send current selection to LLM llm_buffer' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>Kp', llm_project, { desc = 'Send current selection to LLM llm_project' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>Kr', llm_replace, { desc = 'Send current selection to LLM llm_replace' })
   end,
 }
 ```

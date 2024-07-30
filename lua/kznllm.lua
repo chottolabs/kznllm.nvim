@@ -66,6 +66,7 @@ function M.invoke_llm_project_mode(opts, make_job_fn)
 
     -- if buffer is already open, make job from full buffer
     if input_buf_nr and api.nvim_buf_is_valid(input_buf_nr) then
+      api.nvim_set_current_buf(input_buf_nr)
       api.nvim_buf_call(input_buf_nr, function()
         vim.cmd 'bdelete!'
       end)
@@ -194,6 +195,7 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
 
   -- if buffer is already open, make job from full buffer
   if input_buf_nr and api.nvim_buf_is_valid(input_buf_nr) then
+    api.nvim_set_current_buf(input_buf_nr)
     api.nvim_buf_call(input_buf_nr, function()
       vim.cmd 'bdelete!'
     end)

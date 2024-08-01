@@ -103,7 +103,8 @@ for groq
 },
 ```
 
-for local openai server (i.e. `vllm`)
+for local openai server
+(e.g. `vllm serve` w/ `--api-key <token>` and `--served-model-name meta-llama/Meta-Llama-3.1-8B-Instruct`) set `VLLM_API_KEY=<token>`
 ```lua
 {
   'chottolabs/kznllm.nvim',
@@ -113,7 +114,7 @@ for local openai server (i.e. `vllm`)
     local utils = require 'kznllm.utils'
     local spec = require 'kznllm.specs.openai'
 
-    spec.SELECTED_MODEL = { name = '/path/to/model', max_tokens = 4096 }
+    spec.SELECTED_MODEL = { name = 'meta-llama/Meta-Llama-3.1-8B-Instruct', max_tokens = 8192 }
     spec.URL = 'http://research.local:8000/v1/chat/completions'
     spec.API_KEY_NAME = 'VLLM_API_KEY'
 

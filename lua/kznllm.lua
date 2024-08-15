@@ -83,7 +83,7 @@ function M.invoke_llm_project_mode(opts, make_job_fn)
     local cur_buf = api.nvim_get_current_buf()
 
     local prompt_save_path = cache_path / tostring(os.time())
-    local buffer_filepath = prompt_save_path / 'output.xml'
+    local buffer_filepath = prompt_save_path / 'output.md'
     input_buf_nr = utils.create_input_buffer(buffer_filepath:absolute())
 
     -- render input prompt for debugging
@@ -213,7 +213,7 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
   local cur_buf = api.nvim_get_current_buf()
 
   local prompt_save_path = cache_path / tostring(os.time())
-  local buffer_filepath = prompt_save_path / 'output.xml'
+  local buffer_filepath = prompt_save_path / 'output.md'
   input_buf_nr = utils.create_input_buffer(buffer_filepath:absolute())
 
   -- render input prompt for debugging

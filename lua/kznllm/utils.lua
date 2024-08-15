@@ -83,7 +83,7 @@ function M.make_scratch_buffer(rendered_content)
   api.nvim_set_option_value('buftype', 'nofile', { buf = scratch_buf_nr })
   api.nvim_set_option_value('bufhidden', 'hide', { buf = scratch_buf_nr })
   api.nvim_set_option_value('swapfile', false, { buf = scratch_buf_nr })
-  api.nvim_set_option_value('filetype', 'xml', { buf = scratch_buf_nr })
+  api.nvim_set_option_value('filetype', 'markdown', { buf = scratch_buf_nr })
 
   -- Switch to the new buffer
   api.nvim_set_current_buf(scratch_buf_nr)
@@ -119,7 +119,7 @@ function M.create_input_buffer(buffer_filepath)
   local input_buf_nr = api.nvim_create_buf(true, false)
   api.nvim_buf_set_name(input_buf_nr, buffer_filepath)
   api.nvim_set_option_value('buflisted', true, { buf = input_buf_nr })
-  api.nvim_set_option_value('filetype', 'xml', { buf = input_buf_nr })
+  api.nvim_set_option_value('filetype', 'markdown', { buf = input_buf_nr })
 
   api.nvim_set_current_buf(input_buf_nr)
   api.nvim_set_option_value('wrap', true, { win = 0 })

@@ -1,0 +1,9 @@
+{% if user_prompt_args.supporting_context -%}
+First, review the following input context:
+
+CONTEXT:
+{{user_prompt_args.supporting_context}}
+
+{% endif -%}
+
+{{user_prompt_args.user_query}}

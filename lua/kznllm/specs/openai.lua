@@ -11,6 +11,14 @@ M.SELECTED_MODEL = M.MODELS.LLAMA_3_1_70B
 
 M.PROMPT_TEMPLATES = {
 
+  NOUS_RESEARCH = {
+    BUFFER_MODE_SYSTEM_PROMPT = 'nous_research/buffer_mode_system_prompt.xml.jinja',
+    BUFFER_MODE_USER_PROMPT = 'nous_research/buffer_mode_user_prompt.xml.jinja',
+
+    PROJECT_MODE_SYSTEM_PROMPT = 'nous_research/project_mode_system_prompt.xml.jinja',
+    PROJECT_MODE_USER_PROMPT = 'nous_research/project_mode_user_prompt.xml.jinja',
+  },
+
   --- this prompt should let the model yap into a separate buffer
   BUFFER_MODE_SYSTEM_PROMPT = 'groq/buffer_mode_system_prompt.xml.jinja',
   BUFFER_MODE_USER_PROMPT = 'groq/buffer_mode_user_prompt.xml.jinja',

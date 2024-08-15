@@ -1,10 +1,11 @@
 Based on [dingllm.nvim](https://github.com/yacineMTB/dingllm.nvim) - but it'll probably diverge quite a bit from the original state.
 
 - adds some docstring annotations
-- refactored to better express some of the inherent coupling
-between neovim <> some LLM streaming spec.
+- refactored to respect some of the inherent coupling between neovim <> some LLM streaming spec.
 - prompt user for additional context
-- clean up and handle job state
+- coupling between prompt templates <> models are expressed more neatly
+- sensible defaults + simple method to override them
+- uses jinja as templating engine
 
 I recommend you fork the repo and make it work for you.
 
@@ -137,6 +138,21 @@ for lambda labs
     spec.API_KEY_NAME = 'LAMBDA_LABS_API_KEY'
     spec.URL = 'https://api.lambdalabs.com/v1/chat/completions'
 
+    utils.TEMPLATE_DIRECTORY = vim.fn.expand(self.dir) .. '/templates/'
+
+    local function llm_buffer()
+      kznllm.invoke_llm_buffer_mode({
+        system_prompt_template = spec.PROMPT_TEMPLATES.NOUS_RESEARCH.BUFFER_MODE_SYSTEM_PROMPT,
+        user_prompt_template = spec.PROMPT_TEMPLATES.NOUS_RESEARCH.BUFFER_MODE_USER_PROMPT,
+      }, spec.make_job)
+    end
+
+    local function llm_project()
+      kznllm.invoke_llm_project_mode({
+        system_prompt_template = spec.PROMPT_TEMPLATES.NOUS_RESEARCH.PROJECT_MODE_SYSTEM_PROMPT,
+        user_prompt_template = spec.PROMPT_TEMPLATES.NOUS_RESEARCH.PROJECT_MODE_USER_PROMPT,
+      }, spec.make_job)
+    end
     ...
   end,
 },

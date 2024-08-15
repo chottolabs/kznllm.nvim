@@ -97,7 +97,7 @@ function M.make_scratch_buffer(rendered_content)
   vim.cmd 'normal! gg'
 
   -- Set up key mapping to close the buffer
-  api.nvim_buf_set_keymap(scratch_buf_nr, 'n', 'q', '', {
+  api.nvim_buf_set_keymap(scratch_buf_nr, 'n', '<leader>q', '', {
     noremap = true,
     silent = true,
     callback = function()
@@ -130,7 +130,7 @@ function M.create_input_buffer(buffer_filepath)
   api.nvim_win_set_cursor(0, { num_lines, 0 })
 
   -- Set up key mapping to close the buffer
-  api.nvim_buf_set_keymap(input_buf_nr, 'n', 'q', '', {
+  api.nvim_buf_set_keymap(input_buf_nr, 'n', '<leader>q', '', {
     noremap = true,
     silent = true,
     callback = function()

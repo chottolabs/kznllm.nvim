@@ -87,7 +87,7 @@ function M.invoke_llm_project_mode(opts, make_job_fn)
     input_buf_nr = utils.create_input_buffer(buffer_filepath:absolute())
 
     -- render input prompt for debugging
-    api.nvim_buf_set_keymap(input_buf_nr, 'n', 'd', '', {
+    api.nvim_buf_set_keymap(input_buf_nr, 'n', '<leader>d', '', {
       noremap = true,
       silent = true,
       callback = function()
@@ -101,7 +101,7 @@ function M.invoke_llm_project_mode(opts, make_job_fn)
     })
 
     -- Set up key mapping to close the buffer
-    api.nvim_buf_set_keymap(input_buf_nr, 'n', 'w', '', {
+    api.nvim_buf_set_keymap(input_buf_nr, 'n', '<leader>w', '', {
       noremap = true,
       silent = true,
       callback = function()
@@ -117,7 +117,7 @@ function M.invoke_llm_project_mode(opts, make_job_fn)
           vim.cmd 'write'
         end)
 
-        filepath:write(vim.json.encode(rendered_messages), 'w')
+        filepath:write(vim.json.encode(rendered_messages), '<leader>w')
         -- Switch to the return buffer provided
         api.nvim_set_current_buf(cur_buf)
       end,
@@ -217,7 +217,7 @@ function M.invoke_llm_buffer_mode(opts, make_job_fn)
   input_buf_nr = utils.create_input_buffer(buffer_filepath:absolute())
 
   -- render input prompt for debugging
-  api.nvim_buf_set_keymap(input_buf_nr, 'n', 'd', '', {
+  api.nvim_buf_set_keymap(input_buf_nr, 'n', '<leader>d', '', {
     noremap = true,
     silent = true,
     callback = function()

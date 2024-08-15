@@ -122,3 +122,22 @@ for local openai server
   end,
 },
 ```
+
+for lambda labs
+```lua
+{
+  'chottolabs/kznllm.nvim',
+  dependencies = { 'nvim-lua/plenary.nvim' },
+  config = function(self)
+    local kznllm = require 'kznllm'
+    local utils = require 'kznllm.utils'
+    local spec = require 'kznllm.specs.openai'
+
+    spec.SELECTED_MODEL = { name = 'hermes-3-llama-3.1-405b-fp8' }
+    spec.API_KEY_NAME = 'LAMBDA_LABS_API_KEY'
+    spec.URL = 'https://api.lambdalabs.com/v1/chat/completions'
+
+    ...
+  end,
+},
+

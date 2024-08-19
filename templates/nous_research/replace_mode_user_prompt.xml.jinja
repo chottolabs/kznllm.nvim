@@ -1,0 +1,15 @@
+```{{current_buffer_filetype}}
+{{visual_selection}}
+```
+
+{{user_query}}
+
+{% if current_buffer_path -%}
+CONTEXT:
+Document:0
+Title: {{current_buffer_path}}
+Code:
+```{{current_buffer_filetype}}
+{% include current_buffer_path %}
+```
+{%- endif %}

@@ -324,7 +324,11 @@ function M.invoke_llm_replace_mode(opts, make_job_fn)
   local stream_end_extmark_id = api.nvim_buf_set_extmark(0, kznllm_ns, crow - 1, -1, {})
   local active_job = make_job_fn(rendered_messages, function(content)
     utils.write_content_at_extmark(content, kznllm_ns, stream_end_extmark_id)
-  end, function() end)
+  end, function()
+    vim.schedule(function()
+      api.nvim_buf_del_extmark(0, kznllm_ns, stream_end_extmark_id)
+    end)
+  end)
   active_job:start()
   api.nvim_create_autocmd('User', {
     group = group,

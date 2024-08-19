@@ -41,6 +41,20 @@ function M.write_content_at_cursor(content)
 end
 
 ---@param content string
+---@param ns_id integer
+---@param extmark_id integer
+function M.write_content_at_extmark(content, ns_id, extmark_id)
+  vim.schedule(function()
+    local extmark = api.nvim_buf_get_extmark_by_id(0, ns_id, extmark_id, { details = false })
+    local row, col = extmark[1], extmark[2]
+
+    vim.cmd 'undojoin'
+    local lines = vim.split(content, '\n')
+    api.nvim_buf_set_text(0, row, col, row, col, lines)
+  end)
+end
+
+---@param content string
 function M.write_content_at_end(content)
   vim.schedule(function()
     local current_pos = vim.api.nvim_win_get_cursor(0)

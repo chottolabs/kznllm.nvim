@@ -5,6 +5,8 @@ local pickers = require 'kznllm.pickers'
 local M = {}
 local api = vim.api
 
+local kznllm_ns = api.nvim_create_namespace 'kznllm_stream'
+
 if vim.fn.executable 'minijinja-cli' ~= 1 then
   error("Can't find minijinja-cli, download it from https://github.com/mitsuhiko/minijinja or add it to $PATH", 1)
 end
@@ -318,7 +320,11 @@ function M.invoke_llm_replace_mode(opts, make_job_fn)
 
   api.nvim_feedkeys('c', 'nx', false)
 
-  local active_job = make_job_fn(rendered_messages, utils.write_content_at_cursor, function() end)
+  local crow, _ = unpack(api.nvim_win_get_cursor(0))
+  local stream_end_extmark_id = api.nvim_buf_set_extmark(0, kznllm_ns, crow - 1, -1, {})
+  local active_job = make_job_fn(rendered_messages, function(content)
+    utils.write_content_at_extmark(content, kznllm_ns, stream_end_extmark_id)
+  end, function() end)
   active_job:start()
   api.nvim_create_autocmd('User', {
     group = group,

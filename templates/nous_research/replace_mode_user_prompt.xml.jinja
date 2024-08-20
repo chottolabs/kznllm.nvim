@@ -1,10 +1,16 @@
+{% if visual_selection -%}
+QUERY: {{user_query}}
+
+ONLY implement the code fragment that is requested in the following snippet WITHOUT backticks. DO NOT include backticks. The code I want to replace is in the following code block:
 ```{{current_buffer_filetype}}
 {{visual_selection}}
 ```
-
+{%- else -%}
 {{user_query}}
+{%- endif %}
 
-{% if current_buffer_path -%}
+{%- if current_buffer_path %}
+
 CONTEXT:
 Document:0
 Title: {{current_buffer_path}}

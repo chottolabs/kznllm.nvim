@@ -89,11 +89,11 @@ function M.invoke_llm(prompt_messages, make_job_fn)
 
   local buf_id = api.nvim_win_get_buf(0)
   local srow, scol, erow, ecol = get_visual_selection()
-  vim.print(table.concat({ srow, scol, erow, ecol }, ' '))
 
   -- get text from visual selection and current buffer
-  local visual_lines = api.nvim_buf_get_text(buf_id, srow, scol, erow, ecol, {})
+  local visual_selection = table.concat(api.nvim_buf_get_text(buf_id, srow, scol, erow, ecol, {}), '\n')
   local current_buffer_path = api.nvim_buf_get_name(buf_id)
+  local current_buffer_context = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n')
   local current_buffer_filetype = vim.bo.filetype
 
   vim.ui.input({ prompt = 'prompt: ' }, function(input)
@@ -107,15 +107,12 @@ function M.invoke_llm(prompt_messages, make_job_fn)
       end
 
       local prompt_args = {
+        current_buffer_path = current_buffer_path,
+        current_buffer_context = current_buffer_context,
         current_buffer_filetype = current_buffer_filetype,
-        visual_selection = table.concat(visual_lines, '\n'),
+        visual_selection = visual_selection,
         user_query = input,
       }
-
-      -- pass current buffer as a file path instead of rendered text (if it exists)
-      if Path:new(current_buffer_path):is_file() then
-        prompt_args.current_buffer_path = current_buffer_path
-      end
 
       local rendered_messages = {}
 

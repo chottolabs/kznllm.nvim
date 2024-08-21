@@ -57,7 +57,7 @@ local function make_curl_args(rendered_messages)
     temperature = 0.7,
     stream = true,
   }
-  vim.print(data)
+
   local args = { '-s', '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
   if api_key then
     table.insert(args, '-H')
@@ -72,9 +72,17 @@ end
 --- Process server-sent events based on OpenAI spec
 --- [See Documentation](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream)
 ---
----@param data string
+---@param out string
 ---@return string
-local function handle_data(data)
+local function handle_data(out)
+  -- based on sse spec (OpenAI spec uses data-only server-sent events)
+  local data, data_epos
+  _, data_epos = string.find(out, '^data: ')
+
+  if data_epos then
+    data = string.sub(out, data_epos + 1)
+  end
+
   local content = ''
 
   if data and data:match '"delta":' then
@@ -96,15 +104,7 @@ function M.make_job(rendered_messages, writer_fn, on_exit_fn)
     command = 'curl',
     args = make_curl_args(rendered_messages),
     on_stdout = function(_, out)
-      -- based on sse spec (OpenAI spec uses data-only server-sent events)
-      local data, data_epos
-      _, data_epos = string.find(out, '^data: ')
-
-      if data_epos then
-        data = string.sub(out, data_epos + 1)
-      end
-
-      local content = handle_data(data)
+      local content = handle_data(out)
       if content and content ~= nil then
         vim.schedule(function()
           writer_fn(content)

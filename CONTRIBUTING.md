@@ -33,3 +33,32 @@ For developing any kind of plugin using `lazy.nvim` you basically just need to d
   vim.keymap.set({ 'n', 'v' }, '<leader>k', invoke_llm, { desc = 'Send current selection to LLM invoke_llm' })
 },
 ```
+
+If you go into `init.lua` and focus on `invoke_llm` function there's literally this one table that gets pass to all prompt templates, write whatever logic you want in your templates.
+
+```lua
+local prompt_args = {
+  current_buffer_path = current_buffer_path,
+  current_buffer_context = current_buffer_context,
+  current_buffer_filetype = current_buffer_filetype,
+  visual_selection = visual_selection,
+  user_query = input,
+  replace = replace_mode,
+}
+```
+
+The "no visual selection mode" is really just a "non replace" mode controlled by `local replace_mode = not (mode == 'n')`.
+
+If you look at the system prompts, it's literally just defining all the logic in the same template, you can add whatever arguments you want in this to suit your use case:
+
+```j2
+{%- if replace -%}
+You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Do not provide any backticks that surround the code. Never ever output backticks like this ```. Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone. Do not output backticks
+{%- else -%}
+You are a Senior Engineer at a Fortune 500 Company. You will be provided with code samples, academic papers, and documentation as supporting context to assist you in answering user queries about coding. Your task is to analyze this information and use it to provide accurate, helpful responses to the user's coding-related questions.
+{%- endif -%}
+```
+
+An interesting thing you might consider is implementing a "project-scoped" template directory that can look for documentation files and pipe it into the args (you can do this with the actual text or the file path `{% include <absolute_file_path> %}`). `minijinja-cli` makes this kind of stuff super easy to do.
+
+_Note: Can't be bothered to read about how the event loop works in nvim so it gets weird when I'm using "vim.ui" and other async APIs._

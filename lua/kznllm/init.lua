@@ -82,7 +82,7 @@ end
 --- function for processing server-sent events.
 ---
 ---@param prompt_messages { role: string, prompt_template: string, args: table }[]
----@param make_job_fn fun(rendered_message: { role: string, content: string }, writer_fn: fun(content: string), completed_callback_fn: fun())
+---@param make_job_fn fun(rendered_message: { role: string, content: string }, writer_fn: fun(content: string), on_exit_fn: fun())
 function M.invoke_llm(prompt_messages, make_job_fn)
   api.nvim_clear_autocmds { group = group }
 

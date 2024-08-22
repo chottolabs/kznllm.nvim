@@ -45,6 +45,7 @@ for lambda labs
       local kznllm = require 'kznllm'
       local provider = require 'kznllm.specs.openai'
 
+      -- falls back to `vim.fn.stdpath 'data' .. '/lazy/kznllm/templates'` when the plugin is not locally installed
       kznllm.TEMPLATE_DIRECTORY = vim.fn.expand(self.dir) .. '/templates/'
 
       provider.SELECTED_MODEL = { name = 'hermes-3-llama-3.1-405b-fp8' }

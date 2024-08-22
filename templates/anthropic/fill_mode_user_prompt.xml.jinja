@@ -1,9 +1,14 @@
+{% if visual_selection -%}
+<query>{{user_query}}</query>
+
 You will be given a code snippet with comments. Your task is to fix any errors in the code and implement any unfinished functionality indicated in the comments. Only output valid code fragment in the provided language.
 
 Here is the code snippet:
 
 <code_snippet>
-{{user_prompt_args.code_snippet}}
+```{{current_buffer_filetype}}
+{{visual_selection}}
+```
 </code_snippet>
 
 Follow these steps to complete the task:
@@ -32,3 +37,20 @@ Follow these steps to complete the task:
 Output your corrected and implemented code. Ensure that the code fragment you output is valid, and ready to run in the language of the original snippet.
 
 Remember, only output valid code without any backticks. Do not include any explanations, notes, or anything other than the corrected code itself.
+{%- else -%}
+{{user_query}}
+{%- endif %}
+
+{%- if current_buffer_path %}
+
+<documents>
+<document index="0">
+<source>{{current_buffer_path}}</source>
+<document_content>
+```{{current_buffer_filetype}}
+{{ current_buffer_context }}
+```
+</document_content>
+</document>
+</documents>
+{%- endif %}

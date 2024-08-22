@@ -34,7 +34,18 @@ For developing any kind of plugin using `lazy.nvim` you basically just need to d
 },
 ```
 
-If you go into `init.lua` and focus on `invoke_llm` function there's literally this one table that gets pass to all prompt templates, write whatever logic you want in your templates.
+This is one of the major changes made, instead of specifying templates as specific arguments it's a single table of arbitrary templates.
+
+```
+kznllm.invoke_llm({
+  -- add more user/assistant stages to this and just supply a path to your custom template directories
+  -- every prompt template gets sent the same table of args for simplicity sake, add custom args as needed
+  { role = 'system', prompt_template = spec.PROMPT_TEMPLATES.NOUS_RESEARCH.FILL_MODE_SYSTEM_PROMPT },
+  { role = 'user', prompt_template = spec.PROMPT_TEMPLATES.NOUS_RESEARCH.FILL_MODE_USER_PROMPT },
+}, spec.make_job)
+```
+
+If you go into `init.lua` and focus on `invoke_llm` function there's this one table of arguments that gets passed to all the prompt templates. Most of the logic is dictated by the jinja template itself.
 
 ```lua
 local prompt_args = {
@@ -47,9 +58,9 @@ local prompt_args = {
 }
 ```
 
-The "no visual selection mode" is really just a "non replace" mode controlled by `local replace_mode = not (mode == 'n')`.
+The "no visual selection mode" is really just a "no replace" mode controlled by `local replace_mode = not (mode == 'n')`.
 
-If you look at the system prompts, it's literally just defining all the logic in the same template, you can add whatever arguments you want in this to suit your use case:
+If you look at the system prompts, it's just defining all the logic in the same template, you can add whatever arguments you want in this to suit your use case:
 
 ```j2
 {%- if replace -%}

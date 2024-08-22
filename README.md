@@ -43,7 +43,6 @@ for lambda
     'chottolabs/kznllm.nvim',
     dependencies = {
       { 'nvim-lua/plenary.nvim' },
-      { 'stevearc/dressing.nvim' }, -- optional
     },
     config = function(self)
       local kznllm = require 'kznllm'

@@ -76,6 +76,40 @@ local function write_content_at_extmark(content, ns_id, extmark_id)
   api.nvim_buf_set_text(0, mrow, mcol, mrow, mcol, lines)
 end
 
+-- mainly for debugging purposes
+local function make_scratch_buffer()
+  local scratch_buf_nr = api.nvim_create_buf(false, true)
+
+  -- Set buffer options
+  api.nvim_set_option_value('buftype', 'nofile', { buf = scratch_buf_nr })
+  api.nvim_set_option_value('bufhidden', 'hide', { buf = scratch_buf_nr })
+  api.nvim_set_option_value('swapfile', false, { buf = scratch_buf_nr })
+  api.nvim_set_option_value('filetype', 'markdown', { buf = scratch_buf_nr })
+
+  -- Switch to the new buffer
+  api.nvim_set_current_buf(scratch_buf_nr)
+
+  -- Enable text wrapping
+  api.nvim_set_option_value('wrap', true, { win = 0 })
+  api.nvim_set_option_value('linebreak', true, { win = 0 })
+  api.nvim_set_option_value('breakindent', true, { win = 0 })
+
+  -- Set up key mapping to close the buffer
+  api.nvim_buf_set_keymap(scratch_buf_nr, 'n', 'q', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      -- Trigger the LLM_Escape event
+      api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+
+      api.nvim_buf_call(scratch_buf_nr, function()
+        vim.cmd 'bdelete!'
+      end)
+    end,
+  })
+  return scratch_buf_nr
+end
+
 --- Invokes an LLM via a supported API spec in "inline" mode
 ---
 --- Must provide the function for constructing cURL arguments and a handler
@@ -83,7 +117,7 @@ end
 ---
 ---@param prompt_messages { role: string, prompt_template: string, args: table }[]
 ---@param make_job_fn fun(rendered_message: { role: string, content: string }, writer_fn: fun(content: string), on_exit_fn: fun())
-function M.invoke_llm(prompt_messages, make_job_fn)
+function M.invoke_llm(prompt_messages, make_job_fn, opts)
   api.nvim_clear_autocmds { group = group }
 
   local active_job, stream_end_extmark_id
@@ -102,6 +136,13 @@ function M.invoke_llm(prompt_messages, make_job_fn)
   current_buffer_path = api.nvim_buf_get_name(buf_id)
   current_buffer_context = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n')
   current_buffer_filetype = vim.bo.filetype
+
+  local debug = opts and opts.debug
+
+  if debug then
+    buf_id = make_scratch_buffer()
+    erow = 0
+  end
 
   vim.ui.input({ prompt = 'prompt: ' }, function(input)
     if input ~= nil then
@@ -127,6 +168,12 @@ function M.invoke_llm(prompt_messages, make_job_fn)
       for _, message in ipairs(prompt_messages) do
         local template_path = (Path:new(M.TEMPLATE_DIRECTORY) / message.prompt_template):absolute()
         table.insert(rendered_messages, { role = message.role, content = make_prompt_from_template(template_path, prompt_args) })
+
+        if debug then
+          write_content_at_extmark(message.role .. ':\n\n', kznllm_ns_id, stream_end_extmark_id)
+          write_content_at_extmark(make_prompt_from_template(template_path, prompt_args), kznllm_ns_id, stream_end_extmark_id)
+          write_content_at_extmark('\n\n---\n\n', kznllm_ns_id, stream_end_extmark_id)
+        end
       end
 
       active_job = make_job_fn(rendered_messages, function(content)

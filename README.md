@@ -65,6 +65,16 @@ for lambda
       end
 
       vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_fill, { desc = 'Send current selection to LLM llm_fill' })
+
+      -- optional for debugging purposes
+      local function debug()
+        kznllm.invoke_llm({
+          { role = 'system', prompt_template = spec.PROMPT_TEMPLATES.FILL_MODE_SYSTEM_PROMPT },
+          { role = 'user', prompt_template = spec.PROMPT_TEMPLATES.FILL_MODE_USER_PROMPT },
+        }, spec.make_job, { debug = true })
+      end
+
+      vim.keymap.set({ 'n', 'v' }, '<leader>d', debug, { desc = 'Send current selection to LLM debug' })
     end,
   },
 ```

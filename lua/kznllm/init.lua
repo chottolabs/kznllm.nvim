@@ -173,6 +173,7 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
           write_content_at_extmark(message.role .. ':\n\n', kznllm_ns_id, stream_end_extmark_id)
           write_content_at_extmark(make_prompt_from_template(template_path, prompt_args), kznllm_ns_id, stream_end_extmark_id)
           write_content_at_extmark('\n\n---\n\n', kznllm_ns_id, stream_end_extmark_id)
+          vim.cmd 'normal! G'
         end
       end
 

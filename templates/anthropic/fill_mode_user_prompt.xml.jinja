@@ -43,17 +43,27 @@ Remember, only output valid code without any backticks. Do not include any expla
 
 {%- if current_buffer_context %}
 
-<documents>
-<document index="0">
 <source>{{current_buffer_path}}</source>
-<document_content>
+<current_context>
 ```{{current_buffer_filetype}}
 {{ current_buffer_context }}
 ```
-</document_content>
-</document>
-</documents>
+</current_context>
 {%- elif current_buffer_path %}
 
 <context>{{current_buffer_path}}</context>
 {%- endif -%}
+
+{%- if context_files %}
+
+<documents>
+{% for file_path in context_files -%}
+<document index="{{loop.index}}">
+<source>{{file_path}}</source>
+<document_content>
+{% include file_path %}
+</document_content>
+</document>
+{%- endfor %}
+</documents>
+{%- endif %}

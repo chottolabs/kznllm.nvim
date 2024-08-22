@@ -9,9 +9,9 @@ ONLY implement the code fragment that is requested in the following snippet WITH
 {{user_query}}
 {%- endif %}
 
+CONTEXT:
 {%- if current_buffer_path %}
 
-CONTEXT:
 Document:0
 Title: {{current_buffer_path}}
 {%- endif %}
@@ -20,4 +20,19 @@ Code:
 ```{{current_buffer_filetype}}
 {{ current_buffer_context }}
 ```
+{%- elif current_buffer_path %}
+
+{{current_buffer_path}}
+{%- endif %}
+
+{%- if context_files %}
+{% for file_path in context_files %}
+
+Document:{{loop.index}}
+Title: {{file_path}}
+Text:
+```
+{% include file_path %}
+```
+{%- endfor %}
 {%- endif %}

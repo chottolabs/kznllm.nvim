@@ -1,4 +1,5 @@
 local Path = require 'plenary.path'
+local Scan = require 'plenary.scandir'
 local Job = require 'plenary.job'
 
 local M = {}
@@ -144,9 +145,31 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
     erow = 0
   end
 
+  -- project scoped context
+  local context_dir_id, context_dir, context_files
+  local home_directory = Path:new(vim.fn.expand '~')
+
+  context_dir_id = opts and opts.context_dir_id or '.kzn_context'
+  context_dir = Path:new(vim.fn.getcwd()) / context_dir_id
+
+  while (not context_dir:exists()) and context_dir:is_dir() do
+    if context_dir:absolute() == home_directory:absolute() then
+      context_dir = nil
+      break
+    end
+    context_dir = context_dir:parent()
+  end
+
+  if context_dir then
+    context_files = Scan.scan_dir(context_dir:absolute(), { hidden = false })
+    vim.print('using context at: ' .. context_dir:absolute())
+  end
+
   vim.ui.input({ prompt = 'prompt: ' }, function(input)
     if input ~= nil then
-      if replace_mode then
+      if debug then
+        stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, kznllm_ns_id, erow, ecol, {})
+      elseif replace_mode then
         stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, kznllm_ns_id, erow, ecol, {})
         api.nvim_buf_set_text(buf_id, srow, scol, erow, ecol, {})
       else
@@ -161,6 +184,7 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
         visual_selection = visual_selection,
         user_query = input,
         replace = replace_mode,
+        context_files = context_files,
       }
 
       local rendered_messages = {}

@@ -17,11 +17,15 @@ By default (in supported templates), it also pipes in the contents of your curre
 
 ---
 
-By keeping the plugin simple, it's easy to hack on and implement customize behaviors without actually understanding much about nvim plugins at all. I recommend you fork the repo and make it work for you.
+It's easy to hack on and implement customize behaviors without actually understanding much about nvim plugins at all. I recommend you fork the repo and make it work for you.
 
 See [CONTRIBUTING](CONTRIBUTING.md) to understand the typical development workflow for Neovim plugins using `Lazy` and some straightforward ways you can modify the plugin to suit your needs
 
+By keeping the plugin simple with some QOL features, you get **close-to-natty** coding experience because it can keep generating code while you are free to do whatever you want (almost) without getting in the way too much.
+
 https://github.com/user-attachments/assets/932fa67f-0332-4799-b467-ecaeea54c3d1
+
+_editing code while it generates when 405b is too slow_
 
 ## Configuration
 

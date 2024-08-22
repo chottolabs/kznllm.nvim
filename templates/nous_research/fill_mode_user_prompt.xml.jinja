@@ -14,6 +14,8 @@ ONLY implement the code fragment that is requested in the following snippet WITH
 CONTEXT:
 Document:0
 Title: {{current_buffer_path}}
+{%- endif %}
+{%- if current_buffer_context %}
 Code:
 ```{{current_buffer_filetype}}
 {{ current_buffer_context }}

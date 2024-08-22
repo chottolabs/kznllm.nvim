@@ -12,27 +12,15 @@ M.SELECTED_MODEL = M.MODELS.LLAMA_3_1_70B
 M.PROMPT_TEMPLATES = {
 
   NOUS_RESEARCH = {
-    REPLACE_MODE_SYSTEM_PROMPT = 'nous_research/replace_mode_system_prompt.xml.jinja',
-    REPLACE_MODE_USER_PROMPT = 'nous_research/replace_mode_user_prompt.xml.jinja',
-
-    BUFFER_MODE_SYSTEM_PROMPT = 'nous_research/buffer_mode_system_prompt.xml.jinja',
-    BUFFER_MODE_USER_PROMPT = 'nous_research/buffer_mode_user_prompt.xml.jinja',
-
-    PROJECT_MODE_SYSTEM_PROMPT = 'nous_research/project_mode_system_prompt.xml.jinja',
-    PROJECT_MODE_USER_PROMPT = 'nous_research/project_mode_user_prompt.xml.jinja',
+    FILL_MODE_SYSTEM_PROMPT = 'nous_research/fill_mode_system_prompt.xml.jinja',
+    FILL_MODE_USER_PROMPT = 'nous_research/fill_mode_user_prompt.xml.jinja',
   },
 
-  --- this prompt should let the model yap into a separate buffer
-  BUFFER_MODE_SYSTEM_PROMPT = 'groq/buffer_mode_system_prompt.xml.jinja',
-  BUFFER_MODE_USER_PROMPT = 'groq/buffer_mode_user_prompt.xml.jinja',
-
-  --- this prompt should let the model yap into a separate buffer
-  PROJECT_MODE_SYSTEM_PROMPT = 'groq/buffer_mode_system_prompt.xml.jinja',
-  PROJECT_MODE_USER_PROMPT = 'anthropic/project_mode_user_prompt.xml.jinja',
-
-  --- this prompt has to be written to output valid code
-  REPLACE_MODE_SYSTEM_PROMPT = 'groq/replace_mode_system_prompt.xml.jinja',
-  REPLACE_MODE_USER_PROMPT = 'groq/replace_mode_user_prompt.xml.jinja',
+  GROQ = {
+    --- this prompt has to be written to output valid code
+    FILL_MODE_SYSTEM_PROMPT = 'groq/fill_mode_system_prompt.xml.jinja',
+    FILL_MODE_USER_PROMPT = 'groq/fill_mode_user_prompt.xml.jinja',
+  },
 }
 
 local API_ERROR_MESSAGE = [[

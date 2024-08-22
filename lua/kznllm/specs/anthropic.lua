@@ -11,17 +11,9 @@ M.MODELS = {
 M.SELECTED_MODEL = M.MODELS.SONNET_3_5
 
 M.PROMPT_TEMPLATES = {
-  --- this prompt should let the model yap into a separate buffer
-  BUFFER_MODE_SYSTEM_PROMPT = 'anthropic/buffer_mode_system_prompt.xml.jinja',
-  BUFFER_MODE_USER_PROMPT = 'anthropic/buffer_mode_user_prompt.xml.jinja',
-
-  --- this prompt should format a bunch of files into long context multi-document format
-  PROJECT_MODE_SYSTEM_PROMPT = 'anthropic/buffer_mode_system_prompt.xml.jinja',
-  PROJECT_MODE_USER_PROMPT = 'anthropic/project_mode_user_prompt.xml.jinja',
-
   --- this prompt has to be written to output valid code
-  REPLACE_MODE_SYSTEM_PROMPT = 'anthropic/replace_mode_system_prompt.xml.jinja',
-  REPLACE_MODE_USER_PROMPT = 'anthropic/replace_mode_user_prompt.xml.jinja',
+  FILL_MODE_SYSTEM_PROMPT = 'anthropic/fill_mode_system_prompt.xml.jinja',
+  FILL_MODE_USER_PROMPT = 'anthropic/fill_mode_user_prompt.xml.jinja',
 }
 
 local API_ERROR_MESSAGE = [[
@@ -35,13 +27,17 @@ local current_event_state = nil
 --- Constructs arguments for constructing an HTTP request to the Anthropic API
 --- using cURL.
 ---
----@param rendered_messages { system_prompt: string, messages: { role: string, content: string }[] }
+---@param rendered_messages { role: string, content: string }[]
 ---@return string[]
 local function make_curl_args(rendered_messages)
   local api_key = os.getenv(M.API_KEY_NAME)
+  local system_prompt = table.remove(rendered_messages, 1).content
+  vim.print(system_prompt)
+  vim.print(rendered_messages)
+
   local data = {
-    system = rendered_messages.system_prompt,
-    messages = rendered_messages.messages,
+    system = system_prompt,
+    messages = rendered_messages,
     model = M.SELECTED_MODEL.name,
     stream = true,
     max_tokens = M.SELECTED_MODEL.max_tokens,
@@ -101,8 +97,8 @@ local function handle_data(data)
   return content
 end
 
----@param rendered_messages { system_prompt: string, messages: { role: string, content: string }[] }
-function M.make_job(rendered_messages, writer_fn, completed_callback_fn)
+---@param rendered_messages { role: string, content: string }[]
+function M.make_job(rendered_messages, writer_fn, on_exit_fn)
   local active_job = Job:new {
     command = 'curl',
     args = make_curl_args(rendered_messages),
@@ -130,7 +126,9 @@ function M.make_job(rendered_messages, writer_fn, completed_callback_fn)
 
         local content = handle_data(data)
         if content and content ~= nil then
-          writer_fn(content)
+          vim.schedule(function()
+            writer_fn(content)
+          end)
         end
       elseif current_event_state == 'message_start' then
         local data, data_epos
@@ -156,7 +154,9 @@ function M.make_job(rendered_messages, writer_fn, completed_callback_fn)
       error(message, 1)
     end,
     on_exit = function()
-      completed_callback_fn()
+      vim.schedule(function()
+        on_exit_fn()
+      end)
     end,
   }
   return active_job

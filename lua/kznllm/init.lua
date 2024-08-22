@@ -18,9 +18,9 @@ end
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
 --- Get normalized visual selection such that it returns the start_pos < end_pos 0-indexed
-local function get_visual_selection()
+local function get_visual_selection(mode)
   -- get visual selection and current cursor position
-  local mode = api.nvim_get_mode().mode
+
   -- 1-indexed
   local _, srow, scol = unpack(vim.fn.getpos 'v')
   local _, erow, ecol = unpack(vim.fn.getpos '.')
@@ -71,11 +71,12 @@ local function write_content_at_extmark(content, ns_id, extmark_id)
   local mrow, mcol = extmark[1], extmark[2]
 
   vim.cmd 'undojoin'
+
   local lines = vim.split(content, '\n')
   api.nvim_buf_set_text(0, mrow, mcol, mrow, mcol, lines)
 end
 
---- Invokes an LLM via a supported API spec in "replace" mode
+--- Invokes an LLM via a supported API spec in "inline" mode
 ---
 --- Must provide the function for constructing cURL arguments and a handler
 --- function for processing server-sent events.
@@ -88,22 +89,28 @@ function M.invoke_llm(prompt_messages, make_job_fn)
   local active_job, stream_end_extmark_id
 
   local buf_id = api.nvim_win_get_buf(0)
-  local srow, scol, erow, ecol = get_visual_selection()
+  local mode = api.nvim_get_mode().mode
+  local srow, scol, erow, ecol = get_visual_selection(mode)
 
-  -- get text from visual selection and current buffer
-  local visual_selection = table.concat(api.nvim_buf_get_text(buf_id, srow, scol, erow, ecol, {}), '\n')
-  local current_buffer_path = api.nvim_buf_get_name(buf_id)
-  local current_buffer_context = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n')
-  local current_buffer_filetype = vim.bo.filetype
+  local replace_mode = not (mode == 'n')
+  local visual_selection, current_buffer_path, current_buffer_context, current_buffer_filetype
+
+  if replace_mode then
+    -- get text from visual selection and current buffer
+    visual_selection = table.concat(api.nvim_buf_get_text(buf_id, srow, scol, erow, ecol, {}), '\n')
+  end
+  current_buffer_path = api.nvim_buf_get_name(buf_id)
+  current_buffer_context = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n')
+  current_buffer_filetype = vim.bo.filetype
 
   vim.ui.input({ prompt = 'prompt: ' }, function(input)
     if input ~= nil then
-      -- put an extmark at the appropriate spot
-      stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, kznllm_ns_id, erow, ecol, {})
-
-      -- wipe the range if there is no selection
-      if (srow ~= erow) or (scol ~= ecol) then
+      if replace_mode then
+        stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, kznllm_ns_id, erow, ecol, {})
         api.nvim_buf_set_text(buf_id, srow, scol, erow, ecol, {})
+      else
+        -- put an extmark at the appropriate spot
+        stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, kznllm_ns_id, erow, 0, {})
       end
 
       local prompt_args = {
@@ -112,6 +119,7 @@ function M.invoke_llm(prompt_messages, make_job_fn)
         current_buffer_filetype = current_buffer_filetype,
         visual_selection = visual_selection,
         user_query = input,
+        replace = replace_mode,
       }
 
       local rendered_messages = {}

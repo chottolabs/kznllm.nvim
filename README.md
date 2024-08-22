@@ -7,7 +7,7 @@ Based on [dingllm.nvim](https://github.com/yacineMTB/dingllm.nvim) - but diverge
 - free cursor movement during generation
 
 > [!NOTE]
-> This plugin depends on [fd](https://github.com/sharkdp/fd) and [minijinja-cli](https://github.com/mitsuhiko/minijinja) (`cargo install minijinja-cli`, but double-check) - way easier to compose prompts. You should have `fd` already from telescope
+> This plugin depends on [minijinja-cli](https://github.com/mitsuhiko/minijinja) (`cargo install minijinja-cli`, but double-check) - way easier to compose prompts.
 
 The only supported command is `leader + k`, it does nothing more than fill in some LLM completion into the text buffer. It has two main behaviors:
 1. If you made a visual selection, it will attempt to replace your selection with a valid code fragment. 
@@ -36,7 +36,7 @@ export ANTHROPIC_API_KEY=sk-...
 export GROQ_API_KEY=gsk_...
 ```
 
-for lambda labs
+for lambda
 
 ```lua
   {
@@ -69,6 +69,8 @@ for lambda labs
   },
 ```
 
+anthropic
+
 ```lua
 local kznllm = require 'kznllm'
 local spec = require 'kznllm.specs.anthropic'
@@ -85,7 +87,8 @@ end
 vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_fill, { desc = 'Send current selection to LLM llm_fill' })
 ```
 
-for groq (default)
+for groq
+
 ```lua
 local kznllm = require 'kznllm'
 local utils = require 'kznllm.utils'

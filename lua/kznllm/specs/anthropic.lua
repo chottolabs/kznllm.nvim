@@ -32,8 +32,6 @@ local current_event_state = nil
 local function make_curl_args(rendered_messages)
   local api_key = os.getenv(M.API_KEY_NAME)
   local system_prompt = table.remove(rendered_messages, 1).content
-  vim.print(system_prompt)
-  vim.print(rendered_messages)
 
   local data = {
     system = system_prompt,

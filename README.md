@@ -53,6 +53,7 @@ for lambda labs
 
       local function llm_fill()
         kznllm.invoke_llm({
+          -- the first template must be for the system prompt when using anthropic
           { role = 'system', prompt_template = provider.PROMPT_TEMPLATES.NOUS_RESEARCH.FILL_MODE_SYSTEM_PROMPT },
           { role = 'user', prompt_template = provider.PROMPT_TEMPLATES.NOUS_RESEARCH.FILL_MODE_USER_PROMPT },
         }, provider.make_job)

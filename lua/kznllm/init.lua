@@ -5,7 +5,7 @@ local Job = require 'plenary.job'
 local M = {}
 local api = vim.api
 
-local kznllm_ns_id = api.nvim_create_namespace 'kznllm_ns'
+M.NS_ID = api.nvim_create_namespace 'kznllm_ns'
 
 -- Specify the path where you want to save the file
 M.CACHE_DIRECTORY = vim.fn.stdpath 'cache' .. '/kznllm/history'
@@ -20,6 +20,7 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
 --- Get normalized visual selection such that it returns the start_pos < end_pos 0-indexed
 local function get_visual_selection(mode)
+  local buf_id = api.nvim_win_get_buf(0)
   -- get visual selection and current cursor position
 
   -- 1-indexed
@@ -37,11 +38,26 @@ local function get_visual_selection(mode)
 
   -- in visual block and visual line mode, we expect first column of srow and last column of erow
   if mode == 'V' or mode == '\22' or mode == 'n' then
-    return srow, 0, erow, -1
+    scol, ecol = 0, -1
+  else
+    ecol = ecol + 1
   end
 
-  --  last row inclusive, last col exclusive
-  return srow, scol, erow, ecol + 1
+  local replace_mode = not (mode == 'n')
+
+  local stream_end_extmark_id, visual_selection
+
+  if replace_mode then
+    api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
+    visual_selection = table.concat(api.nvim_buf_get_text(buf_id, srow, scol, erow, ecol, {}), '\n')
+    stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, M.NS_ID, erow, ecol, {})
+    api.nvim_buf_set_text(buf_id, srow, scol, erow, ecol, {})
+  else
+    -- put an extmark at the appropriate spot
+    stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, M.NS_ID, erow, 0, {})
+  end
+
+  return stream_end_extmark_id, visual_selection
 end
 
 ---Renders a prompt template using minijinja-cli and returns the rendered lines
@@ -65,10 +81,9 @@ local function make_prompt_from_template(prompt_template_path, prompt_args)
 end
 
 ---@param content string
----@param ns_id integer
 ---@param extmark_id integer
-local function write_content_at_extmark(content, ns_id, extmark_id)
-  local extmark = api.nvim_buf_get_extmark_by_id(0, ns_id, extmark_id, { details = false })
+local function write_content_at_extmark(content, extmark_id)
+  local extmark = api.nvim_buf_get_extmark_by_id(0, M.NS_ID, extmark_id, { details = false })
   local mrow, mcol = extmark[1], extmark[2]
 
   vim.cmd 'undojoin'
@@ -121,62 +136,40 @@ end
 function M.invoke_llm(prompt_messages, make_job_fn, opts)
   api.nvim_clear_autocmds { group = group }
 
-  local active_job, stream_end_extmark_id
-
-  local buf_id = api.nvim_win_get_buf(0)
-  local mode = api.nvim_get_mode().mode
-  local srow, scol, erow, ecol = get_visual_selection(mode)
-
-  local replace_mode = not (mode == 'n')
-  local visual_selection, current_buffer_path, current_buffer_context, current_buffer_filetype
-
-  if replace_mode then
-    -- get text from visual selection and current buffer
-    visual_selection = table.concat(api.nvim_buf_get_text(buf_id, srow, scol, erow, ecol, {}), '\n')
-  end
-  current_buffer_path = api.nvim_buf_get_name(buf_id)
-  current_buffer_context = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n')
-  current_buffer_filetype = vim.bo.filetype
-
-  local debug = opts and opts.debug
-
-  if debug then
-    buf_id = make_scratch_buffer()
-    erow = 0
-  end
-
-  -- project scoped context
-  local context_dir_id, context_dir, context_files
-  local home_directory = Path:new(vim.fn.expand '~')
-
-  context_dir_id = opts and opts.context_dir_id or '.kzn_context'
-  context_dir = Path:new(vim.fn.getcwd()) / context_dir_id
-
-  while (not context_dir:exists()) and context_dir:is_dir() do
-    if context_dir:absolute() == home_directory:absolute() then
-      context_dir = nil
-      break
-    end
-    context_dir = context_dir:parent()
-  end
-
-  if context_dir then
-    context_files = Scan.scan_dir(context_dir:absolute(), { hidden = false })
-    vim.print('using context at: ' .. context_dir:absolute())
-  end
+  local active_job
 
   vim.ui.input({ prompt = 'prompt: ' }, function(input)
     if input ~= nil then
-      if debug then
-        stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, kznllm_ns_id, erow, ecol, {})
-      elseif replace_mode then
-        stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, kznllm_ns_id, erow, ecol, {})
-        api.nvim_buf_set_text(buf_id, srow, scol, erow, ecol, {})
-      else
-        -- put an extmark at the appropriate spot
-        stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, kznllm_ns_id, erow, 0, {})
+      local buf_id = api.nvim_win_get_buf(0)
+      local mode = api.nvim_get_mode().mode
+
+      local current_buffer_path, current_buffer_context, current_buffer_filetype
+      current_buffer_path = api.nvim_buf_get_name(buf_id)
+      current_buffer_context = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n')
+      current_buffer_filetype = vim.bo.filetype
+
+      -- project scoped context
+      local context_dir_id, context_dir, context_files
+      local home_directory = Path:new(vim.fn.expand '~')
+
+      context_dir_id = opts and opts.context_dir_id or '.kzn_context'
+      context_dir = Path:new(vim.fn.getcwd()) / context_dir_id
+
+      while (not context_dir:exists()) and context_dir:is_dir() do
+        if context_dir:absolute() == home_directory:absolute() then
+          context_dir = nil
+          break
+        end
+        context_dir = context_dir:parent()
       end
 
+      if context_dir then
+        context_files = Scan.scan_dir(context_dir:absolute(), { hidden = false })
+        vim.print('using context at: ' .. context_dir:absolute())
+      end
+
+      local stream_end_extmark_id, visual_selection = get_visual_selection(mode)
+      local replace_mode = not (mode == 'n')
       local prompt_args = {
         current_buffer_path = current_buffer_path,
         current_buffer_context = current_buffer_context,
@@ -187,6 +180,14 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
         context_files = context_files,
       }
 
+      local debug = opts and opts.debug
+
+      if debug then
+        api.nvim_buf_del_extmark(buf_id, M.NS_ID, stream_end_extmark_id)
+        buf_id = make_scratch_buffer()
+        stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, M.NS_ID, 0, 0, {})
+      end
+
       local rendered_messages = {}
 
       for _, message in ipairs(prompt_messages) do
@@ -194,17 +195,17 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
         table.insert(rendered_messages, { role = message.role, content = make_prompt_from_template(template_path, prompt_args) })
 
         if debug then
-          write_content_at_extmark(message.role .. ':\n\n', kznllm_ns_id, stream_end_extmark_id)
-          write_content_at_extmark(make_prompt_from_template(template_path, prompt_args), kznllm_ns_id, stream_end_extmark_id)
-          write_content_at_extmark('\n\n---\n\n', kznllm_ns_id, stream_end_extmark_id)
+          write_content_at_extmark(message.role .. ':\n\n', stream_end_extmark_id)
+          write_content_at_extmark(make_prompt_from_template(template_path, prompt_args), stream_end_extmark_id)
+          write_content_at_extmark('\n\n---\n\n', stream_end_extmark_id)
           vim.cmd 'normal! G'
         end
       end
 
       active_job = make_job_fn(rendered_messages, function(content)
-        write_content_at_extmark(content, kznllm_ns_id, stream_end_extmark_id)
+        write_content_at_extmark(content, stream_end_extmark_id)
       end, function()
-        api.nvim_buf_del_extmark(buf_id, kznllm_ns_id, stream_end_extmark_id)
+        api.nvim_buf_del_extmark(buf_id, M.NS_ID, stream_end_extmark_id)
       end)
       active_job:start()
 

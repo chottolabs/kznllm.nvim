@@ -46,21 +46,21 @@ for lambda
     },
     config = function(self)
       local kznllm = require 'kznllm'
-      local provider = require 'kznllm.specs.openai'
+      local spec = require 'kznllm.specs.openai'
 
       -- falls back to `vim.fn.stdpath 'data' .. '/lazy/kznllm/templates'` when the plugin is not locally installed
       kznllm.TEMPLATE_DIRECTORY = vim.fn.expand(self.dir) .. '/templates/'
 
-      provider.SELECTED_MODEL = { name = 'hermes-3-llama-3.1-405b-fp8' }
-      provider.API_KEY_NAME = 'LAMBDA_API_KEY'
-      provider.URL = 'https://api.lambdalabs.com/v1/chat/completions'
+      spec.SELECTED_MODEL = { name = 'hermes-3-llama-3.1-405b-fp8' }
+      spec.API_KEY_NAME = 'LAMBDA_API_KEY'
+      spec.URL = 'https://api.lambdalabs.com/v1/chat/completions'
 
       local function llm_fill()
         kznllm.invoke_llm({
           -- the first template must be for the system prompt when using anthropic
-          { role = 'system', prompt_template = provider.PROMPT_TEMPLATES.NOUS_RESEARCH.FILL_MODE_SYSTEM_PROMPT },
-          { role = 'user', prompt_template = provider.PROMPT_TEMPLATES.NOUS_RESEARCH.FILL_MODE_USER_PROMPT },
-        }, provider.make_job)
+          { role = 'system', prompt_template = spec.PROMPT_TEMPLATES.NOUS_RESEARCH.FILL_MODE_SYSTEM_PROMPT },
+          { role = 'user', prompt_template = spec.PROMPT_TEMPLATES.NOUS_RESEARCH.FILL_MODE_USER_PROMPT },
+        }, spec.make_job)
       end
 
       vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_fill, { desc = 'Send current selection to LLM llm_fill' })
@@ -88,8 +88,8 @@ kznllm.TEMPLATE_DIRECTORY = vim.fn.expand(self.dir) .. '/templates/'
 
 local function llm_fill()
   kznllm.invoke_llm({
-    { role = 'system', prompt_template = provider.PROMPT_TEMPLATES.FILL_MODE_SYSTEM_PROMPT },
-    { role = 'user', prompt_template = provider.PROMPT_TEMPLATES.FILL_MODE_USER_PROMPT },
+    { role = 'system', prompt_template = spec.PROMPT_TEMPLATES.FILL_MODE_SYSTEM_PROMPT },
+    { role = 'user', prompt_template = spec.PROMPT_TEMPLATES.FILL_MODE_USER_PROMPT },
   }, spec.make_job)
 end
 
@@ -108,8 +108,8 @@ kznllm.TEMPLATE_DIRECTORY = vim.fn.expand(self.dir) .. '/templates/'
 
 local function llm_fill()
   kznllm.invoke_llm({
-    { role = 'system', prompt_template = provider.PROMPT_TEMPLATES.GROQ.FILL_MODE_SYSTEM_PROMPT },
-    { role = 'user', prompt_template = provider.PROMPT_TEMPLATES.GROQ.FILL_MODE_USER_PROMPT },
+    { role = 'system', prompt_template = spec.PROMPT_TEMPLATES.GROQ.FILL_MODE_SYSTEM_PROMPT },
+    { role = 'user', prompt_template = spec.PROMPT_TEMPLATES.GROQ.FILL_MODE_USER_PROMPT },
   }, spec.make_job)
 end
 ...

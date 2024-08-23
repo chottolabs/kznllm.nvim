@@ -43,6 +43,8 @@ for lambda
 > use the folder closest to your current working directory and traverse backwards
 > until it finds a `.kzn` directory or reaches your home directory and exits.
 > 
+> DON'T PUT ANYTHING OTHER THAN TEXT FILES IN THE DIRECTORY
+> 
 > A simple way to add specific files to context is to symlink another directory
 > like this `ln -s $(readlink -f <path>) .kzn/code` use my fork of plenary.nvim
 > to resolve symlinks in the directory [see patch](https://github.com/chottolabs/plenary.nvim/commit/7b0bf11bd3c286d6a45d8f5270369626b2ec6505)

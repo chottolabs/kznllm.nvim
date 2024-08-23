@@ -94,36 +94,35 @@ end
 
 -- mainly for debugging purposes
 local function make_scratch_buffer()
-  local scratch_buf_nr = api.nvim_create_buf(false, true)
+  local input_buf_nr = api.nvim_create_buf(true, false)
 
-  -- Set buffer options
-  api.nvim_set_option_value('buftype', 'nofile', { buf = scratch_buf_nr })
-  api.nvim_set_option_value('bufhidden', 'hide', { buf = scratch_buf_nr })
-  api.nvim_set_option_value('swapfile', false, { buf = scratch_buf_nr })
-  api.nvim_set_option_value('filetype', 'markdown', { buf = scratch_buf_nr })
+  api.nvim_buf_set_name(input_buf_nr, 'debug.md')
+  api.nvim_set_option_value('buflisted', true, { buf = input_buf_nr })
+  api.nvim_set_option_value('filetype', 'markdown', { buf = input_buf_nr })
 
-  -- Switch to the new buffer
-  api.nvim_set_current_buf(scratch_buf_nr)
-
-  -- Enable text wrapping
+  api.nvim_set_current_buf(input_buf_nr)
   api.nvim_set_option_value('wrap', true, { win = 0 })
   api.nvim_set_option_value('linebreak', true, { win = 0 })
   api.nvim_set_option_value('breakindent', true, { win = 0 })
 
+  local num_lines = api.nvim_buf_line_count(input_buf_nr)
+  api.nvim_win_set_cursor(0, { num_lines, 0 })
+
   -- Set up key mapping to close the buffer
-  api.nvim_buf_set_keymap(scratch_buf_nr, 'n', 'q', '', {
+  api.nvim_buf_set_keymap(input_buf_nr, 'n', '<leader>q', '', {
     noremap = true,
     silent = true,
     callback = function()
       -- Trigger the LLM_Escape event
       api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
 
-      api.nvim_buf_call(scratch_buf_nr, function()
+      api.nvim_buf_call(input_buf_nr, function()
         vim.cmd 'bdelete!'
       end)
     end,
   })
-  return scratch_buf_nr
+
+  return input_buf_nr
 end
 
 --- Invokes an LLM via a supported API spec in "inline" mode
@@ -152,10 +151,10 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
       local context_dir_id, context_dir, context_files
       local home_directory = Path:new(vim.fn.expand '~')
 
-      context_dir_id = opts and opts.context_dir_id or '.kzn_context'
-      context_dir = Path:new(vim.fn.getcwd()) / context_dir_id
+      context_dir_id = opts and opts.context_dir_id or '.kzn'
+      context_dir = Path:new(vim.fn.getcwd())
 
-      while (not context_dir:exists()) and context_dir:is_dir() do
+      while not (context_dir / context_dir_id):exists() and context_dir:is_dir() do
         if context_dir:absolute() == home_directory:absolute() then
           context_dir = nil
           break
@@ -164,8 +163,11 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
       end
 
       if context_dir then
+        context_dir = context_dir / context_dir_id
         context_files = Scan.scan_dir(context_dir:absolute(), { hidden = false })
         vim.print('using context at: ' .. context_dir:absolute())
+      else
+        vim.print('no context found, add a directory named ' .. context_dir_id .. ' to the root of your project')
       end
 
       local stream_end_extmark_id, visual_selection = get_visual_selection(mode)

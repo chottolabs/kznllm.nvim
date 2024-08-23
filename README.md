@@ -38,11 +38,21 @@ export GROQ_API_KEY=gsk_...
 
 for lambda
 
+> [!NOTE]
+> a project-mode is available when you have a directory named `.kzn`. It will
+> use the folder closest to your current working directory and traverse backwards
+> until it reaches your home directory or finds a `.kzn` directory.
+> 
+> A simple way to add specific files to context is to symlink a directory like
+> this `ln -s $(readlink -f <path>) .kzn/code` use my fork of plenary.nvim to
+> resolve symlinks in the directory [see patch](https://github.com/chottolabs/plenary.nvim/commit/7b0bf11bd3c286d6a45d8f5270369626b2ec6505)
+
 ```lua
   {
     'chottolabs/kznllm.nvim',
     dependencies = {
       { 'nvim-lua/plenary.nvim' },
+      -- { 'chottolabs/plenary.nvim' }, -- patched to resolve symlinked directories
     },
     config = function(self)
       local kznllm = require 'kznllm'

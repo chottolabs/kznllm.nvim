@@ -45,9 +45,9 @@ for lambda
 > 
 > DON'T PUT ANYTHING OTHER THAN TEXT FILES IN THE DIRECTORY
 > 
-> A simple way to add specific files to context is to symlink another directory
-> like this `ln -s $(readlink -f <path>) .kzn/code` use my fork of plenary.nvim
-> to resolve symlinks in the directory [see patch](https://github.com/chottolabs/plenary.nvim/commit/7b0bf11bd3c286d6a45d8f5270369626b2ec6505)
+> A simple way to add specific files to context would've been to symlink another directory
+> like this `ln -s $(readlink -f <path>) .kzn/code`... but scandir doesn't do
+> that... use my fork of plenary.nvim to resolve symlinks in the directory [see patch](https://github.com/chottolabs/plenary.nvim/commit/7b0bf11bd3c286d6a45d8f5270369626b2ec6505)
 
 ```lua
   {

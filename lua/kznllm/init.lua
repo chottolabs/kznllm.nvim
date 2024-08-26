@@ -193,12 +193,17 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
       local rendered_messages = {}
 
       for _, message in ipairs(prompt_messages) do
-        local template_path = (Path:new(M.TEMPLATE_DIRECTORY) / message.prompt_template):absolute()
-        table.insert(rendered_messages, { role = message.role, content = make_prompt_from_template(template_path, prompt_args) })
+        local template_path = Path:new(M.TEMPLATE_DIRECTORY) / message.prompt_template
+
+        if not template_path:exists() then
+          error(string.format('could not find template at %s', template_path), 1)
+        end
+
+        table.insert(rendered_messages, { role = message.role, content = make_prompt_from_template(template_path:absolute(), prompt_args) })
 
         if debug then
           write_content_at_extmark(message.role .. ':\n\n', stream_end_extmark_id)
-          write_content_at_extmark(make_prompt_from_template(template_path, prompt_args), stream_end_extmark_id)
+          write_content_at_extmark(make_prompt_from_template(template_path:absolute(), prompt_args), stream_end_extmark_id)
           write_content_at_extmark('\n\n---\n\n', stream_end_extmark_id)
           vim.cmd 'normal! G'
         end

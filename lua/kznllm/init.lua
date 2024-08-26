@@ -166,8 +166,6 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
         context_dir = context_dir / context_dir_id
         context_files = Scan.scan_dir(context_dir:absolute(), { hidden = false })
         vim.print('using context at: ' .. context_dir:absolute())
-      else
-        vim.print('no context found, add a directory named ' .. context_dir_id .. ' to the root of your project')
       end
 
       local stream_end_extmark_id, visual_selection = get_visual_selection(mode)

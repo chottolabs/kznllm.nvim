@@ -112,7 +112,6 @@ for groq
 
 ```lua
 local kznllm = require 'kznllm'
-local utils = require 'kznllm.utils'
 local spec = require 'kznllm.specs.openai'
 
 kznllm.TEMPLATE_DIRECTORY = vim.fn.expand(self.dir) .. '/templates/'

@@ -12,10 +12,6 @@ M.CACHE_DIRECTORY = vim.fn.stdpath 'cache' .. '/kznllm/history'
 
 M.TEMPLATE_DIRECTORY = vim.fn.stdpath 'data' .. '/lazy/kznllm/templates'
 
-if vim.fn.executable 'minijinja-cli' ~= 1 then
-  error("Can't find minijinja-cli, download it from https://github.com/mitsuhiko/minijinja or add it to $PATH", 1)
-end
-
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
 --- Get normalized visual selection such that it returns the start_pos < end_pos 0-indexed
@@ -133,6 +129,10 @@ end
 ---@param prompt_messages { role: string, prompt_template: string, args: table }[]
 ---@param make_job_fn fun(rendered_message: { role: string, content: string }, writer_fn: fun(content: string), on_exit_fn: fun())
 function M.invoke_llm(prompt_messages, make_job_fn, opts)
+  if vim.fn.executable 'minijinja-cli' ~= 1 then
+    error("Can't find minijinja-cli, download it from https://github.com/mitsuhiko/minijinja or add it to $PATH", 1)
+  end
+
   api.nvim_clear_autocmds { group = group }
 
   local active_job

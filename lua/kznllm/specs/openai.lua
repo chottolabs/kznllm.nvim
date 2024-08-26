@@ -1,4 +1,5 @@
 local M = {}
+-- can overwrite in lazy config so that it uses different setting at runtime
 M.API_KEY_NAME = 'GROQ_API_KEY'
 M.URL = 'https://api.groq.com/openai/v1/chat/completions'
 
@@ -24,7 +25,7 @@ M.PROMPT_TEMPLATES = {
 }
 
 local API_ERROR_MESSAGE = [[
-ERROR: groq api key is set to %s and is missing from your environment variables.
+ERROR: api key is set to %s and is missing from your environment variables.
 
 Load somewhere safely from config `export %s=<api_key>`]]
 

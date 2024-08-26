@@ -7,9 +7,6 @@ local api = vim.api
 
 M.NS_ID = api.nvim_create_namespace 'kznllm_ns'
 
--- Specify the path where you want to save the file
-M.CACHE_DIRECTORY = vim.fn.stdpath 'cache' .. '/kznllm/history'
-
 M.TEMPLATE_DIRECTORY = vim.fn.stdpath 'data' .. '/lazy/kznllm/templates'
 
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })

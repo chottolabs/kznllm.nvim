@@ -2,6 +2,7 @@ local Path = require 'plenary.path'
 local Scan = require 'plenary.scandir'
 local Job = require 'plenary.job'
 
+-- ORIGIN refers to the buffer where the user invoked the plugin. SCRATCH is a temporary buffer for debugging/chat
 local BUFFER_STATE = {
   SCRATCH = nil,
   ORIGIN = nil,
@@ -26,15 +27,21 @@ M.TEMPLATE_DIRECTORY = vim.fn.stdpath 'data' .. '/lazy/kznllm/templates'
 
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
---- Get normalized visual selection such that it returns the start_pos < end_pos 0-indexed
+---Handles visual selection depending on the specified mode and some expected states of the user's current buffer.
+--- Returns an appropriate position to stream output tokens and
+---
+---@param mode string neovim mode returned by vim.api.nvim_get_mode().mode
+---@param opts table optional values including debug mode
+---@return integer stream_end_extmark_id this extmark determines where to stream output tokens
+---@return string visual_selection returns the full selection
 local function get_visual_selection(mode, opts)
   BUFFER_STATE.ORIGIN = api.nvim_win_get_buf(0)
-  -- get visual selection and current cursor position
 
-  -- 1-indexed
+  -- get visual selection and current cursor position (1-indexed)
   local _, srow, scol = unpack(vim.fn.getpos 'v')
   local _, erow, ecol = unpack(vim.fn.getpos '.')
 
+  -- normalize start + end such that start_pos < end_pos and converts to 0-index
   srow, scol, erow, ecol = srow - 1, scol - 1, erow - 1, ecol - 1
   if srow > erow then
     srow, erow = erow, srow
@@ -51,20 +58,19 @@ local function get_visual_selection(mode, opts)
     ecol = ecol + 1
   end
 
-  local replace_mode = not (mode == 'n')
-
+  -- handling + cleanup for visual selection
   local stream_end_extmark_id, visual_selection
+  local replace_mode = not (mode == 'n')
+  local debug = opts and opts.debug
 
   if replace_mode then
     api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
     visual_selection = table.concat(api.nvim_buf_get_text(BUFFER_STATE.ORIGIN, srow, scol, erow, ecol, {}), '\n')
     stream_end_extmark_id = api.nvim_buf_set_extmark(BUFFER_STATE.ORIGIN, M.NS_ID, erow, ecol, {})
   else
-    -- put an extmark at the appropriate spot
+    -- put an extmark at the beginning of the line if there's nothing to replace
     stream_end_extmark_id = api.nvim_buf_set_extmark(BUFFER_STATE.ORIGIN, M.NS_ID, erow, 0, {})
   end
-
-  local debug = opts and opts.debug
 
   if not debug then
     api.nvim_buf_set_text(BUFFER_STATE.ORIGIN, srow, scol, erow, ecol, {})
@@ -75,9 +81,9 @@ end
 
 ---Renders a prompt template using minijinja-cli and returns the rendered lines
 ---
----@param prompt_template_path string
----@param prompt_args table
----@return string
+---@param prompt_template_path string an absolute path to a jinja file
+---@param prompt_args table typically PROMPT_ARGS_STATE which needs to be json encoded
+---@return string rendered_prompt
 local function make_prompt_from_template(prompt_template_path, prompt_args)
   local json_data = vim.json.encode(prompt_args)
   local active_job = Job:new {
@@ -105,31 +111,33 @@ local function write_content_at_extmark(content, extmark_id)
   api.nvim_buf_set_text(0, mrow, mcol, mrow, mcol, lines)
 end
 
--- mainly for debugging purposes
+---Creates a buffer in markdown mode (for syntax highlighting) and returns an extmark for streaming output
+---
+---@return integer extmark_id
 local function make_scratch_buffer()
   if BUFFER_STATE.SCRATCH then
     api.nvim_buf_delete(BUFFER_STATE.SCRATCH, { force = true })
     BUFFER_STATE.SCRATCH = nil
   end
 
-  local input_buf_nr = api.nvim_create_buf(true, false)
+  BUFFER_STATE.SCRATCH = api.nvim_create_buf(true, false)
 
-  api.nvim_buf_set_name(input_buf_nr, 'debug.md')
-  api.nvim_set_option_value('buflisted', true, { buf = input_buf_nr })
-  api.nvim_set_option_value('filetype', 'markdown', { buf = input_buf_nr })
+  api.nvim_buf_set_name(BUFFER_STATE.SCRATCH, 'debug.md')
+  api.nvim_set_option_value('buflisted', true, { buf = BUFFER_STATE.SCRATCH })
+  api.nvim_set_option_value('filetype', 'markdown', { buf = BUFFER_STATE.SCRATCH })
 
-  api.nvim_set_current_buf(input_buf_nr)
+  api.nvim_set_current_buf(BUFFER_STATE.SCRATCH)
   api.nvim_set_option_value('wrap', true, { win = 0 })
   api.nvim_set_option_value('linebreak', true, { win = 0 })
   api.nvim_set_option_value('breakindent', true, { win = 0 })
 
-  local num_lines = api.nvim_buf_line_count(input_buf_nr)
+  local num_lines = api.nvim_buf_line_count(BUFFER_STATE.SCRATCH)
   api.nvim_win_set_cursor(0, { num_lines, 0 })
 
-  local stream_end_extmark_id = api.nvim_buf_set_extmark(input_buf_nr, M.NS_ID, 0, 0, {})
+  local extmark_id = api.nvim_buf_set_extmark(BUFFER_STATE.SCRATCH, M.NS_ID, 0, 0, {})
 
   -- Set up key mapping to close the buffer
-  api.nvim_buf_set_keymap(input_buf_nr, 'n', '<leader>q', '', {
+  api.nvim_buf_set_keymap(BUFFER_STATE.SCRATCH, 'n', '<leader>q', '', {
     noremap = true,
     silent = true,
     callback = function()
@@ -143,7 +151,7 @@ local function make_scratch_buffer()
     end,
   })
 
-  return input_buf_nr, stream_end_extmark_id
+  return extmark_id
 end
 
 --- Invokes an LLM via a supported API spec in "inline" mode
@@ -210,7 +218,7 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
       local rendered_messages = {}
 
       if debug then
-        BUFFER_STATE.SCRATCH, stream_end_extmark_id = make_scratch_buffer()
+        stream_end_extmark_id = make_scratch_buffer()
       end
 
       for _, message in ipairs(prompt_messages) do

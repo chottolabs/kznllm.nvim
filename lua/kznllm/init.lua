@@ -2,6 +2,21 @@ local Path = require 'plenary.path'
 local Scan = require 'plenary.scandir'
 local Job = require 'plenary.job'
 
+local BUFFER_STATE = {
+  SCRATCH = nil,
+  ORIGIN = nil,
+}
+
+local PROMPT_ARGS_STATE = {
+  current_buffer_path = nil,
+  current_buffer_context = nil,
+  current_buffer_filetype = nil,
+  visual_selection = nil,
+  user_query = nil,
+  replace = nil,
+  context_files = nil,
+}
+
 local M = {}
 local api = vim.api
 
@@ -13,7 +28,7 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
 --- Get normalized visual selection such that it returns the start_pos < end_pos 0-indexed
 local function get_visual_selection(mode)
-  local buf_id = api.nvim_win_get_buf(0)
+  BUFFER_STATE.ORIGIN = api.nvim_win_get_buf(0)
   -- get visual selection and current cursor position
 
   -- 1-indexed
@@ -42,12 +57,12 @@ local function get_visual_selection(mode)
 
   if replace_mode then
     api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
-    visual_selection = table.concat(api.nvim_buf_get_text(buf_id, srow, scol, erow, ecol, {}), '\n')
-    stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, M.NS_ID, erow, ecol, {})
-    api.nvim_buf_set_text(buf_id, srow, scol, erow, ecol, {})
+    visual_selection = table.concat(api.nvim_buf_get_text(BUFFER_STATE.ORIGIN, srow, scol, erow, ecol, {}), '\n')
+    stream_end_extmark_id = api.nvim_buf_set_extmark(BUFFER_STATE.ORIGIN, M.NS_ID, erow, ecol, {})
+    api.nvim_buf_set_text(BUFFER_STATE.ORIGIN, srow, scol, erow, ecol, {})
   else
     -- put an extmark at the appropriate spot
-    stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, M.NS_ID, erow, 0, {})
+    stream_end_extmark_id = api.nvim_buf_set_extmark(BUFFER_STATE.ORIGIN, M.NS_ID, erow, 0, {})
   end
 
   return stream_end_extmark_id, visual_selection
@@ -87,6 +102,11 @@ end
 
 -- mainly for debugging purposes
 local function make_scratch_buffer()
+  if BUFFER_STATE.SCRATCH then
+    api.nvim_buf_delete(BUFFER_STATE.SCRATCH, { force = true })
+    BUFFER_STATE.SCRATCH = nil
+  end
+
   local input_buf_nr = api.nvim_create_buf(true, false)
 
   api.nvim_buf_set_name(input_buf_nr, 'debug.md')
@@ -101,6 +121,8 @@ local function make_scratch_buffer()
   local num_lines = api.nvim_buf_line_count(input_buf_nr)
   api.nvim_win_set_cursor(0, { num_lines, 0 })
 
+  local stream_end_extmark_id = api.nvim_buf_set_extmark(input_buf_nr, M.NS_ID, 0, 0, {})
+
   -- Set up key mapping to close the buffer
   api.nvim_buf_set_keymap(input_buf_nr, 'n', '<leader>q', '', {
     noremap = true,
@@ -109,13 +131,14 @@ local function make_scratch_buffer()
       -- Trigger the LLM_Escape event
       api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
 
-      api.nvim_buf_call(input_buf_nr, function()
+      api.nvim_buf_call(BUFFER_STATE.SCRATCH, function()
         vim.cmd 'bdelete!'
+        BUFFER_STATE.SCRATCH = nil
       end)
     end,
   })
 
-  return input_buf_nr
+  return input_buf_nr, stream_end_extmark_id
 end
 
 --- Invokes an LLM via a supported API spec in "inline" mode
@@ -136,13 +159,17 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
 
   vim.ui.input({ prompt = 'prompt: ' }, function(input)
     if input ~= nil then
-      local buf_id = api.nvim_win_get_buf(0)
+      BUFFER_STATE.ORIGIN = api.nvim_win_get_buf(0)
       local mode = api.nvim_get_mode().mode
 
-      local current_buffer_path, current_buffer_context, current_buffer_filetype
-      current_buffer_path = api.nvim_buf_get_name(buf_id)
-      current_buffer_context = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n')
-      current_buffer_filetype = vim.bo.filetype
+      local stream_end_extmark_id, visual_selection = get_visual_selection(mode)
+      local replace_mode = not (mode == 'n')
+
+      PROMPT_ARGS_STATE.user_query = input
+      PROMPT_ARGS_STATE.visual_selection = visual_selection
+      PROMPT_ARGS_STATE.current_buffer_path = api.nvim_buf_get_name(BUFFER_STATE.ORIGIN)
+      PROMPT_ARGS_STATE.current_buffer_filetype = vim.bo.filetype
+      PROMPT_ARGS_STATE.replace = replace_mode
 
       -- project scoped context
       local context_dir_id, context_dir, context_files
@@ -165,27 +192,21 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
         vim.print('using context at: ' .. context_dir:absolute())
       end
 
-      local stream_end_extmark_id, visual_selection = get_visual_selection(mode)
-      local replace_mode = not (mode == 'n')
-      local prompt_args = {
-        current_buffer_path = current_buffer_path,
-        current_buffer_context = current_buffer_context,
-        current_buffer_filetype = current_buffer_filetype,
-        visual_selection = visual_selection,
-        user_query = input,
-        replace = replace_mode,
-        context_files = context_files,
-      }
+      PROMPT_ARGS_STATE.context_files = context_files
 
+      -- render context
       local debug = opts and opts.debug
+      local rendered_messages = {}
 
-      if debug then
-        api.nvim_buf_del_extmark(buf_id, M.NS_ID, stream_end_extmark_id)
-        buf_id = make_scratch_buffer()
-        stream_end_extmark_id = api.nvim_buf_set_extmark(buf_id, M.NS_ID, 0, 0, {})
+      -- don't update current context when in debug mode
+      if BUFFER_STATE.SCRATCH == nil then
+        -- similar to rendering a template, but we want to get the context of the file without relying on the changes being saved
+        PROMPT_ARGS_STATE.current_buffer_context = table.concat(api.nvim_buf_get_lines(BUFFER_STATE.ORIGIN, 0, -1, false), '\n')
       end
 
-      local rendered_messages = {}
+      if debug then
+        BUFFER_STATE.SCRATCH, stream_end_extmark_id = make_scratch_buffer()
+      end
 
       for _, message in ipairs(prompt_messages) do
         local template_path = Path:new(M.TEMPLATE_DIRECTORY) / message.prompt_template
@@ -194,11 +215,11 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
           error(string.format('could not find template at %s', template_path), 1)
         end
 
-        table.insert(rendered_messages, { role = message.role, content = make_prompt_from_template(template_path:absolute(), prompt_args) })
+        table.insert(rendered_messages, { role = message.role, content = make_prompt_from_template(template_path:absolute(), PROMPT_ARGS_STATE) })
 
         if debug then
           write_content_at_extmark(message.role .. ':\n\n', stream_end_extmark_id)
-          write_content_at_extmark(make_prompt_from_template(template_path:absolute(), prompt_args), stream_end_extmark_id)
+          write_content_at_extmark(make_prompt_from_template(template_path:absolute(), PROMPT_ARGS_STATE), stream_end_extmark_id)
           write_content_at_extmark('\n\n---\n\n', stream_end_extmark_id)
           vim.cmd 'normal! G'
         end
@@ -207,7 +228,7 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
       active_job = make_job_fn(rendered_messages, function(content)
         write_content_at_extmark(content, stream_end_extmark_id)
       end, function()
-        api.nvim_buf_del_extmark(buf_id, M.NS_ID, stream_end_extmark_id)
+        api.nvim_buf_del_extmark(0, M.NS_ID, stream_end_extmark_id)
       end)
       active_job:start()
 

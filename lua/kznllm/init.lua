@@ -27,7 +27,7 @@ M.TEMPLATE_DIRECTORY = vim.fn.stdpath 'data' .. '/lazy/kznllm/templates'
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
 --- Get normalized visual selection such that it returns the start_pos < end_pos 0-indexed
-local function get_visual_selection(mode)
+local function get_visual_selection(mode, opts)
   BUFFER_STATE.ORIGIN = api.nvim_win_get_buf(0)
   -- get visual selection and current cursor position
 
@@ -59,10 +59,15 @@ local function get_visual_selection(mode)
     api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
     visual_selection = table.concat(api.nvim_buf_get_text(BUFFER_STATE.ORIGIN, srow, scol, erow, ecol, {}), '\n')
     stream_end_extmark_id = api.nvim_buf_set_extmark(BUFFER_STATE.ORIGIN, M.NS_ID, erow, ecol, {})
-    api.nvim_buf_set_text(BUFFER_STATE.ORIGIN, srow, scol, erow, ecol, {})
   else
     -- put an extmark at the appropriate spot
     stream_end_extmark_id = api.nvim_buf_set_extmark(BUFFER_STATE.ORIGIN, M.NS_ID, erow, 0, {})
+  end
+
+  local debug = opts and opts.debug
+
+  if not debug then
+    api.nvim_buf_set_text(BUFFER_STATE.ORIGIN, srow, scol, erow, ecol, {})
   end
 
   return stream_end_extmark_id, visual_selection
@@ -162,14 +167,20 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
       BUFFER_STATE.ORIGIN = api.nvim_win_get_buf(0)
       local mode = api.nvim_get_mode().mode
 
-      local stream_end_extmark_id, visual_selection = get_visual_selection(mode)
+      local stream_end_extmark_id, visual_selection = get_visual_selection(mode, opts)
       local replace_mode = not (mode == 'n')
 
       PROMPT_ARGS_STATE.user_query = input
       PROMPT_ARGS_STATE.visual_selection = visual_selection
-      PROMPT_ARGS_STATE.current_buffer_path = api.nvim_buf_get_name(BUFFER_STATE.ORIGIN)
-      PROMPT_ARGS_STATE.current_buffer_filetype = vim.bo.filetype
       PROMPT_ARGS_STATE.replace = replace_mode
+
+      -- don't update current context when in debug mode
+      if BUFFER_STATE.SCRATCH == nil then
+        -- similar to rendering a template, but we want to get the context of the file without relying on the changes being saved
+        PROMPT_ARGS_STATE.current_buffer_path = api.nvim_buf_get_name(BUFFER_STATE.ORIGIN)
+        PROMPT_ARGS_STATE.current_buffer_filetype = vim.bo.filetype
+        PROMPT_ARGS_STATE.current_buffer_context = table.concat(api.nvim_buf_get_lines(BUFFER_STATE.ORIGIN, 0, -1, false), '\n')
+      end
 
       -- project scoped context
       local context_dir_id, context_dir, context_files
@@ -197,12 +208,6 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
       -- render context
       local debug = opts and opts.debug
       local rendered_messages = {}
-
-      -- don't update current context when in debug mode
-      if BUFFER_STATE.SCRATCH == nil then
-        -- similar to rendering a template, but we want to get the context of the file without relying on the changes being saved
-        PROMPT_ARGS_STATE.current_buffer_context = table.concat(api.nvim_buf_get_lines(BUFFER_STATE.ORIGIN, 0, -1, false), '\n')
-      end
 
       if debug then
         BUFFER_STATE.SCRATCH, stream_end_extmark_id = make_scratch_buffer()

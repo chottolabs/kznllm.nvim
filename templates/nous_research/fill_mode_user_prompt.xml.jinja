@@ -1,16 +1,5 @@
-{% if visual_selection -%}
-QUERY: {{user_query}}
-
-ONLY implement the code fragment that is requested in the following snippet WITHOUT backticks. DO NOT include backticks. The code I want to replace is in the following code block:
-```{{current_buffer_filetype}}
-{{visual_selection}}
-```
-{%- else -%}
-{{user_query}}
-{%- endif %}
-
-CONTEXT:
 {%- if current_buffer_path %}
+CONTEXT:
 
 Document:0
 Title: {{current_buffer_path}}
@@ -20,13 +9,8 @@ Code:
 ```{{current_buffer_filetype}}
 {{ current_buffer_context }}
 ```
-{%- elif current_buffer_path %}
-
-{{current_buffer_path}}
-{%- endif %}
-
-{%- if context_files %}
-{% for file_path in context_files %}
+{% endif %}
+{% if context_files %}{% for file_path in context_files %}
 
 Document:{{loop.index}}
 Title: {{file_path}}
@@ -34,5 +18,15 @@ Text:
 ```
 {% include file_path %}
 ```
-{%- endfor %}
+{%- endfor %}{% endif %}{% if visual_selection -%}
+Code:
+```{{current_buffer_filetype}}
+{{visual_selection}}
+```
+
+QUERY: {{user_query}}
+INSTRUCTION: Replace the code in the block given above. ONLY return the code fragment that is requested in the following snippet WITHOUT backticks. DO NOT surround the code fragment in backticks.
+{%- else -%}
+{{user_query}}
 {%- endif %}
+

@@ -32,6 +32,10 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 ---@param prompt_args table typically PROMPT_ARGS_STATE which needs to be json encoded
 ---@return string rendered_prompt
 function M.make_prompt_from_template(prompt_template_path, prompt_args)
+  if vim.fn.executable 'minijinja-cli' ~= 1 then
+    error("Can't find minijinja-cli, download it from https://github.com/mitsuhiko/minijinja or add it to $PATH", 1)
+  end
+
   if not prompt_template_path:exists() then
     error(string.format('could not find template at %s', prompt_template_path), 1)
   end
@@ -71,9 +75,9 @@ function M.make_scratch_buffer()
 
   M.BUFFER_STATE.SCRATCH = api.nvim_create_buf(true, false)
 
-  api.nvim_buf_set_name(M.BUFFER_STATE.SCRATCH, 'debug.md')
-  api.nvim_set_option_value('buflisted', true, { buf = M.BUFFER_STATE.SCRATCH })
+  -- api.nvim_set_option_value('buflisted', true, { buf = M.BUFFER_STATE.SCRATCH })
   api.nvim_set_option_value('filetype', 'markdown', { buf = M.BUFFER_STATE.SCRATCH })
+  api.nvim_set_option_value('swapfile', false, { buf = M.BUFFER_STATE.SCRATCH })
 
   api.nvim_set_current_buf(M.BUFFER_STATE.SCRATCH)
   api.nvim_set_option_value('wrap', true, { win = 0 })
@@ -237,10 +241,6 @@ end
 ---@param make_curl_args_fn fun(data: table, opts: table)
 ---@param make_job_fn fun(rendered_message: { role: string, content: string }, writer_fn: fun(content: string), on_exit_fn: fun())
 function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
-  if vim.fn.executable 'minijinja-cli' ~= 1 then
-    error("Can't find minijinja-cli, download it from https://github.com/mitsuhiko/minijinja or add it to $PATH", 1)
-  end
-
   api.nvim_clear_autocmds { group = group }
 
   local active_job

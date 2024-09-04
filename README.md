@@ -34,6 +34,7 @@ Make your API keys available via environment variables
 export LAMBDA_API_KEY=secret_...
 export ANTHROPIC_API_KEY=sk-...
 export GROQ_API_KEY=gsk_...
+export VLLM_API_KEY=vllm_...
 ```
 
 for lambda
@@ -50,80 +51,78 @@ for lambda
 > that... use my fork of plenary.nvim to resolve symlinks in the directory [see patch](https://github.com/chottolabs/plenary.nvim/commit/7b0bf11bd3c286d6a45d8f5270369626b2ec6505)
 
 ```lua
-  {
-    'chottolabs/kznllm.nvim',
-    dependencies = {
-      { 'nvim-lua/plenary.nvim' },
-      -- { 'chottolabs/plenary.nvim' }, -- patched to resolve symlinked directories
-    },
-    config = function(self)
-      local kznllm = require 'kznllm'
-      local spec = require 'kznllm.specs.openai'
-
-      -- falls back to `vim.fn.stdpath 'data' .. '/lazy/kznllm/templates'` when the plugin is not locally installed
-      kznllm.TEMPLATE_DIRECTORY = vim.fn.expand(self.dir) .. '/templates/'
-
-      spec.SELECTED_MODEL = { name = 'hermes-3-llama-3.1-405b-fp8' }
-      spec.API_KEY_NAME = 'LAMBDA_API_KEY'
-      spec.URL = 'https://api.lambdalabs.com/v1/chat/completions'
-
-      local function llm_fill()
-        kznllm.invoke_llm({
-          -- the first template must be for the system prompt when using anthropic
-          { role = 'system', prompt_template = spec.PROMPT_TEMPLATES.NOUS_RESEARCH.FILL_MODE_SYSTEM_PROMPT },
-          { role = 'user', prompt_template = spec.PROMPT_TEMPLATES.NOUS_RESEARCH.FILL_MODE_USER_PROMPT },
-        }, spec.make_job)
-      end
-
-      vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_fill, { desc = 'Send current selection to LLM llm_fill' })
-
-      -- optional for debugging purposes
-      local function debug()
-        kznllm.invoke_llm({
-          { role = 'system', prompt_template = spec.PROMPT_TEMPLATES.NOUS_RESEARCH.FILL_MODE_SYSTEM_PROMPT },
-          { role = 'user', prompt_template = spec.PROMPT_TEMPLATES.NOUS_RESEARCH.FILL_MODE_USER_PROMPT },
-        }, spec.make_job, { debug = true })
-      end
-
-      vim.keymap.set({ 'n', 'v' }, '<leader>d', debug, { desc = 'Send current selection to LLM debug' })
-    end,
+{
+  'chottolabs/kznllm.nvim',
+  dependencies = {
+    { 'nvim-lua/plenary.nvim' },
+    -- { 'chottolabs/plenary.nvim' }, -- patched to resolve symlinked directories
   },
-```
+  config = function(self)
+    local kznllm = require 'kznllm'
 
-anthropic
+    -- starting spec_idx
+    local spec
+    local spec_idx = 0
 
-```lua
-local kznllm = require 'kznllm'
-local spec = require 'kznllm.specs.anthropic'
+    -- for vllm, add openai w/ kwargs (i.e. url + api_key)
+    -- { id = 'openai', opts = { api_key_name = 'VLLM_API_KEY', url = 'http://research.local:8000/v1/chat/completions' } }
+    local specs = { { id = 'groq' }, { id = 'lambda' }, { id = 'anthropic' }, { id = 'openai' } }
 
-kznllm.TEMPLATE_DIRECTORY = vim.fn.expand(self.dir) .. '/templates/'
+    local function switch_provider()
+      spec_idx = (spec_idx % #specs) + 1
+      spec = require(('kznllm.specs.%s'):format(specs[spec_idx].id))
+      print(('provider: %-10s || model: %s'):format(specs[spec_idx].id, spec.MODELS[spec.SELECTED_MODEL_IDX].name))
+    end
 
-local function llm_fill()
-  kznllm.invoke_llm({
-    { role = 'system', prompt_template = spec.PROMPT_TEMPLATES.FILL_MODE_SYSTEM_PROMPT },
-    { role = 'user', prompt_template = spec.PROMPT_TEMPLATES.FILL_MODE_USER_PROMPT },
-  }, spec.make_job)
-end
+    vim.keymap.set({ 'n', 'v' }, '<leader>m', switch_provider, { desc = 'switch between model providers' })
 
-vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_fill, { desc = 'Send current selection to LLM llm_fill' })
-```
+    local function switch_models()
+      spec.SELECTED_MODEL_IDX = (spec.SELECTED_MODEL_IDX % #spec.MODELS) + 1
+      print(('provider: %-10s || model: %s'):format(specs[spec_idx], spec.MODELS[spec.SELECTED_MODEL_IDX].name))
+    end
 
-for groq
+    vim.keymap.set({ 'n', 'v' }, '<leader>M', switch_models, { desc = 'switch between model providers' })
 
-```lua
-local kznllm = require 'kznllm'
-local spec = require 'kznllm.specs.openai'
+    -- initialize spec
+    switch_provider()
 
-kznllm.TEMPLATE_DIRECTORY = vim.fn.expand(self.dir) .. '/templates/'
--- fallsback to a preset default model configuration
+    -- falls back to `vim.fn.stdpath 'data' .. '/lazy/kznllm/templates'` when the plugin is not locally installed
+    local TEMPLATE_DIRECTORY = vim.fn.expand(self.dir) .. '/templates'
 
-local function llm_fill()
-  kznllm.invoke_llm({
-    { role = 'system', prompt_template = spec.PROMPT_TEMPLATES.GROQ.FILL_MODE_SYSTEM_PROMPT },
-    { role = 'user', prompt_template = spec.PROMPT_TEMPLATES.GROQ.FILL_MODE_USER_PROMPT },
-  }, spec.make_job)
-end
-...
+    local function llm_fill()
+      kznllm.invoke_llm(
+        -- reference implementations, try base model vs. chat
+        spec.make_data_for_chat,
+        spec.make_curl_args,
+        spec.make_job,
+        { template_path = TEMPLATE_DIRECTORY }
+      )
+    end
+
+    vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_fill, { desc = 'Send current selection to LLM llm_fill' })
+
+    -- optional for debugging purposes
+    local function debug()
+      kznllm.invoke_llm(
+        -- reference implementations, try base model vs. chat
+        spec.make_data_for_chat,
+        spec.make_curl_args,
+        spec.make_job,
+        { template_path = TEMPLATE_DIRECTORY, debug = true }
+      )
+    end
+
+    vim.keymap.set({ 'n', 'v' }, '<leader>d', debug, { desc = 'Send current selection to LLM debug' })
+
+    vim.api.nvim_set_keymap('n', '<Esc>', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        vim.api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+      end,
+    })
+  end
+},
 ```
 
 for local openai server

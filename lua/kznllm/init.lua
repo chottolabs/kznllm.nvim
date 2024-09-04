@@ -52,7 +52,7 @@ end
 
 ---@param content string
 ---@param extmark_id integer
-local function write_content_at_extmark(content, extmark_id)
+function M.write_content_at_extmark(content, extmark_id)
   local extmark = api.nvim_buf_get_extmark_by_id(0, M.NS_ID, extmark_id, { details = false })
   local mrow, mcol = extmark[1], extmark[2]
 
@@ -267,22 +267,16 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
       M.PROMPT_ARGS_STATE.current_buffer_context = buf_context
     end
 
-    local data = make_data_fn(M.PROMPT_ARGS_STATE, opts)
-
     if opts and opts.debug then
       stream_end_extmark_id = M.make_scratch_buffer()
-      for _, message in ipairs(data.messages) do
-        write_content_at_extmark(message.role .. ':\n\n', stream_end_extmark_id)
-        write_content_at_extmark(message.content, stream_end_extmark_id)
-        write_content_at_extmark('\n\n---\n\n', stream_end_extmark_id)
-        vim.cmd 'normal! G'
-      end
     end
+
+    local data = make_data_fn(M.PROMPT_ARGS_STATE, opts)
 
     local args = make_curl_args_fn(data, opts)
 
     active_job = make_job_fn(args, function(content)
-      write_content_at_extmark(content, stream_end_extmark_id)
+      M.write_content_at_extmark(content, stream_end_extmark_id)
     end, function()
       api.nvim_buf_del_extmark(0, M.NS_ID, stream_end_extmark_id)
     end)

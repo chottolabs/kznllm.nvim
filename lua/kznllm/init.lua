@@ -30,14 +30,18 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
 ---Renders a prompt template using minijinja-cli and returns the rendered lines
 ---
----@param prompt_template_path string an absolute path to a jinja file
+---@param prompt_template_path Path an absolute path to a jinja file
 ---@param prompt_args table typically PROMPT_ARGS_STATE which needs to be json encoded
 ---@return string rendered_prompt
-local function make_prompt_from_template(prompt_template_path, prompt_args)
+function M.make_prompt_from_template(prompt_template_path, prompt_args)
+  if not prompt_template_path:exists() then
+    error(string.format('could not find template at %s', prompt_template_path), 1)
+  end
+
   local json_data = vim.json.encode(prompt_args)
   local active_job = Job:new {
     command = 'minijinja-cli',
-    args = { '-f', 'json', prompt_template_path, '-' },
+    args = { '-f', 'json', prompt_template_path:absolute(), '-' },
     writer = json_data,
     on_stderr = function(message, _)
       error(message, 1)
@@ -297,17 +301,17 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
       api.nvim_buf_del_extmark(0, M.NS_ID, stream_end_extmark_id)
     end)
     active_job:start()
+    api.nvim_create_autocmd('User', {
+      group = group,
+      pattern = 'LLM_Escape',
+      callback = function()
+        if active_job.is_shutdown ~= true then
+          active_job:shutdown()
+          print 'LLM streaming cancelled'
+        end
+      end,
+    })
   end)
-  api.nvim_create_autocmd('User', {
-    group = group,
-    pattern = 'LLM_Escape',
-    callback = function()
-      if active_job.is_shutdown ~= true then
-        active_job:shutdown()
-        print 'LLM streaming cancelled'
-      end
-    end,
-  })
 end
 
 api.nvim_set_keymap('n', '<Esc>', '', {

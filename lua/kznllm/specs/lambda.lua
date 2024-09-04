@@ -3,38 +3,31 @@ local Path = require 'plenary.path'
 
 local M = {}
 
-local API_KEY_NAME = 'GROQ_API_KEY'
-local URL = 'https://api.groq.com/openai/v1/chat/completions'
+local API_KEY_NAME = 'LAMBDA_API_KEY'
+local URL = 'https://api.lambdalabs.com/v1/chat/completions'
 
 local TEMPLATE_PATH = vim.fn.expand(vim.fn.stdpath 'data') .. '/lazy/kznllm.nvim'
 
 M.MODELS = {
-  { name = 'llama-3.1-70b-versatile', max_tokens = 131072 },
-  { name = 'llama-3.1-405b-reasoning', max_tokens = 131072 },
-  { name = 'llama3-70b-8192', max_tokens = 8192 },
+  { name = 'hermes-3-llama-3.1-405b-fp8' },
 }
 
 M.SELECTED_MODEL_IDX = 1
 
+-- for chat completion models using `messages`
 M.MESSAGE_TEMPLATES = {
-
-  FILL_MODE_SYSTEM_PROMPT = 'nous_research/fill_mode_system_prompt.xml.jinja',
-  FILL_MODE_USER_PROMPT = 'nous_research/fill_mode_user_prompt.xml.jinja',
-
   NOUS_RESEARCH = {
     FILL_MODE_SYSTEM_PROMPT = 'nous_research/fill_mode_system_prompt.xml.jinja',
     FILL_MODE_USER_PROMPT = 'nous_research/fill_mode_user_prompt.xml.jinja',
   },
 
-  GROQ = {
-    --- this prompt has to be written to output valid code
-    FILL_MODE_SYSTEM_PROMPT = 'groq/fill_mode_system_prompt.xml.jinja',
-    FILL_MODE_USER_PROMPT = 'groq/fill_mode_user_prompt.xml.jinja',
-  },
+  -- defaults
+  FILL_MODE_SYSTEM_PROMPT = 'nous_research/fill_mode_system_prompt.xml.jinja',
+  FILL_MODE_USER_PROMPT = 'nous_research/fill_mode_user_prompt.xml.jinja',
 }
 
 local API_ERROR_MESSAGE = [[
-ERROR: api key name is set to %s and is missing from your environment variables.
+ERROR: api key is set to %s and is missing from your environment variables.
 
 Load somewhere safely from config `export %s=<api_key>`]]
 

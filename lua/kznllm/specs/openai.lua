@@ -9,15 +9,20 @@ local URL = 'https://api.openai.com/v1/chat/completions'
 local TEMPLATE_PATH = vim.fn.expand(vim.fn.stdpath 'data') .. '/lazy/kznllm.nvim'
 
 M.MODELS = {
-  GPT_4O_MINI = { name = 'gpt-4o-mini', max_tokens = 16384 },
-  GPT_4O = { name = 'gpt-4o', max_tokens = 16384 },
+  { name = 'gpt-4o-mini', max_tokens = 16384 },
+  { name = 'gpt-4o', max_tokens = 16384 },
 }
-M.PROMPT_TEMPLATES = {
 
+M.SELECTED_MODEL_IDX = 1
+
+-- for chat completion models using `messages`
+M.MESSAGE_TEMPLATES = {
   NOUS_RESEARCH = {
     FILL_MODE_SYSTEM_PROMPT = 'nous_research/fill_mode_system_prompt.xml.jinja',
     FILL_MODE_USER_PROMPT = 'nous_research/fill_mode_user_prompt.xml.jinja',
   },
+  FILL_MODE_SYSTEM_PROMPT = 'nous_research/fill_mode_system_prompt.xml.jinja',
+  FILL_MODE_USER_PROMPT = 'nous_research/fill_mode_user_prompt.xml.jinja',
 }
 
 local API_ERROR_MESSAGE = [[
@@ -130,10 +135,22 @@ function M.make_data_for_chat(prompt_args, opts)
 
   local data = {
     messages = messages,
-    model = M.MODELS.GPT_4O_MINI.name,
+    model = M.MODELS[M.SELECTED_MODEL_IDX].name,
     temperature = 0.7,
     stream = true,
   }
+
+  if opts and opts.debug then
+    local extmark_id = vim.api.nvim_buf_set_extmark(kznllm.BUFFER_STATE.SCRATCH, kznllm.NS_ID, 0, 0, {})
+    kznllm.write_content_at_extmark('model: ' .. M.MODELS[M.SELECTED_MODEL_IDX].name, extmark_id)
+    kznllm.write_content_at_extmark('\n\n---\n\n', extmark_id)
+    for _, message in ipairs(data.messages) do
+      kznllm.write_content_at_extmark(message.role .. ':\n\n', extmark_id)
+      kznllm.write_content_at_extmark(message.content, extmark_id)
+      kznllm.write_content_at_extmark('\n\n---\n\n', extmark_id)
+      vim.cmd 'normal! G'
+    end
+  end
 
   return data
 end

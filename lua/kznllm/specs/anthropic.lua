@@ -1,16 +1,23 @@
+local kznllm = require 'kznllm'
+local Path = require 'plenary.path'
+
 local M = {}
-M.API_KEY_NAME = 'ANTHROPIC_API_KEY'
-M.URL = 'https://api.anthropic.com/v1/messages'
+
+local API_KEY_NAME = 'ANTHROPIC_API_KEY'
+local URL = 'https://api.anthropic.com/v1/messages'
+
+local TEMPLATE_PATH = vim.fn.expand(vim.fn.stdpath 'data') .. '/lazy/kznllm.nvim'
 
 M.MODELS = {
-  SONNET_3_5 = { name = 'claude-3-5-sonnet-20240620', max_tokens = 8192 },
-  OPUS_3 = { name = 'claude-3-opus-20240229', max_tokens = 4096 },
-  HAIKU_3 = { name = 'claude-3-haiku-20240307', max_tokens = 4096 },
+  { name = 'claude-3-5-sonnet-20240620', max_tokens = 8192 },
+  { name = 'claude-3-opus-20240229', max_tokens = 4096 },
+  { name = 'claude-3-haiku-20240307', max_tokens = 4096 },
 }
 
-M.SELECTED_MODEL = M.MODELS.SONNET_3_5
+M.SELECTED_MODEL_IDX = 1
 
-M.PROMPT_TEMPLATES = {
+M.MESSAGE_TEMPLATES = {
+
   --- this prompt has to be written to output valid code
   FILL_MODE_SYSTEM_PROMPT = 'anthropic/fill_mode_system_prompt.xml.jinja',
   FILL_MODE_USER_PROMPT = 'anthropic/fill_mode_user_prompt.xml.jinja',
@@ -24,38 +31,37 @@ Load somewhere safely from config `export %s=<api_key>`]]
 local Job = require 'plenary.job'
 local current_event_state = nil
 
---- Constructs arguments for constructing an HTTP request to the Anthropic API
+--- Constructs arguments for constructing an HTTP request to the OpenAI API
 --- using cURL.
 ---
----@param rendered_messages { role: string, content: string }[]
+---@param data table
 ---@return string[]
-local function make_curl_args(rendered_messages)
-  local api_key = os.getenv(M.API_KEY_NAME)
-  local system_prompt = table.remove(rendered_messages, 1).content
+function M.make_curl_args(data, opts)
+  local url = opts and opts.url or URL
+  local api_key = os.getenv(opts and opts.api_key_name or API_KEY_NAME)
 
-  local data = {
-    system = system_prompt,
-    messages = rendered_messages,
-    model = M.SELECTED_MODEL.name,
-    stream = true,
-    max_tokens = M.SELECTED_MODEL.max_tokens,
-  }
-
-  local args = { '-s', '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
-  if api_key then
-    args = vim.list_extend(args, {
-      '-H',
-      'x-api-key: ' .. api_key,
-      '-H',
-      'anthropic-version: 2023-06-01',
-      '-H',
-      'anthropic-beta: max-tokens-3-5-sonnet-2024-07-15',
-    })
-  else
-    error(string.format(API_ERROR_MESSAGE, M.API_KEY_NAME, M.API_KEY_NAME), 1)
+  if not api_key then
+    error(API_ERROR_MESSAGE:format(API_KEY_NAME, API_KEY_NAME), 1)
   end
 
-  table.insert(args, M.URL)
+  local args = {
+    '-s', --silent
+    '-N', --no buffer
+    '-X',
+    'POST',
+    '-H',
+    'Content-Type: application/json',
+    '-d',
+    vim.json.encode(data),
+    '-H',
+    'x-api-key: ' .. api_key,
+    '-H',
+    'anthropic-version: 2023-06-01',
+    '-H',
+    'anthropic-beta: max-tokens-3-5-sonnet-2024-07-15',
+    url,
+  }
+
   return args
 end
 
@@ -95,11 +101,10 @@ local function handle_data(data)
   return content
 end
 
----@param rendered_messages { role: string, content: string }[]
-function M.make_job(rendered_messages, writer_fn, on_exit_fn)
+function M.make_job(args, writer_fn, on_exit_fn)
   local active_job = Job:new {
     command = 'curl',
-    args = make_curl_args(rendered_messages),
+    args = args,
     on_stdout = function(_, out)
       if out == '' then
         return
@@ -158,6 +163,48 @@ function M.make_job(rendered_messages, writer_fn, on_exit_fn)
     end,
   }
   return active_job
+end
+
+---Example implementation of a `make_data_fn` compatible with `kznllm.invoke_llm` for anthropic spec
+---@param prompt_args any
+---@param opts any
+---@return table
+function M.make_data_for_chat(prompt_args, opts)
+  local template_path = Path:new(opts and opts.template_path or TEMPLATE_PATH)
+
+  local messages = {
+    {
+      role = 'user',
+      content = kznllm.make_prompt_from_template(template_path / M.MESSAGE_TEMPLATES.FILL_MODE_USER_PROMPT, prompt_args),
+    },
+  }
+
+  local data = {
+    system = kznllm.make_prompt_from_template(template_path / M.MESSAGE_TEMPLATES.FILL_MODE_SYSTEM_PROMPT, prompt_args),
+    messages = messages,
+    model = M.MODELS[M.SELECTED_MODEL_IDX].name,
+    temperature = 0.7,
+    stream = true,
+    max_tokens = M.MODELS[M.SELECTED_MODEL_IDX].max_tokens,
+  }
+
+  if opts and opts.debug then
+    local extmark_id = vim.api.nvim_buf_set_extmark(kznllm.BUFFER_STATE.SCRATCH, kznllm.NS_ID, 0, 0, {})
+    kznllm.write_content_at_extmark('model: ' .. M.MODELS[M.SELECTED_MODEL_IDX].name, extmark_id)
+    kznllm.write_content_at_extmark('\n\n---\n\n', extmark_id)
+
+    kznllm.write_content_at_extmark('system' .. ':\n\n', extmark_id)
+    kznllm.write_content_at_extmark(data.system, extmark_id)
+    kznllm.write_content_at_extmark('\n\n---\n\n', extmark_id)
+    for _, message in ipairs(data.messages) do
+      kznllm.write_content_at_extmark(message.role .. ':\n\n', extmark_id)
+      kznllm.write_content_at_extmark(message.content, extmark_id)
+      kznllm.write_content_at_extmark('\n\n---\n\n', extmark_id)
+      vim.cmd 'normal! G'
+    end
+  end
+
+  return data
 end
 
 return M

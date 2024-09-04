@@ -24,8 +24,6 @@ M.PROMPT_ARGS_STATE = {
 
 M.NS_ID = api.nvim_create_namespace 'kznllm_ns'
 
-M.TEMPLATE_DIRECTORY = vim.fn.stdpath 'data' .. '/lazy/kznllm/templates'
-
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
 ---Renders a prompt template using minijinja-cli and returns the rendered lines

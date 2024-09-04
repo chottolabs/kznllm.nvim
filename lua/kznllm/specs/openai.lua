@@ -1,26 +1,22 @@
+local kznllm = require 'kznllm'
+local Path = require 'plenary.path'
+
 local M = {}
--- can overwrite in lazy config so that it uses different setting at runtime
-M.API_KEY_NAME = 'GROQ_API_KEY'
-M.URL = 'https://api.groq.com/openai/v1/chat/completions'
+
+local API_KEY_NAME = 'OPENAI_API_KEY'
+local URL = 'https://api.openai.com/v1/chat/completions'
+
+local TEMPLATE_PATH = vim.fn.expand(vim.fn.stdpath 'data') .. '/lazy/kznllm.nvim'
 
 M.MODELS = {
-  LLAMA_3_1_405B = { name = 'llama-3.1-405b-reasoning', max_tokens = 131072 },
-  LLAMA_3_1_70B = { name = 'llama-3.1-70b-versatile', max_tokens = 131072 },
-  LLAMA_3_70B = { name = 'llama3-70b-8192', max_tokens = 8192 },
+  GPT_4O_MINI = { name = 'gpt-4o-mini', max_tokens = 16384 },
+  GPT_4O = { name = 'gpt-4o', max_tokens = 16384 },
 }
-M.SELECTED_MODEL = M.MODELS.LLAMA_3_1_70B
-
 M.PROMPT_TEMPLATES = {
 
   NOUS_RESEARCH = {
     FILL_MODE_SYSTEM_PROMPT = 'nous_research/fill_mode_system_prompt.xml.jinja',
     FILL_MODE_USER_PROMPT = 'nous_research/fill_mode_user_prompt.xml.jinja',
-  },
-
-  GROQ = {
-    --- this prompt has to be written to output valid code
-    FILL_MODE_SYSTEM_PROMPT = 'groq/fill_mode_system_prompt.xml.jinja',
-    FILL_MODE_USER_PROMPT = 'groq/fill_mode_user_prompt.xml.jinja',
   },
 }
 
@@ -34,27 +30,30 @@ local Job = require 'plenary.job'
 --- Constructs arguments for constructing an HTTP request to the OpenAI API
 --- using cURL.
 ---
----@param rendered_messages { role: string, content: string }[]
+---@param data table
 ---@return string[]
-local function make_curl_args(rendered_messages)
-  local url = M.URL
-  local api_key = os.getenv(M.API_KEY_NAME)
+function M.make_curl_args(data, opts)
+  local url = opts and opts.url or URL
+  local api_key = os.getenv(opts and opts.api_key_name or API_KEY_NAME)
 
-  local data = {
-    messages = rendered_messages,
-    model = M.SELECTED_MODEL.name,
-    temperature = 0.7,
-    stream = true,
+  if not api_key then
+    error(API_ERROR_MESSAGE:format(API_KEY_NAME, API_KEY_NAME), 1)
+  end
+
+  local args = {
+    '-s', --silent
+    '-N', --no buffer
+    '-X',
+    'POST',
+    '-H',
+    'Content-Type: application/json',
+    '-d',
+    vim.json.encode(data),
+    '-H',
+    'Authorization: Bearer ' .. api_key,
+    url,
   }
 
-  local args = { '-s', '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
-  if api_key then
-    table.insert(args, '-H')
-    table.insert(args, 'Authorization: Bearer ' .. api_key)
-  else
-    error(string.format(API_ERROR_MESSAGE, M.API_KEY_NAME, M.API_KEY_NAME), 1)
-  end
-  table.insert(args, url)
   return args
 end
 
@@ -86,12 +85,12 @@ local function handle_data(out)
   return content
 end
 
----@param rendered_messages { role: string, content: string }[]
+---@param args table
 ---@param writer_fn fun(content: string)
-function M.make_job(rendered_messages, writer_fn, on_exit_fn)
+function M.make_job(args, writer_fn, on_exit_fn)
   local active_job = Job:new {
     command = 'curl',
-    args = make_curl_args(rendered_messages),
+    args = args,
     on_stdout = function(_, out)
       local content = handle_data(out)
       if content and content ~= nil then
@@ -110,6 +109,33 @@ function M.make_job(rendered_messages, writer_fn, on_exit_fn)
     end,
   }
   return active_job
+end
+
+---Example implementation of a `make_data_fn` compatible with `kznllm.invoke_llm` for groq spec
+---@param prompt_args any
+---@param opts any
+---@return table
+function M.make_data_for_chat(prompt_args, opts)
+  local template_path = Path:new(opts and opts.template_path or TEMPLATE_PATH)
+  local messages = {
+    {
+      role = 'system',
+      content = kznllm.make_prompt_from_template(template_path / M.MESSAGE_TEMPLATES.FILL_MODE_SYSTEM_PROMPT, prompt_args),
+    },
+    {
+      role = 'user',
+      content = kznllm.make_prompt_from_template(template_path / M.MESSAGE_TEMPLATES.FILL_MODE_USER_PROMPT, prompt_args),
+    },
+  }
+
+  local data = {
+    messages = messages,
+    model = M.MODELS.GPT_4O_MINI.name,
+    temperature = 0.7,
+    stream = true,
+  }
+
+  return data
 end
 
 return M

@@ -1,14 +1,18 @@
 local Path = require 'plenary.path'
 local Scan = require 'plenary.scandir'
 local Job = require 'plenary.job'
+local api = vim.api
 
--- ORIGIN refers to the buffer where the user invoked the plugin. SCRATCH is a temporary buffer for debugging/chat
+local M = {}
+
+-- BUFFER_STATE.ORIGIN refers to the buffer where the user invoked the plugin.
+-- BUFFER_STATE.SCRATCH is a temporary buffer for debugging/chat.
 local BUFFER_STATE = {
   SCRATCH = nil,
   ORIGIN = nil,
 }
 
-local PROMPT_ARGS_STATE = {
+M.PROMPT_ARGS_STATE = {
   current_buffer_path = nil,
   current_buffer_context = nil,
   current_buffer_filetype = nil,
@@ -18,66 +22,11 @@ local PROMPT_ARGS_STATE = {
   context_files = nil,
 }
 
-local M = {}
-local api = vim.api
-
 M.NS_ID = api.nvim_create_namespace 'kznllm_ns'
 
 M.TEMPLATE_DIRECTORY = vim.fn.stdpath 'data' .. '/lazy/kznllm/templates'
 
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
-
----Handles visual selection depending on the specified mode and some expected states of the user's current buffer.
---- Returns an appropriate position to stream output tokens and
----
----@param mode string neovim mode returned by vim.api.nvim_get_mode().mode
----@param opts table optional values including debug mode
----@return integer stream_end_extmark_id this extmark determines where to stream output tokens
----@return string visual_selection returns the full selection
-local function get_visual_selection(mode, opts)
-  BUFFER_STATE.ORIGIN = api.nvim_win_get_buf(0)
-
-  -- get visual selection and current cursor position (1-indexed)
-  local _, srow, scol = unpack(vim.fn.getpos 'v')
-  local _, erow, ecol = unpack(vim.fn.getpos '.')
-
-  -- normalize start + end such that start_pos < end_pos and converts to 0-index
-  srow, scol, erow, ecol = srow - 1, scol - 1, erow - 1, ecol - 1
-  if srow > erow then
-    srow, erow = erow, srow
-  end
-
-  if scol > ecol then
-    scol, ecol = ecol, scol
-  end
-
-  -- in visual block and visual line mode, we expect first column of srow and last column of erow
-  if mode == 'V' or mode == '\22' or mode == 'n' then
-    scol, ecol = 0, -1
-  else
-    ecol = ecol + 1
-  end
-
-  -- handling + cleanup for visual selection
-  local stream_end_extmark_id, visual_selection
-  local replace_mode = not (mode == 'n')
-  local debug = opts and opts.debug
-
-  if replace_mode then
-    api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
-    visual_selection = table.concat(api.nvim_buf_get_text(BUFFER_STATE.ORIGIN, srow, scol, erow, ecol, {}), '\n')
-    stream_end_extmark_id = api.nvim_buf_set_extmark(BUFFER_STATE.ORIGIN, M.NS_ID, erow, ecol, {})
-  else
-    -- put an extmark at the beginning of the line if there's nothing to replace
-    stream_end_extmark_id = api.nvim_buf_set_extmark(BUFFER_STATE.ORIGIN, M.NS_ID, erow, 0, {})
-  end
-
-  if not debug then
-    api.nvim_buf_set_text(BUFFER_STATE.ORIGIN, srow, scol, erow, ecol, {})
-  end
-
-  return stream_end_extmark_id, visual_selection
-end
 
 ---Renders a prompt template using minijinja-cli and returns the rendered lines
 ---
@@ -154,6 +103,132 @@ local function make_scratch_buffer()
   return extmark_id
 end
 
+--
+-- [ CONTEXT BUILDING UTILITY FUNCTIONS ]
+--
+
+--- Gets user input and returns it.
+---
+--- @param on_submit function callback function to call when user submits input
+function M.get_user_input(on_submit)
+  vim.ui.input({ prompt = 'prompt: ' }, function(input)
+    if input ~= nil then
+      M.PROMPT_ARGS_STATE.user_query = input
+      on_submit()
+    end
+  end)
+end
+
+---Handles visual selection depending on the specified mode and some expected states of the user's current buffer.
+--- Returns an appropriate position to stream output tokens and
+---
+---@param opts table optional values including debug mode
+---@return integer stream_end_extmark_id this extmark determines where to stream output tokens
+---@return string visual_selection returns the full selection
+function M.get_visual_selection(opts)
+  local mode = api.nvim_get_mode().mode
+  BUFFER_STATE.ORIGIN = api.nvim_win_get_buf(0)
+
+  -- get visual selection and current cursor position (1-indexed)
+  local _, srow, scol = unpack(vim.fn.getpos 'v')
+  local _, erow, ecol = unpack(vim.fn.getpos '.')
+
+  -- normalize start + end such that start_pos < end_pos and converts to 0-index
+  srow, scol, erow, ecol = srow - 1, scol - 1, erow - 1, ecol - 1
+  if srow > erow then
+    srow, erow = erow, srow
+  end
+
+  if scol > ecol then
+    scol, ecol = ecol, scol
+  end
+
+  -- in visual block and visual line mode, we expect first column of srow and last column of erow
+  if mode == 'V' or mode == '\22' or mode == 'n' then
+    scol, ecol = 0, -1
+  else
+    ecol = ecol + 1
+  end
+
+  -- handling + cleanup for visual selection
+  local stream_end_extmark_id, visual_selection
+  local replace_mode = not (mode == 'n')
+  local debug = opts and opts.debug
+
+  if replace_mode then
+    api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
+    visual_selection = table.concat(api.nvim_buf_get_text(BUFFER_STATE.ORIGIN, srow, scol, erow, ecol, {}), '\n')
+    stream_end_extmark_id = api.nvim_buf_set_extmark(BUFFER_STATE.ORIGIN, M.NS_ID, erow, ecol, {})
+  else
+    -- put an extmark at the beginning of the line if there's nothing to replace
+    stream_end_extmark_id = api.nvim_buf_set_extmark(BUFFER_STATE.ORIGIN, M.NS_ID, erow, 0, {})
+  end
+
+  if not debug and replace_mode then
+    api.nvim_buf_set_text(BUFFER_STATE.ORIGIN, srow, scol, erow, ecol, {})
+  end
+
+  return stream_end_extmark_id, visual_selection
+end
+
+---Locates the path value for context directory
+---
+---@param opts { stop_dir: Path, context_dir_id: string } optional values including `stop_dir` that is the Path value to specify when to stop scanning for a valid context directory identifier `context_dir_id`
+---@return Path context_dir directory path
+function M.find_context_directory(opts)
+  local context_dir_id, context_dir
+
+  local stop_dir = opts and opts.stop_dir or Path:new(vim.fn.expand '~')
+
+  context_dir_id = opts and opts.context_dir_id or '.kzn'
+  context_dir = Path:new(vim.fn.getcwd())
+
+  while not (context_dir / context_dir_id):exists() and context_dir:is_dir() do
+    if context_dir:absolute() == stop_dir:absolute() then
+      context_dir = nil
+      break
+    end
+
+    context_dir = context_dir:parent()
+  end
+
+  if context_dir then
+    context_dir = context_dir / context_dir_id
+  end
+
+  return context_dir
+end
+---project scoped context
+---
+---Retrieves project files based on the context directory identifier and the current working directory.
+---
+---@param context_dir Path
+---@param opts table optional values including stop directory to prevent scanning beyond it
+---@return string[] context_files list of files in the context directory
+function M.get_project_files(context_dir, opts)
+  local context_files = Scan.scan_dir(context_dir:absolute(), { hidden = false })
+  vim.print('using context at: ' .. context_dir:absolute())
+
+  return context_files
+end
+
+---similar to rendering a template, but we want to get the context of the file without relying on the changes being saved
+---@param buf_id integer the id of the buffer to retrieve context for
+---@param opts table optional values to pass to the function
+---@return string buf_filetype the filetype of the buffer
+---@return string buf_path the path of the buffer
+---@return string buf_context the context of the buffer
+function M.get_buffer_context(buf_id, opts)
+  buf_id = buf_id or BUFFER_STATE.ORIGIN
+
+  local buf_filetype, buf_path, buf_context
+  buf_filetype = vim.bo.filetype
+  buf_path = api.nvim_buf_get_name(buf_id)
+  buf_context = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n')
+
+  return buf_filetype, buf_path, buf_context
+end
+
 --- Invokes an LLM via a supported API spec in "inline" mode
 ---
 --- Must provide the function for constructing cURL arguments and a handler
@@ -170,93 +245,69 @@ function M.invoke_llm(prompt_messages, make_job_fn, opts)
 
   local active_job
 
-  vim.ui.input({ prompt = 'prompt: ' }, function(input)
-    if input ~= nil then
-      BUFFER_STATE.ORIGIN = api.nvim_win_get_buf(0)
-      local mode = api.nvim_get_mode().mode
+  BUFFER_STATE.ORIGIN = api.nvim_win_get_buf(0)
+  M.get_user_input(function()
+    M.PROMPT_ARGS_STATE.replace = not (api.nvim_get_mode().mode == 'n')
 
-      local stream_end_extmark_id, visual_selection = get_visual_selection(mode, opts)
-      local replace_mode = not (mode == 'n')
+    local stream_end_extmark_id, visual_selection = M.get_visual_selection(opts)
+    M.PROMPT_ARGS_STATE.visual_selection = visual_selection
 
-      PROMPT_ARGS_STATE.user_query = input
-      PROMPT_ARGS_STATE.visual_selection = visual_selection
-      PROMPT_ARGS_STATE.replace = replace_mode
+    local context_dir = M.find_context_directory(opts)
+    if context_dir then
+      M.PROMPT_ARGS_STATE.context_files = M.get_project_files(context_dir, opts)
+    end
 
-      -- don't update current context when in debug mode
-      if BUFFER_STATE.SCRATCH == nil then
-        -- similar to rendering a template, but we want to get the context of the file without relying on the changes being saved
-        PROMPT_ARGS_STATE.current_buffer_path = api.nvim_buf_get_name(BUFFER_STATE.ORIGIN)
-        PROMPT_ARGS_STATE.current_buffer_filetype = vim.bo.filetype
-        PROMPT_ARGS_STATE.current_buffer_context = table.concat(api.nvim_buf_get_lines(BUFFER_STATE.ORIGIN, 0, -1, false), '\n')
+    -- don't update current context when in debug mode
+    if BUFFER_STATE.SCRATCH == nil then
+      -- similar to rendering a template, but we want to get the context of the file without relying on the changes being saved
+      local buf_filetype, buf_path, buf_context = M.get_buffer_context(BUFFER_STATE.ORIGIN, opts)
+      M.PROMPT_ARGS_STATE.current_buffer_filetype = buf_filetype
+      M.PROMPT_ARGS_STATE.current_buffer_path = buf_path
+      M.PROMPT_ARGS_STATE.current_buffer_context = buf_context
+    end
+
+    -- render context
+    local debug = opts and opts.debug
+    local rendered_messages = {}
+
+    if debug then
+      stream_end_extmark_id = make_scratch_buffer()
+    end
+
+    for _, message in ipairs(prompt_messages) do
+      local template_path = Path:new(M.TEMPLATE_DIRECTORY) / message.prompt_template
+
+      if not template_path:exists() then
+        error(string.format('could not find template at %s', template_path), 1)
       end
 
-      -- project scoped context
-      local context_dir_id, context_dir, context_files
-      local home_directory = Path:new(vim.fn.expand '~')
-
-      context_dir_id = opts and opts.context_dir_id or '.kzn'
-      context_dir = Path:new(vim.fn.getcwd())
-
-      while not (context_dir / context_dir_id):exists() and context_dir:is_dir() do
-        if context_dir:absolute() == home_directory:absolute() then
-          context_dir = nil
-          break
-        end
-        context_dir = context_dir:parent()
-      end
-
-      if context_dir then
-        context_dir = context_dir / context_dir_id
-        context_files = Scan.scan_dir(context_dir:absolute(), { hidden = false })
-        vim.print('using context at: ' .. context_dir:absolute())
-      end
-
-      PROMPT_ARGS_STATE.context_files = context_files
-
-      -- render context
-      local debug = opts and opts.debug
-      local rendered_messages = {}
+      table.insert(rendered_messages, { role = message.role, content = make_prompt_from_template(template_path:absolute(), M.PROMPT_ARGS_STATE) })
 
       if debug then
-        stream_end_extmark_id = make_scratch_buffer()
+        write_content_at_extmark(message.role .. ':\n\n', stream_end_extmark_id)
+        write_content_at_extmark(make_prompt_from_template(template_path:absolute(), M.PROMPT_ARGS_STATE), stream_end_extmark_id)
+        write_content_at_extmark('\n\n---\n\n', stream_end_extmark_id)
+        vim.cmd 'normal! G'
       end
-
-      for _, message in ipairs(prompt_messages) do
-        local template_path = Path:new(M.TEMPLATE_DIRECTORY) / message.prompt_template
-
-        if not template_path:exists() then
-          error(string.format('could not find template at %s', template_path), 1)
-        end
-
-        table.insert(rendered_messages, { role = message.role, content = make_prompt_from_template(template_path:absolute(), PROMPT_ARGS_STATE) })
-
-        if debug then
-          write_content_at_extmark(message.role .. ':\n\n', stream_end_extmark_id)
-          write_content_at_extmark(make_prompt_from_template(template_path:absolute(), PROMPT_ARGS_STATE), stream_end_extmark_id)
-          write_content_at_extmark('\n\n---\n\n', stream_end_extmark_id)
-          vim.cmd 'normal! G'
-        end
-      end
-
-      active_job = make_job_fn(rendered_messages, function(content)
-        write_content_at_extmark(content, stream_end_extmark_id)
-      end, function()
-        api.nvim_buf_del_extmark(0, M.NS_ID, stream_end_extmark_id)
-      end)
-      active_job:start()
-
-      api.nvim_create_autocmd('User', {
-        group = group,
-        pattern = 'LLM_Escape',
-        callback = function()
-          if active_job.is_shutdown ~= true then
-            active_job:shutdown()
-            print 'LLM streaming cancelled'
-          end
-        end,
-      })
     end
+
+    active_job = make_job_fn(rendered_messages, function(content)
+      write_content_at_extmark(content, stream_end_extmark_id)
+    end, function()
+      api.nvim_buf_del_extmark(0, M.NS_ID, stream_end_extmark_id)
+    end)
+    active_job:start()
   end)
+  api.nvim_create_autocmd('User', {
+    group = group,
+    pattern = 'LLM_Escape',
+    callback = function()
+      if active_job.is_shutdown ~= true then
+        active_job:shutdown()
+        print 'LLM streaming cancelled'
+      end
+    end,
+  })
 end
 
 api.nvim_set_keymap('n', '<Esc>', '', {

@@ -1,7 +1,13 @@
+--
+-- This module provides the basic feature set from kznllm v0.1 with the addition of exported presets.
+-- Your lazy config still wants to define the keymaps to make it work (see the main project README.md for recommended setup)
+--
 local kznllm = require 'kznllm'
 local api = vim.api
 
 local M = {}
+
+--TODO: PROMPT_ARGS_STATE is just a bad persistence layer at the moment, I don't really want to write files everywhere...
 
 -- ORIGIN refers to the buffer where the user invoked the plugin.
 -- SCRATCH is a temporary buffer for debugging/chat.

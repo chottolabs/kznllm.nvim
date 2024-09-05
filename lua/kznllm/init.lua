@@ -62,7 +62,13 @@ function M.write_content_at_extmark(content, extmark_id)
 
   local lines = vim.split(content, '\n')
 
-  vim.cmd 'undojoin'
+  -- Check if there are any pending changes in the buffer
+  local undo_sequence_active = vim.bo.modified
+
+  -- Use 'undojoin' only if an undo sequence is active
+  if undo_sequence_active then
+    vim.cmd 'undojoin'
+  end
   api.nvim_buf_set_text(0, mrow, mcol, mrow, mcol, lines)
 end
 

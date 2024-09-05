@@ -62,15 +62,13 @@ full config w/ supported presets and a switch mechanism and provider-specific de
     -- { 'chottolabs/plenary.nvim' }, -- patched to resolve symlinked directories
   },
   config = function(self)
-    local kznllm = require 'kznllm'
     local presets = require 'kznllm.presets'
     local Path = require 'plenary.path'
 
     -- falls back to `vim.fn.stdpath 'data' .. '/lazy/kznllm/templates'` when the plugin is not locally installed
     local TEMPLATE_DIRECTORY = Path:new(vim.fn.expand(self.dir) .. '/templates')
-    local SELECTED_PRESET = presets[1]
 
-    -- set initial preset on load
+    local SELECTED_PRESET = presets[1]
     local spec = require(('kznllm.specs.%s'):format(SELECTED_PRESET.provider))
 
     local function switch_presets()
@@ -107,7 +105,7 @@ full config w/ supported presets and a switch mechanism and provider-specific de
     vim.keymap.set({ 'n', 'v' }, '<leader>m', switch_presets, { desc = 'switch between presets' })
 
     local function llm_fill()
-      kznllm.invoke_llm(
+      presets.invoke_llm(
         SELECTED_PRESET.make_data_fn,
         spec.make_curl_args,
         spec.make_job,
@@ -121,7 +119,7 @@ full config w/ supported presets and a switch mechanism and provider-specific de
 
     -- optional for debugging purposes
     local function debug()
-      kznllm.invoke_llm(
+      presets.invoke_llm(
         SELECTED_PRESET.make_data_fn,
         spec.make_curl_args,
         spec.make_job,
@@ -145,10 +143,10 @@ full config w/ supported presets and a switch mechanism and provider-specific de
 },
 ```
 
-simple manual configuration with no preset defined
+minimal configuration with custom `make_data_fn` and no preset switcher. As you can see, the `make_data_fn` is simply building the `data` portion of the API call and will accept anything supported by the associated provider.
 
 ```lua
-local kznllm = require 'kznllm'
+local presets = require 'kznllm.presets'
 local Path = require 'plenary.path'
 
 local TEMPLATE_DIRECTORY = Path:new(vim.fn.expand(self.dir) .. '/templates')
@@ -159,32 +157,28 @@ local TEMPLATE_DIRECTORY = Path:new(vim.fn.expand(self.dir) .. '/templates')
 ---@return table
 ---
 local function make_data_for_openai_chat(prompt_args, opts)
-  local messages = {
-    {
-      role = 'system',
-      content = kznllm.make_prompt_from_template(opts.template_directory / 'nous_research/fill_mode_system_prompt.xml.jinja', prompt_args),
+  return {
+    messages = {
+      {
+        role = 'system',
+        content = kznllm.make_prompt_from_template(opts.template_directory / 'nous_research/fill_mode_system_prompt.xml.jinja', prompt_args),
+      },
+      {
+        role = 'user',
+        content = kznllm.make_prompt_from_template(opts.template_directory / 'nous_research/fill_mode_user_prompt.xml.jinja', prompt_args),
+      },
     },
-    {
-      role = 'user',
-      content = kznllm.make_prompt_from_template(opts.template_directory / 'nous_research/fill_mode_user_prompt.xml.jinja', prompt_args),
-    },
-  }
-
-  local data = {
-    messages = messages,
     model = opts.model,
     temperature = opts.temperature,
     stream = true,
   }
-
-  return data
 end
 
 -- set initial preset on load
 local spec = require('kznllm.specs.groq')
 
 local function llm_fill()
-  kznllm.invoke_llm(
+  presets.invoke_llm(
     make_data_for_openai_chat,
     spec.make_curl_args,
     spec.make_job,
@@ -200,6 +194,5 @@ local function llm_fill()
 end
 
 vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_fill, { desc = 'Send current selection to LLM llm_fill' })
-...
 ```
 

@@ -5,27 +5,6 @@ local api = vim.api
 
 local M = {}
 
--- ORIGIN refers to the buffer where the user invoked the plugin.
--- SCRATCH is a temporary buffer for debugging/chat.
-M.BUFFER_STATE = {
-  SCRATCH = nil,
-  ORIGIN = nil,
-}
-
-M.PROMPT_ARGS_STATE = {
-  current_buffer_path = nil,
-  current_buffer_context = nil,
-  current_buffer_filetype = nil,
-  visual_selection = nil,
-  user_query = nil,
-  replace = nil,
-  context_files = nil,
-}
-
-M.NS_ID = api.nvim_create_namespace 'kznllm_ns'
-
-local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
-
 ---Renders a prompt template using minijinja-cli and returns the rendered lines
 ---
 ---@param prompt_template_path Path absolute path to a jinja file
@@ -56,8 +35,8 @@ end
 
 ---@param content string
 ---@param extmark_id integer
-function M.write_content_at_extmark(content, extmark_id)
-  local extmark = api.nvim_buf_get_extmark_by_id(0, M.NS_ID, extmark_id, { details = false })
+function M.write_content_at_extmark(content, ns_id, extmark_id)
+  local extmark = api.nvim_buf_get_extmark_by_id(0, ns_id, extmark_id, { details = false })
   local mrow, mcol = extmark[1], extmark[2]
 
   local lines = vim.split(content, '\n')
@@ -108,8 +87,7 @@ end
 function M.get_user_input(on_submit)
   vim.ui.input({ prompt = 'prompt: ' }, function(input)
     if input ~= nil then
-      M.PROMPT_ARGS_STATE.user_query = input
-      on_submit()
+      on_submit(input)
     end
   end)
 end
@@ -121,7 +99,6 @@ end
 ---@return string visual_selection returns the full selection
 function M.get_visual_selection(opts)
   local mode = api.nvim_get_mode().mode
-  M.BUFFER_STATE.ORIGIN = api.nvim_win_get_buf(0)
 
   -- get visual selection and current cursor position (1-indexed)
   local _, srow, scol = unpack(vim.fn.getpos 'v')
@@ -206,8 +183,6 @@ end
 ---@return string buf_path the path of the buffer
 ---@return string buf_context the context of the buffer
 function M.get_buffer_context(buf_id, opts)
-  buf_id = buf_id or M.BUFFER_STATE.ORIGIN
-
   local buf_filetype, buf_path, buf_context
   buf_filetype = vim.bo.filetype
   buf_path = api.nvim_buf_get_name(buf_id)
@@ -220,92 +195,10 @@ end
 --- This is used before making changes to avoid calling undojoin after undo.
 ---
 ---@param extmark_id integer the id of the extmark
-local function noop(extmark_id)
-  local extmark = api.nvim_buf_get_extmark_by_id(0, M.NS_ID, extmark_id, { details = false })
+function M.noop(ns_id, extmark_id)
+  local extmark = api.nvim_buf_get_extmark_by_id(0, ns_id, extmark_id, { details = false })
   local mrow, mcol = extmark[1], extmark[2]
   api.nvim_buf_set_text(0, mrow, mcol, mrow, mcol, {})
-end
-
---- Working implementation of "inline" fill mode
---- Invokes an LLM via a supported API spec defined by
----
---- Must provide the function for constructing cURL arguments and a handler
---- function for processing server-sent events.
----
----@param make_data_fn fun(prompt_args: table, opts: table)
----@param make_curl_args_fn fun(data: table, opts: table)
----@param make_job_fn fun(data: table, writer_fn: fun(content: string), on_exit_fn: fun())
----@param opts { debug: string?, debug_fn: fun(data: table, extmark_id: integer, opts: table)?, stop_dir: Path?, context_dir_id: string? }
-function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
-  api.nvim_clear_autocmds { group = group }
-
-  local active_job
-
-  M.BUFFER_STATE.ORIGIN = api.nvim_win_get_buf(0)
-
-  M.get_user_input(function()
-    M.PROMPT_ARGS_STATE.replace = not (api.nvim_get_mode().mode == 'n')
-
-    local visual_selection = M.get_visual_selection(opts)
-    M.PROMPT_ARGS_STATE.visual_selection = visual_selection
-
-    local context_dir = M.find_context_directory(opts)
-    if context_dir then
-      M.PROMPT_ARGS_STATE.context_files = M.get_project_files(context_dir, opts)
-    end
-
-    -- don't update current context when in debug mode
-    if M.BUFFER_STATE.SCRATCH == nil then
-      -- similar to rendering a template, but we want to get the context of the file without relying on the changes being saved
-      local buf_filetype, buf_path, buf_context = M.get_buffer_context(M.BUFFER_STATE.ORIGIN, opts)
-      M.PROMPT_ARGS_STATE.current_buffer_filetype = buf_filetype
-      M.PROMPT_ARGS_STATE.current_buffer_path = buf_path
-      M.PROMPT_ARGS_STATE.current_buffer_context = buf_context
-    end
-
-    local data = make_data_fn(M.PROMPT_ARGS_STATE, opts)
-
-    local stream_end_extmark_id
-
-    -- open up scratch buffer before setting extmark
-    if opts and opts.debug and opts.debug_fn then
-      if M.BUFFER_STATE.SCRATCH then
-        api.nvim_buf_delete(M.BUFFER_STATE.SCRATCH, { force = true })
-        M.BUFFER_STATE.SCRATCH = nil
-      end
-      M.BUFFER_STATE.SCRATCH = M.make_scratch_buffer()
-
-      stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.SCRATCH, M.NS_ID, 0, 0, {})
-      opts.debug_fn(data, stream_end_extmark_id, opts)
-    else
-      local _, crow, ccol = unpack(vim.fn.getpos '.')
-      stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, crow - 1, ccol, { strict = false })
-    end
-
-    local args = make_curl_args_fn(data, opts)
-
-    -- Make a no-op change to the buffer at the specified extmark to avoid calling undojoin after undo
-    noop(stream_end_extmark_id)
-
-    active_job = make_job_fn(args, function(content)
-      M.write_content_at_extmark(content, stream_end_extmark_id)
-    end, function()
-      api.nvim_buf_del_extmark(0, M.NS_ID, stream_end_extmark_id)
-    end)
-
-    active_job:start()
-
-    api.nvim_create_autocmd('User', {
-      group = group,
-      pattern = 'LLM_Escape',
-      callback = function()
-        if active_job.is_shutdown ~= true then
-          active_job:shutdown()
-          print 'LLM streaming cancelled'
-        end
-      end,
-    })
-  end)
 end
 
 return M

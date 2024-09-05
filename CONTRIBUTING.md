@@ -51,3 +51,49 @@ You are a Senior Engineer at a Fortune 500 Company. You will be provided with co
 
 An interesting thing you might consider is implementing a "project-scoped" template directory that can look for documentation files and pipe it into the args (you can do this with the actual text or the file path `{% include <absolute_file_path> %}`). `minijinja-cli` makes this kind of stuff super easy to do.
 
+# How it works
+
+The plugin tries to do as little *magic* as possible, so the abstraction boundaries are relatively transparent.
+
+From looking at a few key chunks of code, you should get a solid understanding of how you might want to structure things (treat `invoke_llm` as a simple reference, you can come up with your own structure for a feature)
+
+the call to `invoke_llm` in `init.lua`
+
+```lua
+...
+presets.invoke_llm(
+  SELECTED_PRESET.make_data_fn,
+  spec.make_curl_args,
+  spec.make_job,
+  vim.tbl_extend('keep', SELECTED_PRESET.opts, {
+    template_directory = TEMPLATE_DIRECTORY,
+  })
+)
+...
+```
+
+Here you see that `make_curl_args` and `make_job` was taken straight from the spec definitions - you can expect that these don't change very often and you likely won't need to touch it... however you can just as easily pass your own implementation into it.
+
+Notice that `make_data_fn` comes from a preset - this is where you construct the "data" portion of your API call. The structure varies greatly between API providers and you will often find that you can't just plug in the same prompt across multiple providers and expect the same performance (e.g. take advantage of prefilling in Anthropic or chat vs. completion mode)
+
+Now take a look at `lua/kznllm/presets.lua`
+
+```lua
+{
+  id = 'chat-model',
+  provider = 'groq',
+  make_data_fn = make_data_for_openai_chat,
+  opts = {
+    model = 'llama-3.1-70b-versatile',
+    max_tokens = 8192,
+    temperature = 0.7,
+    debug_fn = openai_debug_fn,
+    base_url = 'https://api.groq.com',
+    endpoint = '/openai/v1/chat/completions',
+  },
+},
+```
+
+Here you'll see how we've bundled together all of the things we need - you'll also notice some of the weirder things I've done which is support a custom `debug_fn` which specifies how to parse out the generated data and write it out to a scratch buffer.
+
+In opts, we can pass anything into it that's supported by the model and it will just get passed into `vim.json.encode` at the end

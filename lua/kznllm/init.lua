@@ -28,7 +28,7 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
 ---Renders a prompt template using minijinja-cli and returns the rendered lines
 ---
----@param prompt_template_path Path an absolute path to a jinja file
+---@param prompt_template_path Path absolute path to a jinja file
 ---@param prompt_args table typically PROMPT_ARGS_STATE which needs to be json encoded
 ---@return string rendered_prompt
 function M.make_prompt_from_template(prompt_template_path, prompt_args)
@@ -66,43 +66,36 @@ function M.write_content_at_extmark(content, extmark_id)
   api.nvim_buf_set_text(0, mrow, mcol, mrow, mcol, lines)
 end
 
----Creates a buffer in markdown mode (for syntax highlighting) and returns an extmark for streaming output
+---Creates a buffer in markdown mode (for syntax highlighting)
 function M.make_scratch_buffer()
-  if M.BUFFER_STATE.SCRATCH then
-    api.nvim_buf_delete(M.BUFFER_STATE.SCRATCH, { force = true })
-    M.BUFFER_STATE.SCRATCH = nil
-  end
+  local buf_id = api.nvim_create_buf(true, false)
 
-  M.BUFFER_STATE.SCRATCH = api.nvim_create_buf(true, false)
+  -- api.nvim_set_option_value('buflisted', true, { buf = buf_id })
+  api.nvim_set_option_value('filetype', 'markdown', { buf = buf_id })
+  api.nvim_set_option_value('swapfile', false, { buf = buf_id })
 
-  -- api.nvim_set_option_value('buflisted', true, { buf = M.BUFFER_STATE.SCRATCH })
-  api.nvim_set_option_value('filetype', 'markdown', { buf = M.BUFFER_STATE.SCRATCH })
-  api.nvim_set_option_value('swapfile', false, { buf = M.BUFFER_STATE.SCRATCH })
-
-  api.nvim_set_current_buf(M.BUFFER_STATE.SCRATCH)
+  api.nvim_set_current_buf(buf_id)
   api.nvim_set_option_value('wrap', true, { win = 0 })
   api.nvim_set_option_value('linebreak', true, { win = 0 })
   api.nvim_set_option_value('breakindent', true, { win = 0 })
 
-  local num_lines = api.nvim_buf_line_count(M.BUFFER_STATE.SCRATCH)
+  local num_lines = api.nvim_buf_line_count(buf_id)
   api.nvim_win_set_cursor(0, { num_lines, 0 })
 
-  local extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.SCRATCH, M.NS_ID, 0, 0, {})
   -- Set up key mapping to close the buffer
-  api.nvim_buf_set_keymap(M.BUFFER_STATE.SCRATCH, 'n', '<leader>q', '', {
+  api.nvim_buf_set_keymap(buf_id, 'n', '<leader>q', '', {
     noremap = true,
     silent = true,
     callback = function()
       -- Trigger the LLM_Escape event
       api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
 
-      api.nvim_buf_call(M.BUFFER_STATE.SCRATCH, function()
+      api.nvim_buf_call(buf_id, function()
         vim.cmd 'bdelete!'
-        M.BUFFER_STATE.SCRATCH = nil
       end)
     end,
   })
-  return extmark_id
+  return buf_id
 end
 
 --
@@ -125,7 +118,6 @@ end
 --- Returns an appropriate position to stream output tokens and
 ---
 ---@param opts table optional values including debug mode
----@return integer stream_end_extmark_id this extmark determines where to stream output tokens
 ---@return string visual_selection returns the full selection
 function M.get_visual_selection(opts)
   local mode = api.nvim_get_mode().mode
@@ -153,24 +145,20 @@ function M.get_visual_selection(opts)
   end
 
   -- handling + cleanup for visual selection
-  local stream_end_extmark_id, visual_selection
+  local visual_selection
   local replace_mode = not (mode == 'n')
   local debug = opts and opts.debug
 
   if replace_mode then
     api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
-    visual_selection = table.concat(api.nvim_buf_get_text(M.BUFFER_STATE.ORIGIN, srow, scol, erow, ecol, {}), '\n')
-    stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, erow, ecol, {})
-  else
-    -- put an extmark at the beginning of the line if there's nothing to replace
-    stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, erow, 0, {})
+    visual_selection = table.concat(api.nvim_buf_get_text(0, srow, scol, erow, ecol, {}), '\n')
   end
 
   if not debug and replace_mode then
-    api.nvim_buf_set_text(M.BUFFER_STATE.ORIGIN, srow, scol, erow, ecol, {})
+    api.nvim_buf_set_text(0, srow, scol, erow, ecol, {})
   end
 
-  return stream_end_extmark_id, visual_selection
+  return visual_selection
 end
 
 ---Locates the path value for context directory
@@ -239,7 +227,7 @@ end
 ---
 ---@param make_data_fn fun(prompt_args: table, opts: table)
 ---@param make_curl_args_fn fun(data: table, opts: table)
----@param make_job_fn fun(rendered_message: { role: string, content: string }, writer_fn: fun(content: string), on_exit_fn: fun())
+---@param make_job_fn fun(data: table, writer_fn: fun(content: string), on_exit_fn: fun())
 function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
   api.nvim_clear_autocmds { group = group }
 
@@ -250,7 +238,7 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
   M.get_user_input(function()
     M.PROMPT_ARGS_STATE.replace = not (api.nvim_get_mode().mode == 'n')
 
-    local stream_end_extmark_id, visual_selection = M.get_visual_selection(opts)
+    local visual_selection = M.get_visual_selection(opts)
     M.PROMPT_ARGS_STATE.visual_selection = visual_selection
 
     local context_dir = M.find_context_directory(opts)
@@ -267,11 +255,23 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
       M.PROMPT_ARGS_STATE.current_buffer_context = buf_context
     end
 
-    if opts and opts.debug then
-      stream_end_extmark_id = M.make_scratch_buffer()
-    end
-
     local data = make_data_fn(M.PROMPT_ARGS_STATE, opts)
+
+    local stream_end_extmark_id
+
+    -- open up scratch buffer before setting extmark
+    if opts and opts.debug and opts.debug_fn then
+      if M.BUFFER_STATE.SCRATCH then
+        api.nvim_buf_delete(M.BUFFER_STATE.SCRATCH, { force = true })
+        M.BUFFER_STATE.SCRATCH = nil
+      end
+      M.BUFFER_STATE.SCRATCH = M.make_scratch_buffer()
+
+      stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.SCRATCH, M.NS_ID, 0, 0, {})
+      opts.debug_fn(data, stream_end_extmark_id, opts)
+    else
+      stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, 0, 0, {})
+    end
 
     local args = make_curl_args_fn(data, opts)
 

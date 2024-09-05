@@ -1,29 +1,7 @@
-local kznllm = require 'kznllm'
-local Path = require 'plenary.path'
-
 local M = {}
 
 local API_KEY_NAME = 'OPENAI_API_KEY'
-local URL = 'https://api.openai.com/v1/chat/completions'
-
-local TEMPLATE_PATH = vim.fn.expand(vim.fn.stdpath 'data') .. '/lazy/kznllm.nvim'
-
-M.MODELS = {
-  { name = 'gpt-4o-mini', max_tokens = 16384 },
-  { name = 'gpt-4o', max_tokens = 16384 },
-}
-
-M.SELECTED_MODEL_IDX = 1
-
--- for chat completion models using `messages`
-M.MESSAGE_TEMPLATES = {
-  NOUS_RESEARCH = {
-    FILL_MODE_SYSTEM_PROMPT = 'nous_research/fill_mode_system_prompt.xml.jinja',
-    FILL_MODE_USER_PROMPT = 'nous_research/fill_mode_user_prompt.xml.jinja',
-  },
-  FILL_MODE_SYSTEM_PROMPT = 'nous_research/fill_mode_system_prompt.xml.jinja',
-  FILL_MODE_USER_PROMPT = 'nous_research/fill_mode_user_prompt.xml.jinja',
-}
+local BASE_URL = 'https://api.openai.com'
 
 local API_ERROR_MESSAGE = [[
 ERROR: api key is set to %s and is missing from your environment variables.
@@ -38,7 +16,7 @@ local Job = require 'plenary.job'
 ---@param data table
 ---@return string[]
 function M.make_curl_args(data, opts)
-  local url = opts and opts.url or URL
+  local url = (opts and opts.base_url or BASE_URL) .. (opts and opts.endpoint)
   local api_key = os.getenv(opts and opts.api_key_name or API_KEY_NAME)
 
   if not api_key then
@@ -114,45 +92,6 @@ function M.make_job(args, writer_fn, on_exit_fn)
     end,
   }
   return active_job
-end
-
----Example implementation of a `make_data_fn` compatible with `kznllm.invoke_llm` for groq spec
----@param prompt_args any
----@param opts any
----@return table
-function M.make_data_for_chat(prompt_args, opts)
-  local template_path = Path:new(opts and opts.template_path or TEMPLATE_PATH)
-  local messages = {
-    {
-      role = 'system',
-      content = kznllm.make_prompt_from_template(template_path / M.MESSAGE_TEMPLATES.FILL_MODE_SYSTEM_PROMPT, prompt_args),
-    },
-    {
-      role = 'user',
-      content = kznllm.make_prompt_from_template(template_path / M.MESSAGE_TEMPLATES.FILL_MODE_USER_PROMPT, prompt_args),
-    },
-  }
-
-  local data = {
-    messages = messages,
-    model = M.MODELS[M.SELECTED_MODEL_IDX].name,
-    temperature = 0.7,
-    stream = true,
-  }
-
-  if opts and opts.debug then
-    local extmark_id = vim.api.nvim_buf_set_extmark(kznllm.BUFFER_STATE.SCRATCH, kznllm.NS_ID, 0, 0, {})
-    kznllm.write_content_at_extmark('model: ' .. M.MODELS[M.SELECTED_MODEL_IDX].name, extmark_id)
-    kznllm.write_content_at_extmark('\n\n---\n\n', extmark_id)
-    for _, message in ipairs(data.messages) do
-      kznllm.write_content_at_extmark(message.role .. ':\n\n', extmark_id)
-      kznllm.write_content_at_extmark(message.content, extmark_id)
-      kznllm.write_content_at_extmark('\n\n---\n\n', extmark_id)
-      vim.cmd 'normal! G'
-    end
-  end
-
-  return data
 end
 
 return M

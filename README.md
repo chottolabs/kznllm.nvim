@@ -146,6 +146,7 @@ full config w/ supported presets and a switch mechanism and provider-specific de
 minimal configuration with custom `make_data_fn` and no preset switcher. As you can see, the `make_data_fn` is simply building the `data` portion of the API call and will accept anything supported by the associated provider.
 
 ```lua
+local presets = require 'kznllm'
 local presets = require 'kznllm.presets'
 local Path = require 'plenary.path'
 
@@ -195,4 +196,3 @@ end
 
 vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_fill, { desc = 'Send current selection to LLM llm_fill' })
 ```
-

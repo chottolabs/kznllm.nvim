@@ -155,8 +155,8 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
       M.PROMPT_ARGS_STATE.context_files = kznllm.get_project_files(context_dir, opts)
     end
 
-    -- don't update current context when in debug mode
-    if M.BUFFER_STATE.SCRATCH == nil then
+    -- don't update current context if scratch buffer is open
+    if not M.BUFFER_STATE.SCRATCH or (not api.nvim_buf_is_valid(M.BUFFER_STATE.SCRATCH)) then
       -- similar to rendering a template, but we want to get the context of the file without relying on the changes being saved
       local buf_filetype, buf_path, buf_context = kznllm.get_buffer_context(M.BUFFER_STATE.ORIGIN, opts)
       M.PROMPT_ARGS_STATE.current_buffer_filetype = buf_filetype

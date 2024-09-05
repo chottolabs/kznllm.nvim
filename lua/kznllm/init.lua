@@ -284,6 +284,7 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
 
     local args = make_curl_args_fn(data, opts)
 
+    -- Make a no-op change to the buffer at the specified extmark to avoid calling undojoin after undo
     noop(stream_end_extmark_id)
 
     active_job = make_job_fn(args, function(content)

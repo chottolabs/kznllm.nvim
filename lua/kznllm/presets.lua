@@ -1,4 +1,5 @@
 local kznllm = require 'kznllm'
+local TEMPLATE_DIRECTORY = vim.fn.stdpath 'data' .. '/lazy/kznllm/templates'
 
 ---Example implementation of a `make_data_fn` compatible with `kznllm.invoke_llm` for groq spec
 ---@param prompt_args any
@@ -103,7 +104,7 @@ end
 -- { id = 'openai', opts = { api_key_name = 'VLLM_API_KEY', url = 'http://research.local:8000/v1/chat/completions' } }
 local presets = {
   {
-    id = 'basic-chat-model',
+    id = 'chat-model',
     provider = 'groq',
     make_data_fn = make_data_for_openai_chat,
     opts = {
@@ -116,7 +117,7 @@ local presets = {
     },
   },
   {
-    id = 'basic-chat-model',
+    id = 'chat-model',
     provider = 'lambda',
     make_data_fn = make_data_for_openai_chat,
     opts = {
@@ -129,7 +130,7 @@ local presets = {
     },
   },
   {
-    id = 'basic-chat-model',
+    id = 'chat-model',
     provider = 'anthropic',
     make_data_fn = make_data_for_anthropic_chat,
     debug_fn = anthropic_debug_fn,
@@ -143,7 +144,7 @@ local presets = {
     },
   },
   {
-    id = 'basic-chat-model',
+    id = 'chat-model',
     provider = 'openai',
     make_data_fn = make_data_for_openai_chat,
     debug_fn = openai_debug_fn,
@@ -157,7 +158,7 @@ local presets = {
     },
   },
   {
-    id = 'basic-chat-model',
+    id = 'completion-model',
     provider = 'vllm',
     make_data_fn = make_data_for_openai_completions,
     debug_fn = openai_debug_fn,

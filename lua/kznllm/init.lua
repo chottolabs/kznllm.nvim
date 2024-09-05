@@ -60,9 +60,9 @@ function M.write_content_at_extmark(content, extmark_id)
   local extmark = api.nvim_buf_get_extmark_by_id(0, M.NS_ID, extmark_id, { details = false })
   local mrow, mcol = extmark[1], extmark[2]
 
-  vim.cmd 'undojoin'
-
   local lines = vim.split(content, '\n')
+
+  vim.cmd 'undojoin'
   api.nvim_buf_set_text(0, mrow, mcol, mrow, mcol, lines)
 end
 
@@ -147,13 +147,13 @@ function M.get_visual_selection(opts)
   -- handling + cleanup for visual selection
   local visual_selection
   local replace_mode = not (mode == 'n')
-  local debug = opts and opts.debug
 
   if replace_mode then
     api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
     visual_selection = table.concat(api.nvim_buf_get_text(0, srow, scol, erow, ecol, {}), '\n')
   end
 
+  local debug = opts and opts.debug
   if not debug and replace_mode then
     api.nvim_buf_set_text(0, srow, scol, erow, ecol, {})
   end
@@ -163,15 +163,12 @@ end
 
 ---Locates the path value for context directory
 ---
----@param opts { stop_dir: Path, context_dir_id: string } `stop_dir` - Path to stop traversing directories (default `$HOME`, `context_dir_id` - identifier that this function will scan for (default `.kzn`)
+---@param opts { stop_dir: Path?, context_dir_id: string? } `stop_dir` - Path to stop traversing directories (default `$HOME`, `context_dir_id` - identifier that this function will scan for (default `.kzn`)
 ---@return Path context_dir directory path
 function M.find_context_directory(opts)
-  local context_dir_id, context_dir
-
   local stop_dir = opts and opts.stop_dir or Path:new(vim.fn.expand '~')
-
-  context_dir_id = opts and opts.context_dir_id or '.kzn'
-  context_dir = Path:new(vim.fn.getcwd())
+  local context_dir_id = opts and opts.context_dir_id or '.kzn'
+  local context_dir = Path:new(vim.fn.getcwd())
 
   while not (context_dir / context_dir_id):exists() and context_dir:is_dir() do
     if context_dir:absolute() == stop_dir:absolute() then
@@ -193,7 +190,7 @@ end
 ---Retrieves project files based on the context directory identifier and the current working directory.
 ---
 ---@param context_dir Path
----@param opts table optional values including stop directory to prevent scanning beyond it
+---@param opts table optional values
 ---@return string[] context_files list of files in the context directory
 function M.get_project_files(context_dir, opts)
   local context_files = Scan.scan_dir(context_dir:absolute(), { hidden = false })
@@ -228,6 +225,7 @@ end
 ---@param make_data_fn fun(prompt_args: table, opts: table)
 ---@param make_curl_args_fn fun(data: table, opts: table)
 ---@param make_job_fn fun(data: table, writer_fn: fun(content: string), on_exit_fn: fun())
+---@param opts { debug: string?, debug_fn: fun(data: table, extmark_id: integer, opts: table)?, stop_dir: Path?, context_dir_id: string? }
 function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
   api.nvim_clear_autocmds { group = group }
 
@@ -270,7 +268,8 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
       stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.SCRATCH, M.NS_ID, 0, 0, {})
       opts.debug_fn(data, stream_end_extmark_id, opts)
     else
-      stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, 0, 0, {})
+      local _, crow, ccol = unpack(vim.fn.getpos '.')
+      stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, crow - 1, ccol - 1, {})
     end
 
     local args = make_curl_args_fn(data, opts)

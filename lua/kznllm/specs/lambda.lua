@@ -43,16 +43,11 @@ end
 --- Process server-sent events based on OpenAI spec
 --- [See Documentation](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream)
 ---
----@param out string
+---@param line string
 ---@return string
-local function handle_data(out)
+local function handle_data(line)
   -- based on sse spec (OpenAI spec uses data-only server-sent events)
-  local data, data_epos
-  _, data_epos = string.find(out, '^data: ')
-
-  if data_epos then
-    data = string.sub(out, data_epos + 1)
-  end
+  local data = line:match '^data: (.+)$'
 
   local content = ''
 
@@ -74,8 +69,8 @@ function M.make_job(args, writer_fn, on_exit_fn)
   local active_job = Job:new {
     command = 'curl',
     args = args,
-    on_stdout = function(_, out)
-      local content = handle_data(out)
+    on_stdout = function(_, line)
+      local content = handle_data(line)
       if content and content ~= nil then
         vim.schedule(function()
           writer_fn(content)

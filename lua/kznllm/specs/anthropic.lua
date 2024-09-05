@@ -85,27 +85,22 @@ function M.make_job(args, writer_fn, on_exit_fn)
   local active_job = Job:new {
     command = 'curl',
     args = args,
-    on_stdout = function(_, out)
-      if out == '' then
+    on_stdout = function(_, line)
+      if line == '' then
         return
       end
 
       -- based on sse spec (Anthropic spec has several distinct events)
       -- Anthropic's sse spec requires you to manage the current event state
-      local _, event_epos = string.find(out, '^event: ')
+      local event = line:match '^event: (.+)$'
 
-      if event_epos then
-        current_event_state = string.sub(out, event_epos + 1)
+      if event then
+        current_event_state = event
         return
       end
 
       if current_event_state == 'content_block_delta' then
-        local data, data_epos
-        _, data_epos = string.find(out, '^data: ')
-
-        if data_epos then
-          data = string.sub(out, data_epos + 1)
-        end
+        local data = line:match '^data: (.+)$'
 
         local content = handle_data(data)
         if content and content ~= nil then
@@ -114,22 +109,10 @@ function M.make_job(args, writer_fn, on_exit_fn)
           end)
         end
       elseif current_event_state == 'message_start' then
-        local data, data_epos
-        _, data_epos = string.find(out, '^data: ')
-
-        if data_epos then
-          data = string.sub(out, data_epos + 1)
-        end
-
+        local data = line:match '^data: (.+)$'
         vim.print(data)
       elseif current_event_state == 'message_delta' then
-        local data, data_epos
-        _, data_epos = string.find(out, '^data: ')
-
-        if data_epos then
-          data = string.sub(out, data_epos + 1)
-        end
-
+        local data = line:match '^data: (.+)$'
         vim.print(data)
       end
     end,

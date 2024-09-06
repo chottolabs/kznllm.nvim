@@ -156,7 +156,7 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
     end
 
     -- don't update current context if scratch buffer is open
-    if not M.BUFFER_STATE.SCRATCH or (not api.nvim_buf_is_valid(M.BUFFER_STATE.SCRATCH)) then
+    if not M.BUFFER_STATE.SCRATCH then
       -- similar to rendering a template, but we want to get the context of the file without relying on the changes being saved
       local buf_filetype, buf_path, buf_context = kznllm.get_buffer_context(M.BUFFER_STATE.ORIGIN, opts)
       M.PROMPT_ARGS_STATE.current_buffer_filetype = buf_filetype
@@ -175,6 +175,17 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
         M.BUFFER_STATE.SCRATCH = nil
       end
       M.BUFFER_STATE.SCRATCH = kznllm.make_scratch_buffer()
+
+      -- Set up key mapping to close the buffer
+      api.nvim_buf_set_keymap(M.BUFFER_STATE.SCRATCH, 'n', '<leader>q', '', {
+        noremap = true,
+        silent = true,
+        callback = function()
+          api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
+          api.nvim_buf_delete(M.BUFFER_STATE.SCRATCH, { force = true })
+          M.BUFFER_STATE.SCRATCH = nil
+        end,
+      })
 
       stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.SCRATCH, M.NS_ID, 0, 0, {})
       opts.debug_fn(data, M.NS_ID, stream_end_extmark_id, opts)

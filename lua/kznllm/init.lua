@@ -60,20 +60,6 @@ function M.make_scratch_buffer()
 
   local num_lines = api.nvim_buf_line_count(buf_id)
   api.nvim_win_set_cursor(0, { num_lines, 0 })
-
-  -- Set up key mapping to close the buffer
-  api.nvim_buf_set_keymap(buf_id, 'n', '<leader>q', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      -- Trigger the LLM_Escape event
-      api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
-
-      api.nvim_buf_call(buf_id, function()
-        vim.cmd 'bdelete!'
-      end)
-    end,
-  })
   return buf_id
 end
 

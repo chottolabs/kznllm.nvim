@@ -23,7 +23,7 @@ See [CONTRIBUTING](CONTRIBUTING.md) to understand the typical development workfl
 
 By keeping the plugin simple with some QOL features, you get **close-to-natty** coding experience because it can keep generating code while you are free to do whatever you want (almost) without getting in the way too much.
 
-https://github.com/user-attachments/assets/932fa67f-0332-4799-b467-ecaeea54c3d1
+https://github.com/user-attachments/assets/406fc75f-c204-42ec-80a0-0f9e186c34c7
 
 _editing code while it generates when 405b is too slow_
 

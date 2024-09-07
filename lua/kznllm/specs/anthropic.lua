@@ -1,20 +1,7 @@
 local M = {}
-M.API_KEY_NAME = 'ANTHROPIC_API_KEY'
-M.URL = 'https://api.anthropic.com/v1/messages'
 
-M.MODELS = {
-  SONNET_3_5 = { name = 'claude-3-5-sonnet-20240620', max_tokens = 8192 },
-  OPUS_3 = { name = 'claude-3-opus-20240229', max_tokens = 4096 },
-  HAIKU_3 = { name = 'claude-3-haiku-20240307', max_tokens = 4096 },
-}
-
-M.SELECTED_MODEL = M.MODELS.SONNET_3_5
-
-M.PROMPT_TEMPLATES = {
-  --- this prompt has to be written to output valid code
-  FILL_MODE_SYSTEM_PROMPT = 'anthropic/fill_mode_system_prompt.xml.jinja',
-  FILL_MODE_USER_PROMPT = 'anthropic/fill_mode_user_prompt.xml.jinja',
-}
+local API_KEY_NAME = 'ANTHROPIC_API_KEY'
+local BASE_URL = 'https://api.anthropic.com'
 
 local API_ERROR_MESSAGE = [[
 ERROR: anthropic api key is set to %s and is missing from your environment variables.
@@ -24,38 +11,37 @@ Load somewhere safely from config `export %s=<api_key>`]]
 local Job = require 'plenary.job'
 local current_event_state = nil
 
---- Constructs arguments for constructing an HTTP request to the Anthropic API
+--- Constructs arguments for constructing an HTTP request to the OpenAI API
 --- using cURL.
 ---
----@param rendered_messages { role: string, content: string }[]
+---@param data table
 ---@return string[]
-local function make_curl_args(rendered_messages)
-  local api_key = os.getenv(M.API_KEY_NAME)
-  local system_prompt = table.remove(rendered_messages, 1).content
+function M.make_curl_args(data, opts)
+  local url = (opts and opts.base_url or BASE_URL) .. (opts and opts.endpoint)
+  local api_key = os.getenv(opts and opts.api_key_name or API_KEY_NAME)
 
-  local data = {
-    system = system_prompt,
-    messages = rendered_messages,
-    model = M.SELECTED_MODEL.name,
-    stream = true,
-    max_tokens = M.SELECTED_MODEL.max_tokens,
-  }
-
-  local args = { '-s', '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
-  if api_key then
-    args = vim.list_extend(args, {
-      '-H',
-      'x-api-key: ' .. api_key,
-      '-H',
-      'anthropic-version: 2023-06-01',
-      '-H',
-      'anthropic-beta: max-tokens-3-5-sonnet-2024-07-15',
-    })
-  else
-    error(string.format(API_ERROR_MESSAGE, M.API_KEY_NAME, M.API_KEY_NAME), 1)
+  if not api_key then
+    error(API_ERROR_MESSAGE:format(API_KEY_NAME, API_KEY_NAME), 1)
   end
 
-  table.insert(args, M.URL)
+  local args = {
+    '-s', --silent
+    '-N', --no buffer
+    '-X',
+    'POST',
+    '-H',
+    'Content-Type: application/json',
+    '-d',
+    vim.json.encode(data),
+    '-H',
+    'x-api-key: ' .. api_key,
+    '-H',
+    'anthropic-version: 2023-06-01',
+    '-H',
+    'anthropic-beta: max-tokens-3-5-sonnet-2024-07-15',
+    url,
+  }
+
   return args
 end
 
@@ -95,32 +81,26 @@ local function handle_data(data)
   return content
 end
 
----@param rendered_messages { role: string, content: string }[]
-function M.make_job(rendered_messages, writer_fn, on_exit_fn)
+function M.make_job(args, writer_fn, on_exit_fn)
   local active_job = Job:new {
     command = 'curl',
-    args = make_curl_args(rendered_messages),
-    on_stdout = function(_, out)
-      if out == '' then
+    args = args,
+    on_stdout = function(_, line)
+      if line == '' then
         return
       end
 
       -- based on sse spec (Anthropic spec has several distinct events)
       -- Anthropic's sse spec requires you to manage the current event state
-      local _, event_epos = string.find(out, '^event: ')
+      local event = line:match '^event: (.+)$'
 
-      if event_epos then
-        current_event_state = string.sub(out, event_epos + 1)
+      if event then
+        current_event_state = event
         return
       end
 
       if current_event_state == 'content_block_delta' then
-        local data, data_epos
-        _, data_epos = string.find(out, '^data: ')
-
-        if data_epos then
-          data = string.sub(out, data_epos + 1)
-        end
+        local data = line:match '^data: (.+)$'
 
         local content = handle_data(data)
         if content and content ~= nil then
@@ -129,22 +109,10 @@ function M.make_job(rendered_messages, writer_fn, on_exit_fn)
           end)
         end
       elseif current_event_state == 'message_start' then
-        local data, data_epos
-        _, data_epos = string.find(out, '^data: ')
-
-        if data_epos then
-          data = string.sub(out, data_epos + 1)
-        end
-
+        local data = line:match '^data: (.+)$'
         vim.print(data)
       elseif current_event_state == 'message_delta' then
-        local data, data_epos
-        _, data_epos = string.find(out, '^data: ')
-
-        if data_epos then
-          data = string.sub(out, data_epos + 1)
-        end
-
+        local data = line:match '^data: (.+)$'
         vim.print(data)
       end
     end,

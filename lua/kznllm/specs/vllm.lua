@@ -1,7 +1,7 @@
 local M = {}
 
-local API_KEY_NAME = 'OPENAI_API_KEY'
-local BASE_URL = 'https://api.openai.com'
+local API_KEY_NAME = 'VLLM_API_KEY'
+local BASE_URL -- must provide this
 
 local API_ERROR_MESSAGE = [[
 ERROR: api key is set to %s and is missing from your environment variables.

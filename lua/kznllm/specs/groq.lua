@@ -1,10 +1,10 @@
 local M = {}
 
-local API_KEY_NAME = 'OPENAI_API_KEY'
-local BASE_URL = 'https://api.openai.com'
+local API_KEY_NAME = 'GROQ_API_KEY'
+local BASE_URL = 'https://api.groq.com/openai'
 
 local API_ERROR_MESSAGE = [[
-ERROR: api key is set to %s and is missing from your environment variables.
+ERROR: api key name is set to %s and is missing from your environment variables.
 
 Load somewhere safely from config `export %s=<api_key>`]]
 

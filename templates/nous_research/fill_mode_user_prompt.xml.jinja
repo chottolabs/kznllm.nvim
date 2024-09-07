@@ -9,8 +9,7 @@ Code:
 ```{{current_buffer_filetype}}
 {{ current_buffer_context }}
 ```
-{% endif %}
-{% if context_files %}{% for file_path in context_files %}
+{% endif %}{% if context_files %}{% for file_path in context_files %}
 
 Document:{{loop.index}}
 Title: {{file_path}}

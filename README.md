@@ -68,6 +68,7 @@ full config w/ supported presets and a switch mechanism and provider-specific de
     -- falls back to `vim.fn.stdpath 'data' .. '/lazy/kznllm/templates'` when the plugin is not locally installed
     local TEMPLATE_DIRECTORY = Path:new(vim.fn.expand(self.dir) .. '/templates')
 
+    -- edit this to change the selected preset (or just fork the repo and add your own)
     local SELECTED_PRESET = presets[1]
     local spec = require(('kznllm.specs.%s'):format(SELECTED_PRESET.provider))
 

@@ -31,7 +31,7 @@ M.NS_ID = api.nvim_create_namespace 'kznllm_ns'
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 ---Example implementation of a `make_data_fn` compatible with `kznllm.invoke_llm` for groq spec
 ---@param prompt_args any
----@param opts { model: string, temperature: number, template_directory: Path, debug: boolean }
+---@param opts { model: string, temperature: number, min_p: number, template_directory: Path, debug: boolean }
 ---@return table
 ---
 local function make_data_for_openai_chat(prompt_args, opts)
@@ -48,6 +48,7 @@ local function make_data_for_openai_chat(prompt_args, opts)
     },
     model = opts.model,
     temperature = opts.temperature,
+    min_p = opts.min_p,
     stream = true,
   }
 
@@ -243,7 +244,9 @@ local presets = {
     opts = {
       model = 'hermes-3-llama-3.1-405b-fp8',
       max_tokens = 8192,
-      temperature = 0.7,
+      -- temperature = 0.7,
+      min_p = 0.9,
+      temperature = 2.1,
       debug_fn = openai_debug_fn,
       base_url = 'https://api.lambdalabs.com',
       endpoint = '/v1/chat/completions',
@@ -280,15 +283,15 @@ local presets = {
   {
     id = 'completion-model',
     provider = 'vllm',
-    make_data_fn = make_data_for_openai_completions,
+    make_data_fn = make_data_for_openai_chat,
     debug_fn = openai_debug_fn,
     opts = {
-      model = 'meta-llama/Meta-Llama-3.1-8B',
+      model = 'meta-llama/Meta-Llama-3.1-8B-Instruct',
       max_tokens = 8192,
       min_p = 0.9,
       temperature = 2.1,
-      debug_fn = vllm_completions_debug_fn,
-      endpoint = '/v1/completions',
+      debug_fn = openai_debug_fn,
+      endpoint = '/v1/chat/completions',
     },
   },
 }

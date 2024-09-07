@@ -76,7 +76,7 @@ full config w/ supported presets and a switch mechanism and provider-specific de
       vim.ui.select(presets, {
         format_item = function(item)
           local options = {}
-          for k, v in pairs(item.opts or {}) do
+          for k, v in pairs(item.opts.data_params or {}) do
             if type(v) == 'number' then
               local k_parts = {}
               local k_split = vim.split(k, '_')

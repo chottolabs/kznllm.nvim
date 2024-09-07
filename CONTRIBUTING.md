@@ -85,8 +85,10 @@ Now take a look at `lua/kznllm/presets.lua`
   make_data_fn = make_data_for_openai_chat,
   opts = {
     model = 'llama-3.1-70b-versatile',
-    max_tokens = 8192,
-    temperature = 0.7,
+    data_params = {
+      max_tokens = 8192,
+      temperature = 0.7,
+    },
     debug_fn = openai_debug_fn,
     base_url = 'https://api.groq.com',
     endpoint = '/openai/v1/chat/completions',

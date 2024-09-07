@@ -31,7 +31,7 @@ M.NS_ID = api.nvim_create_namespace 'kznllm_ns'
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 ---Example implementation of a `make_data_fn` compatible with `kznllm.invoke_llm` for groq spec
 ---@param prompt_args any
----@param opts { model: string, temperature: number, min_p: number, template_directory: Path, debug: boolean }
+---@param opts { model: string, data_params: table, template_directory: Path, debug: boolean }
 ---@return table
 ---
 local function make_data_for_openai_chat(prompt_args, opts)
@@ -47,10 +47,10 @@ local function make_data_for_openai_chat(prompt_args, opts)
       },
     },
     model = opts.model,
-    temperature = opts.temperature,
-    min_p = opts.min_p,
     stream = true,
   }
+  data = vim.tbl_extend('keep', data, opts.data_params)
+  vim.print(data)
 
   return data
 end
@@ -69,10 +69,9 @@ local function make_data_for_anthropic_chat(prompt_args, opts)
       },
     },
     model = opts.model,
-    temperature = opts.temperature,
     stream = true,
-    max_tokens = opts.max_tokens,
   }
+  data = vim.tbl_extend('keep', data, opts.data_params)
 
   return data
 end
@@ -136,7 +135,7 @@ end
 ---@param make_data_fn fun(prompt_args: table, opts: table)
 ---@param make_curl_args_fn fun(data: table, opts: table)
 ---@param make_job_fn fun(data: table, writer_fn: fun(content: string), on_exit_fn: fun())
----@param opts { debug: string?, debug_fn: fun(data: table, ns_id: integer, extmark_id: integer, opts: table)?, stop_dir: Path?, context_dir_id: string? }
+---@param opts { debug: string?, debug_fn: fun(data: table, ns_id: integer, extmark_id: integer, opts: table)?, stop_dir: Path?, context_dir_id: string?, data_params: table }
 function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
   api.nvim_clear_autocmds { group = group }
 
@@ -230,8 +229,10 @@ local presets = {
     make_data_fn = make_data_for_openai_chat,
     opts = {
       model = 'llama-3.1-70b-versatile',
-      max_tokens = 8192,
-      temperature = 0.7,
+      data_params = {
+        -- max_tokens = 8192,
+        temperature = 0.7,
+      },
       debug_fn = openai_debug_fn,
       base_url = 'https://api.groq.com',
       endpoint = '/openai/v1/chat/completions',
@@ -243,10 +244,13 @@ local presets = {
     make_data_fn = make_data_for_openai_chat,
     opts = {
       model = 'hermes-3-llama-3.1-405b-fp8',
-      max_tokens = 8192,
-      temperature = 1.2,
-      -- temperature = 2.1,
-      min_p = 0.9,
+      data_params = {
+        -- max_tokens = 8192,
+        -- temperature = 2.1,
+        temperature = 1.5,
+        min_p = 0.05,
+        logprobs = 1,
+      },
       debug_fn = openai_debug_fn,
       base_url = 'https://api.lambdalabs.com',
       endpoint = '/v1/chat/completions',
@@ -259,8 +263,10 @@ local presets = {
     debug_fn = anthropic_debug_fn,
     opts = {
       model = 'claude-3-5-sonnet-20240620',
-      max_tokens = 8192,
-      temperature = 0.7,
+      data_params = {
+        max_tokens = 8192,
+        temperature = 0.7,
+      },
       debug_fn = openai_debug_fn,
       base_url = 'https://api.anthropic.com',
       endpoint = '/v1/messages',
@@ -273,8 +279,10 @@ local presets = {
     debug_fn = openai_debug_fn,
     opts = {
       model = 'gpt-4o-mini',
-      max_tokens = 16384,
-      temperature = 0.7,
+      data_params = {
+        max_tokens = 16384,
+        temperature = 0.7,
+      },
       debug_fn = openai_debug_fn,
       base_url = 'https://api.openai.com',
       endpoint = '/v1/chat/completions',
@@ -287,9 +295,11 @@ local presets = {
     debug_fn = openai_debug_fn,
     opts = {
       model = 'meta-llama/Meta-Llama-3.1-8B-Instruct',
-      max_tokens = 8192,
-      min_p = 0.9,
-      temperature = 2.1,
+      data_params = {
+        max_tokens = 8192,
+        min_p = 0.9,
+        temperature = 2.1,
+      },
       debug_fn = openai_debug_fn,
       endpoint = '/v1/chat/completions',
     },

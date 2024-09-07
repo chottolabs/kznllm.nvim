@@ -50,7 +50,6 @@ local function make_data_for_openai_chat(prompt_args, opts)
     stream = true,
   }
   data = vim.tbl_extend('keep', data, opts.data_params)
-  vim.print(data)
 
   return data
 end

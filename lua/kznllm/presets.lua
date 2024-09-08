@@ -300,7 +300,7 @@ local presets = {
       },
       debug_fn = openai_debug_fn,
       base_url = 'https://api.deepseek.com',
-      endpoint = '/chat/completions',
+      endpoint = '/v1/chat/completions',
     },
   },
   {

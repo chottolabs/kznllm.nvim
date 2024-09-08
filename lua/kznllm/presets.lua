@@ -136,7 +136,7 @@ local function openai_debug_fn(data, ns_id, extmark_id, opts)
     kznllm.write_content_at_extmark(message.role .. ':\n\n', ns_id, extmark_id)
     kznllm.write_content_at_extmark(message.content, ns_id, extmark_id)
 
-    if not (M.BUFFER_STATE.SCRATCH and opts.prefill) then
+    if not (M.PROMPT_ARGS_STATE.replace and opts.prefill) then
       kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
     end
     vim.cmd 'normal! G'

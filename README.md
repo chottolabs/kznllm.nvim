@@ -59,9 +59,7 @@ full config w/ supported presets and a switch mechanism and provider-specific de
 {
   'chottolabs/kznllm.nvim',
   dependencies = {
-    { 'nvim-lua/plenary.nvim',
-      'stevearc/dressing.nvim',
-    },
+    { 'nvim-lua/plenary.nvim' }
     -- { 'chottolabs/plenary.nvim' }, -- patched to resolve symlinked directories
   },
   config = function(self)

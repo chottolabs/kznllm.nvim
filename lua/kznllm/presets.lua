@@ -295,12 +295,12 @@ local presets = {
     opts = {
       model = 'deepseek-coder',
       data_params = {
-        max_tokens = 4096,
+        max_tokens = 8192,
         temperature = 0,
       },
       debug_fn = openai_debug_fn,
       base_url = 'https://api.deepseek.com',
-      endpoint = '/v1/chat/completions',
+      endpoint = '/beta/v1/chat/completions',
     },
   },
   {

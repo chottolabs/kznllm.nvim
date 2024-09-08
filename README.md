@@ -74,6 +74,9 @@ full config w/ supported presets and a switch mechanism and provider-specific de
     local spec = require(('kznllm.specs.%s'):format(SELECTED_PRESET.provider))
 
     local function switch_presets()
+      table.sort(presets, function(a, _)
+        return a == SELECTED_PRESET
+      end)
       vim.ui.select(presets, {
         format_item = function(item)
           local options = {}

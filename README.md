@@ -34,6 +34,7 @@ Make your API keys available via environment variables
 export LAMBDA_API_KEY=secret_...
 export ANTHROPIC_API_KEY=sk-...
 export GROQ_API_KEY=gsk_...
+export DEEPSEEK_API_KEY=vllm_...
 export VLLM_API_KEY=vllm_...
 ```
 
@@ -58,7 +59,9 @@ full config w/ supported presets and a switch mechanism and provider-specific de
 {
   'chottolabs/kznllm.nvim',
   dependencies = {
-    { 'nvim-lua/plenary.nvim' },
+    { 'nvim-lua/plenary.nvim',
+      'stevearc/dressing.nvim',
+    },
     -- { 'chottolabs/plenary.nvim' }, -- patched to resolve symlinked directories
   },
   config = function(self)

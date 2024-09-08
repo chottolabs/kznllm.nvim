@@ -288,6 +288,22 @@ local presets = {
     },
   },
   {
+    id = 'chat-model',
+    provider = 'deepseek',
+    make_data_fn = make_data_for_openai_chat,
+    debug_fn = openai_debug_fn,
+    opts = {
+      model = 'deepseek-coder',
+      data_params = {
+        max_tokens = 8192,
+        temperature = 0,
+      },
+      debug_fn = openai_debug_fn,
+      base_url = 'https://api.deepseek.com',
+      endpoint = '/beta/v1/chat/completions',
+    },
+  },
+  {
     id = 'completion-model',
     provider = 'vllm',
     make_data_fn = make_data_for_openai_chat,

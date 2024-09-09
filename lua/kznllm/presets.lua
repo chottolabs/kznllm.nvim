@@ -84,7 +84,6 @@ local function make_data_for_deepseek_chat(prompt_args, opts)
     stream = true,
   }
 
-  vim.print(M.PROMPT_ARGS_STATE.replace and opts.prefill and opts.stop_param)
   if M.PROMPT_ARGS_STATE.replace and opts.prefill and opts.stop_param then
     table.insert(messages, {
       role = 'assistant',

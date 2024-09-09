@@ -47,20 +47,21 @@ local function make_data_for_openai_chat(prompt_args, opts)
     },
   }
 
-  if M.PROMPT_ARGS_STATE.replace and opts.prefill and opts.stop_param then
-    table.insert(messages, {
-      role = 'assistant',
-      content = opts.prefill .. prompt_args.current_buffer_filetype .. '\n',
-    })
-  end
-
   local data = {
     messages = messages,
     model = opts.model,
     stream = true,
   }
 
-  data = vim.tbl_extend('keep', data, opts.data_params, opts.stop_param or {})
+  if M.PROMPT_ARGS_STATE.replace and opts.prefill and opts.stop_param then
+    table.insert(messages, {
+      role = 'assistant',
+      content = opts.prefill .. prompt_args.current_buffer_filetype .. '\n',
+    })
+    data = vim.tbl_extend('keep', data, opts.stop_param)
+  end
+
+  data = vim.tbl_extend('keep', data, opts.data_params)
 
   return data
 end
@@ -77,21 +78,23 @@ local function make_data_for_deepseek_chat(prompt_args, opts)
     },
   }
 
-  if M.PROMPT_ARGS_STATE.replace and opts.prefill and opts.stop_param then
-    table.insert(messages, {
-      role = 'assistant',
-      content = opts.prefill .. prompt_args.current_buffer_filetype .. '\n',
-      prefix = true,
-    })
-  end
-
   local data = {
     messages = messages,
     model = opts.model,
     stream = true,
   }
 
-  data = vim.tbl_extend('keep', data, opts.data_params, opts.stop_param or {})
+  vim.print(M.PROMPT_ARGS_STATE.replace and opts.prefill and opts.stop_param)
+  if M.PROMPT_ARGS_STATE.replace and opts.prefill and opts.stop_param then
+    table.insert(messages, {
+      role = 'assistant',
+      content = opts.prefill .. prompt_args.current_buffer_filetype .. '\n',
+      prefix = true,
+    })
+    data = vim.tbl_extend('keep', data, opts.stop_param)
+  end
+
+  data = vim.tbl_extend('keep', data, opts.data_params)
 
   return data
 end

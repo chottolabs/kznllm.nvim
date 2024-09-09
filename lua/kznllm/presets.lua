@@ -47,17 +47,19 @@ local function make_data_for_openai_chat(prompt_args, opts)
     },
   }
 
-  local data = {
-    messages = messages,
-    model = opts.model,
-    stream = true,
-  }
   if M.PROMPT_ARGS_STATE.replace and opts.prefill and opts.stop_param then
     table.insert(messages, {
       role = 'assistant',
       content = opts.prefill .. prompt_args.current_buffer_filetype .. '\n',
     })
   end
+
+  local data = {
+    messages = messages,
+    model = opts.model,
+    stream = true,
+  }
+
   data = vim.tbl_extend('keep', data, opts.data_params, opts.stop_param or {})
 
   return data
@@ -75,11 +77,6 @@ local function make_data_for_deepseek_chat(prompt_args, opts)
     },
   }
 
-  local data = {
-    messages = messages,
-    model = opts.model,
-    stream = true,
-  }
   if M.PROMPT_ARGS_STATE.replace and opts.prefill and opts.stop_param then
     table.insert(messages, {
       role = 'assistant',
@@ -87,6 +84,13 @@ local function make_data_for_deepseek_chat(prompt_args, opts)
       prefix = true,
     })
   end
+
+  local data = {
+    messages = messages,
+    model = opts.model,
+    stream = true,
+  }
+
   data = vim.tbl_extend('keep', data, opts.data_params, opts.stop_param or {})
 
   return data
@@ -135,12 +139,11 @@ local function openai_debug_fn(data, ns_id, extmark_id, opts)
     kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
     kznllm.write_content_at_extmark(message.role .. ':\n\n', ns_id, extmark_id)
     kznllm.write_content_at_extmark(message.content, ns_id, extmark_id)
-
-    if not (M.PROMPT_ARGS_STATE.replace and opts.prefill) then
-      kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
-    end
-    vim.cmd 'normal! G'
   end
+  if not (M.PROMPT_ARGS_STATE.replace and opts.prefill) then
+    kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
+  end
+  vim.cmd 'normal! G'
 end
 
 local function vllm_completions_debug_fn(data, ns_id, extmark_id, opts)

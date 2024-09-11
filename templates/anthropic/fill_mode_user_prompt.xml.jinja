@@ -1,4 +1,4 @@
-{%- if current_buffer_context -%}
+{% if current_buffer_context %}
 <source>{{current_buffer_path}}</source>
 <current_context>
 ```{{current_buffer_filetype}}
@@ -6,22 +6,24 @@
 ```
 </current_context>
 
-{% elif current_buffer_path -%}
+{% elif current_buffer_path %}
 <context>{{current_buffer_path}}</context>
 
-{% endif %}{% if context_files -%}
+{% endif %}
+{% if context_files %}
 <documents>
-{% for file_path in context_files -%}
+{% for file_path in context_files %}
 <document index="{{loop.index}}">
 <source>{{file_path}}</source>
 <document_content>
 {% include file_path %}
 </document_content>
 </document>
-{%- endfor %}
+{% endfor %}
 </documents>
 
-{% endif %}{% if replace -%}
+{% endif %}
+{% if replace %}
 <query>{{user_query}}</query>
 
 You will be given a code snippet with comments. Your task is to fix any errors in the code and implement any unfinished functionality indicated in the comments. Only output valid code fragment in the provided language.
@@ -60,6 +62,6 @@ Follow these steps to complete the task:
 Output your corrected and implemented code. Ensure that the code fragment you output is valid, and ready to run in the language of the original snippet.
 
 Remember, only output valid code without any backticks. Do not include any explanations, notes, or anything other than the corrected code itself.
-{% else -%}
+{% else %}
 {{user_query}}
-{%- endif %}
+{% endif %}

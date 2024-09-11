@@ -22,7 +22,7 @@ function M.make_prompt_from_template(prompt_template_path, prompt_args)
   local json_data = vim.json.encode(prompt_args)
   local active_job = Job:new {
     command = 'minijinja-cli',
-    args = { '-f', 'json', prompt_template_path:absolute(), '-' },
+    args = { '-f', 'json', '--lstrip-blocks', '--trim-blocks', prompt_template_path:absolute(), '-' },
     writer = json_data,
     on_stderr = function(message, _)
       error(message, 1)

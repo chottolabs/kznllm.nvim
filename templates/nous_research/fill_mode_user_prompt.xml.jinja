@@ -33,4 +33,7 @@ INSTRUCTION: Replace the code in the block given above. ONLY return the valid co
 INSTRUCTION: Replace the code in the block given above. ONLY return the code fragment that is requested in the code snippet WITHOUT backticks. DO NOT surround the code fragment in backticks.
   {% endif %}
 {% endif %}
+{% if current_buffer_context and replace == false %}
+INSTRUCTION: Follow the user query from the position marked with <CURRENT_POSITION>. ONLY return the code fragment that is requested in the query WITHOUT backticks. DO NOT surround the code fragment in backticks.
+{% endif %}
 QUERY: {{ user_query }}

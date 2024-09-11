@@ -172,7 +172,15 @@ function M.get_buffer_context(buf_id, opts)
   local buf_filetype, buf_path, buf_context
   buf_filetype = vim.bo.filetype
   buf_path = api.nvim_buf_get_name(buf_id)
-  buf_context = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n')
+  local _, row, col = unpack(vim.fn.getpos '.')
+  local lines = api.nvim_buf_get_lines(buf_id, 0, -1, false)
+
+  local mode = api.nvim_get_mode().mode
+  if mode == 'n' and #lines >= 1 and #lines[1] > 0 then
+    lines[row] = lines[row]:sub(0, col - 1) .. '<CURRENT_POSITION>' .. lines[row]:sub(col)
+  end
+
+  buf_context = table.concat(lines, '\n')
 
   return buf_filetype, buf_path, buf_context
 end

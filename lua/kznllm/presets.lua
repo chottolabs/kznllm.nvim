@@ -104,7 +104,7 @@ end
 ---@return table
 local function make_data_for_anthropic_chat(prompt_args, opts)
   local data = {
-    system = kznllm.make_prompt_from_template(opts.template_directory / 'anthropic/fill_mode_system_prompt.xml.jinja', {}),
+    system = kznllm.make_prompt_from_template(opts.template_directory / 'anthropic/fill_mode_system_prompt.xml.jinja', prompt_args),
     messages = {
       {
         role = 'user',

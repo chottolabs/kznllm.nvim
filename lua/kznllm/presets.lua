@@ -3,6 +3,7 @@
 -- Your lazy config still wants to define the keymaps to make it work (see the main project README.md for recommended setup)
 --
 local kznllm = require 'kznllm'
+local Path = require 'plenary.path'
 local api = vim.api
 
 local M = {}
@@ -29,6 +30,9 @@ M.PROMPT_ARGS_STATE = {
 
 M.NS_ID = api.nvim_create_namespace 'kznllm_ns'
 
+local plugin_dir = debug.getinfo(1, "S").source:sub(2):gsub("/lua/.*$", "")
+local TEMPLATE_DIRECTORY = Path:new(plugin_dir) / 'templates'
+
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 ---Example implementation of a `make_data_fn` compatible with `kznllm.invoke_llm` for groq spec
 ---@param prompt_args any
@@ -36,14 +40,15 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 ---@return table
 ---
 local function make_data_for_openai_chat(prompt_args, opts)
+  local template_directory = opts.template_directory or TEMPLATE_DIRECTORY
   local messages = {
     {
       role = 'system',
-      content = kznllm.make_prompt_from_template(opts.template_directory / 'nous_research/fill_mode_system_prompt.xml.jinja', prompt_args),
+      content = kznllm.make_prompt_from_template(template_directory / 'nous_research/fill_mode_system_prompt.xml.jinja', prompt_args),
     },
     {
       role = 'user',
-      content = kznllm.make_prompt_from_template(opts.template_directory / 'nous_research/fill_mode_user_prompt.xml.jinja', prompt_args),
+      content = kznllm.make_prompt_from_template(template_directory / 'nous_research/fill_mode_user_prompt.xml.jinja', prompt_args),
     },
   }
 
@@ -67,14 +72,15 @@ local function make_data_for_openai_chat(prompt_args, opts)
 end
 
 local function make_data_for_deepseek_chat(prompt_args, opts)
+  local template_directory = opts.template_directory or TEMPLATE_DIRECTORY
   local messages = {
     {
       role = 'system',
-      content = kznllm.make_prompt_from_template(opts.template_directory / 'nous_research/fill_mode_system_prompt.xml.jinja', prompt_args),
+      content = kznllm.make_prompt_from_template(template_directory / 'nous_research/fill_mode_system_prompt.xml.jinja', prompt_args),
     },
     {
       role = 'user',
-      content = kznllm.make_prompt_from_template(opts.template_directory / 'nous_research/fill_mode_user_prompt.xml.jinja', prompt_args),
+      content = kznllm.make_prompt_from_template(template_directory / 'nous_research/fill_mode_user_prompt.xml.jinja', prompt_args),
     },
   }
 
@@ -103,12 +109,13 @@ end
 ---@param opts any
 ---@return table
 local function make_data_for_anthropic_chat(prompt_args, opts)
+  local template_directory = opts.template_directory or TEMPLATE_DIRECTORY
   local data = {
-    system = kznllm.make_prompt_from_template(opts.template_directory / 'anthropic/fill_mode_system_prompt.xml.jinja', prompt_args),
+    system = kznllm.make_prompt_from_template(template_directory / 'anthropic/fill_mode_system_prompt.xml.jinja', prompt_args),
     messages = {
       {
         role = 'user',
-        content = kznllm.make_prompt_from_template(opts.template_directory / 'anthropic/fill_mode_user_prompt.xml.jinja', prompt_args),
+        content = kznllm.make_prompt_from_template(template_directory / 'anthropic/fill_mode_user_prompt.xml.jinja', prompt_args),
       },
     },
     model = opts.model,
@@ -124,8 +131,9 @@ end
 ---@param opts any
 ---@return table
 local function make_data_for_openai_completions(prompt_args, opts)
+  local template_directory = opts.template_directory or TEMPLATE_DIRECTORY
   local data = {
-    prompt = kznllm.make_prompt_from_template(opts.template_directory / 'vllm/fill_mode_instruct_completion_prompt.xml.jinja', prompt_args),
+    prompt = kznllm.make_prompt_from_template(template_directory / 'vllm/fill_mode_instruct_completion_prompt.xml.jinja', prompt_args),
     model = opts.model,
     temperature = 1.5,
     min_p = 1.0,

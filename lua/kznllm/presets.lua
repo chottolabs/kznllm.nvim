@@ -76,11 +76,11 @@ local function make_data_for_deepseek_chat(prompt_args, opts)
   local messages = {
     {
       role = 'system',
-      content = kznllm.make_prompt_from_template(template_directory / 'nous_research/fill_mode_system_prompt.xml.jinja', prompt_args),
+      content = kznllm.make_prompt_from_template(template_directory / 'deepseek/fill_mode_system_prompt.xml.jinja', prompt_args),
     },
     {
       role = 'user',
-      content = kznllm.make_prompt_from_template(template_directory / 'nous_research/fill_mode_user_prompt.xml.jinja', prompt_args),
+      content = kznllm.make_prompt_from_template(template_directory / 'deepseek/fill_mode_user_prompt.xml.jinja', prompt_args),
     },
   }
 

@@ -26,6 +26,7 @@ function M.make_curl_args(data, opts)
 
   local args = {
     '-s', --silent
+    '--fail-with-body',
     '-N', --no buffer
     '-X',
     'POST',
@@ -85,6 +86,7 @@ function M.make_job(args, writer_fn, on_exit_fn)
   local active_job = Job:new {
     command = 'curl',
     args = args,
+    enable_recording = true,
     on_stdout = function(_, line)
       if line == '' then
         return
@@ -119,9 +121,16 @@ function M.make_job(args, writer_fn, on_exit_fn)
     on_stderr = function(message, _)
       error(message, 1)
     end,
-    on_exit = function()
+    on_exit = function(job, exit_code)
+      local stdout_result = job:result()
+      local stdout_message = table.concat(stdout_result, '\n')
+
       vim.schedule(function()
-        on_exit_fn()
+        if exit_code ~= 0 then
+          vim.notify('[Curl] (exit code: ' .. exit_code .. ')\n' .. stdout_message, vim.log.levels.ERROR)
+        else
+          on_exit_fn()
+        end
       end)
     end,
   }

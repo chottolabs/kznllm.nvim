@@ -158,8 +158,12 @@ end
 function M.get_project_files(context_dir, opts)
   local context_files = Scan.scan_dir(context_dir:absolute(), { hidden = false })
   vim.print('using context at: ' .. context_dir:absolute())
+  local context = {}
+  for _, file in ipairs(context_files) do
+    table.insert(context, { path = file, content = Path:new(file):read() })
+  end
 
-  return context_files
+  return context
 end
 
 ---similar to rendering a template, but we want to get the context of the file without relying on the changes being saved

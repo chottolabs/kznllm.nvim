@@ -12,12 +12,12 @@ Content:
 ```
 {% endif %}
 {% if context_files %}
-  {% for file_path in context_files %}
+  {% for file in context_files %}
 Document:{{ loop.index }}
-Title: {{ file_path }}
+Title: {{ file.path }}
 Content:
 ```
-{% include file_path %}
+{{ file.content }}
 ```
   {% endfor %}
 {% endif %}

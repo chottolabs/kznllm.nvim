@@ -71,6 +71,24 @@ local function make_data_for_openai_chat(prompt_args, opts)
   return data
 end
 
+local function make_data_for_o1_chat(prompt_args, opts)
+  local template_directory = opts.template_directory or TEMPLATE_DIRECTORY
+  local messages = {
+    {
+      role = 'user',
+      content = kznllm.make_prompt_from_template(template_directory / 'nous_research/fill_mode_user_prompt.xml.jinja', prompt_args),
+    },
+  }
+
+  local data = {
+    messages = messages,
+    model = opts.model,
+    stream = true,
+  }
+
+  return data
+end
+
 local function make_data_for_deepseek_chat(prompt_args, opts)
   local template_directory = opts.template_directory or TEMPLATE_DIRECTORY
   local messages = {
@@ -360,6 +378,19 @@ local presets = {
       debug_fn = openai_debug_fn,
       base_url = 'https://api.deepseek.com',
       endpoint = '/beta/v1/chat/completions',
+    },
+  },
+  {
+    id = 'o1-chat-model',
+    provider = 'openrouter',
+    make_data_fn = make_data_for_o1_chat,
+    opts = {
+      model = 'openai/o1-mini-2024-09-12',
+      data_params = {
+        temperature = 0.7,
+      },
+      debug_fn = openai_debug_fn,
+      endpoint = '/v1/chat/completions',
     },
   },
   {

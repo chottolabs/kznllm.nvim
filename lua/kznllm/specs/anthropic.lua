@@ -126,7 +126,7 @@ function M.make_job(args, writer_fn, on_exit_fn)
       local stdout_message = table.concat(stdout_result, '\n')
 
       vim.schedule(function()
-        if exit_code ~= 0 then
+        if exit_code and exit_code ~= 0 then
           vim.notify('[Curl] (exit code: ' .. exit_code .. ')\n' .. stdout_message, vim.log.levels.ERROR)
         else
           on_exit_fn()

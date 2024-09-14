@@ -85,6 +85,7 @@ local function make_data_for_o1_chat(prompt_args, opts)
     model = opts.model,
     stream = true,
   }
+  data = vim.tbl_extend('keep', data, opts.data_params)
 
   return data
 end
@@ -387,7 +388,7 @@ local presets = {
     opts = {
       model = 'openai/o1-mini-2024-09-12',
       data_params = {
-        temperature = 0.7,
+        temperature = 1.0,
       },
       debug_fn = openai_debug_fn,
       endpoint = '/v1/chat/completions',

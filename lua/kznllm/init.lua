@@ -24,8 +24,6 @@ function M.make_prompt_from_template(prompt_template_path, prompt_args)
     command = 'minijinja-cli',
     args = { '-f', 'json', '--lstrip-blocks', '--trim-blocks', prompt_template_path:absolute(), '-' },
     writer = json_data,
-    stdout_buffered = true,
-    stderr_buffered = true,
   }
 
   active_job:sync()

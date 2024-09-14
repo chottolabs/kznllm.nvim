@@ -24,12 +24,16 @@ function M.make_prompt_from_template(prompt_template_path, prompt_args)
     command = 'minijinja-cli',
     args = { '-f', 'json', '--lstrip-blocks', '--trim-blocks', prompt_template_path:absolute(), '-' },
     writer = json_data,
-    on_stderr = function(message, _)
-      error(message, 1)
-    end,
+    stdout_buffered = true,
+    stderr_buffered = true,
   }
 
   active_job:sync()
+  if active_job.code ~= 0 then
+    local error_msg = table.concat(active_job:stderr_result(), '\n')
+    error('[minijinja-cli] (exit code: ' .. active_job.code .. ')\n' .. error_msg, vim.log.levels.ERROR)
+  end
+
   return table.concat(active_job:result(), '\n')
 end
 

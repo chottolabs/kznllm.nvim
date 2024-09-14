@@ -18,10 +18,11 @@ local current_event_state = nil
 ---@return string[]
 function M.make_curl_args(data, opts)
   local url = (opts and opts.base_url or BASE_URL) .. (opts and opts.endpoint)
-  local api_key = os.getenv(opts and opts.api_key_name or API_KEY_NAME)
+  local api_key_name = opts and opts.api_key_name or API_KEY_NAME
+  local api_key = os.getenv(api_key_name)
 
   if not api_key then
-    error(API_ERROR_MESSAGE:format(API_KEY_NAME, API_KEY_NAME), 1)
+    error(API_ERROR_MESSAGE:format(api_key_name, api_key_name), 1)
   end
 
   local args = {

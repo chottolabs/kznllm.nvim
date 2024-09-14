@@ -55,6 +55,10 @@ for local openai server (e.g. `vllm serve` w/ `--api-key <token>` and `--served-
 
 full config w/ supported presets and a switch mechanism and provider-specific debug functions
 
+Set the default `SELECTED_PRESET` based on [presets.lua](https://github.com/chottolabs/kznllm.nvim/blob/main/lua/kznllm/presets.lua#L279)
+
+(i.e. `1 - groq`, `2 - lambda`, `3 - anthropic`, `4 - openai`, `5 - deepseek`, `6 - vllm (local)` or implement your own)
+
 ```lua
 {
   'chottolabs/kznllm.nvim',
@@ -64,7 +68,6 @@ full config w/ supported presets and a switch mechanism and provider-specific de
   },
   config = function(self)
     local presets = require 'kznllm.presets'
-    local Path = require 'plenary.path'
 
     -- edit this to change the selected preset (or just fork the repo and add your own)
     local SELECTED_PRESET = presets[1]

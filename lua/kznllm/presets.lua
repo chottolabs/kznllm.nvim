@@ -30,7 +30,7 @@ M.PROMPT_ARGS_STATE = {
 
 M.NS_ID = api.nvim_create_namespace 'kznllm_ns'
 
-local plugin_dir = debug.getinfo(1, "S").source:sub(2):gsub("/lua/.*$", "")
+local plugin_dir = Path:new(debug.getinfo(1, 'S').source:sub(2)):parents()[3]
 local TEMPLATE_DIRECTORY = Path:new(plugin_dir) / 'templates'
 
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })

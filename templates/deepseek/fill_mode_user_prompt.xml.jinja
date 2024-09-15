@@ -12,7 +12,7 @@ Content:
   {% endfor %}
 {% endif %}
 {% if current_buffer_path %}
-Document:{{context_files | length + 1}}
+Document:{{context_files | length + 1 if context_files else 1}}
 Title: {{ current_buffer_path }}
 {% endif %}
 {% if current_buffer_context %}

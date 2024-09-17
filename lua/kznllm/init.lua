@@ -49,7 +49,7 @@ end
 
 ---Creates a buffer in markdown mode (for syntax highlighting)
 function M.make_scratch_buffer()
-  local buf_id = api.nvim_create_buf(true, false)
+  local buf_id = api.nvim_create_buf(false, true)
 
   -- api.nvim_set_option_value('buflisted', true, { buf = buf_id })
   api.nvim_set_option_value('filetype', 'markdown', { buf = buf_id })

@@ -94,12 +94,8 @@ function M.get_visual_selection(opts)
 
   -- normalize start + end such that start_pos < end_pos and converts to 0-index
   srow, scol, erow, ecol = srow - 1, scol - 1, erow - 1, ecol - 1
-  if srow > erow then
-    srow, erow = erow, srow
-  end
-
-  if scol > ecol then
-    scol, ecol = ecol, scol
+  if srow > erow or (srow == erow and scol > ecol) then
+    srow, erow, scol, ecol = erow, srow, ecol, scol
   end
 
   -- in visual block and visual line mode, we expect first column of srow and last column of erow

@@ -245,7 +245,12 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
       opts.debug_fn(data, M.NS_ID, stream_end_extmark_id, opts)
     else
       local _, crow, ccol = unpack(vim.fn.getpos '.')
-      stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, crow - 1, ccol - 1, { strict = false })
+      local crow_content = vim.api.nvim_buf_get_lines(0, crow - 1, crow, false)[1]
+      if ccol == #crow_content then
+        stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, crow - 1, ccol, { strict = false })
+      else
+        stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, crow - 1, ccol - 1, { strict = false })
+      end
     end
 
     local args = make_curl_args_fn(data, opts)

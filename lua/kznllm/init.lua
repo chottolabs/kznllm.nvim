@@ -101,6 +101,11 @@ function M.get_visual_selection(opts)
   -- in visual block and visual line mode, we expect first column of srow and last column of erow
   if mode == 'V' or mode == '\22' or mode == 'n' then
     scol, ecol = 0, -1
+  else
+    local erow_content = vim.api.nvim_buf_get_lines(0, erow, erow + 1, false)[1]
+    if ecol < #erow_content then
+      ecol = ecol + 1
+    end
   end
 
   -- handling + cleanup for visual selection
@@ -117,7 +122,7 @@ function M.get_visual_selection(opts)
     api.nvim_buf_set_text(0, srow, scol, erow, ecol, {})
   end
 
-  return visual_selection
+  return visual_selection, srow, scol, erow, ecol
 end
 
 ---Locates the path value for context directory

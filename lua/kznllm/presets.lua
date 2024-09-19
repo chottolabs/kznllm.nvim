@@ -200,7 +200,7 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
     M.PROMPT_ARGS_STATE.user_query = input
     M.PROMPT_ARGS_STATE.replace = not (api.nvim_get_mode().mode == 'n')
 
-    local visual_selection = kznllm.get_visual_selection(opts)
+    local visual_selection, crow, ccol = kznllm.get_visual_selection(opts)
     M.PROMPT_ARGS_STATE.visual_selection = visual_selection
 
     local context_dir = kznllm.find_context_directory(opts)
@@ -244,15 +244,7 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
       stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.SCRATCH, M.NS_ID, 0, 0, {})
       opts.debug_fn(data, M.NS_ID, stream_end_extmark_id, opts)
     else
-      local _, crow, ccol = unpack(vim.fn.getpos '.')
-
-      -- handle edge case where the original cursor position gets pushed left during replacement
-      local crow_content = vim.api.nvim_buf_get_lines(0, crow - 1, crow, false)[1]
-      if ccol == #crow_content then
-        ccol = ccol + 1
-      end
-
-      stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, crow - 1, ccol - 1, { strict = false })
+      stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, crow, ccol, { strict = false })
     end
 
     local args = make_curl_args_fn(data, opts)

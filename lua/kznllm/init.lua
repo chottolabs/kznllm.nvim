@@ -102,7 +102,10 @@ function M.get_visual_selection(opts)
   if mode == 'V' or mode == '\22' or mode == 'n' then
     scol, ecol = 0, -1
   else
-    ecol = ecol + 1
+    -- in visual mode we need to include the last column of erow
+    -- capped at the row length, as visual mode can move the cursor past the row end
+    local erow_content = vim.api.nvim_buf_get_lines(0, erow, erow + 1, false)[1]
+    ecol = math.min(ecol + 1, #erow_content)
   end
 
   -- handling + cleanup for visual selection

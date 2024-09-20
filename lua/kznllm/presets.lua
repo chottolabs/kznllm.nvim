@@ -10,13 +10,6 @@ local M = {}
 
 --TODO: PROMPT_ARGS_STATE is just a bad persistence layer at the moment, I don't really want to write files everywhere...
 
--- ORIGIN refers to the buffer where the user invoked the plugin.
--- SCRATCH is a temporary buffer for debugging/chat.
-M.BUFFER_STATE = {
-  SCRATCH = nil,
-  ORIGIN = nil,
-}
-
 M.PROMPT_ARGS_STATE = {
   current_buffer_path = nil,
   current_buffer_context = nil,
@@ -191,10 +184,9 @@ end
 ---@param opts { debug: string?, debug_fn: fun(data: table, ns_id: integer, extmark_id: integer, opts: table)?, stop_dir: Path?, context_dir_id: string?, data_params: table, prefill: boolean }
 function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
   api.nvim_clear_autocmds { group = group }
+  local origin_buf_id = api.nvim_win_get_buf(0)
 
   local active_job
-
-  M.BUFFER_STATE.ORIGIN = api.nvim_win_get_buf(0)
 
   kznllm.get_user_input(function(input)
     M.PROMPT_ARGS_STATE.user_query = input
@@ -209,9 +201,10 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
     end
 
     -- don't update current context if scratch buffer is open
-    if not M.BUFFER_STATE.SCRATCH then
+
+    if not vim.b.debug then
       -- similar to rendering a template, but we want to get the context of the file without relying on the changes being saved
-      local buf_filetype, buf_path, buf_context = kznllm.get_buffer_context(M.BUFFER_STATE.ORIGIN, opts)
+      local buf_filetype, buf_path, buf_context = kznllm.get_buffer_context(origin_buf_id, opts)
       M.PROMPT_ARGS_STATE.current_buffer_filetype = buf_filetype
       M.PROMPT_ARGS_STATE.current_buffer_path = buf_path
       M.PROMPT_ARGS_STATE.current_buffer_context = buf_context
@@ -221,30 +214,18 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
     local data = make_data_fn(M.PROMPT_ARGS_STATE, opts)
 
     local stream_end_extmark_id
+    local stream_buf_id = origin_buf_id
 
     -- open up scratch buffer before setting extmark
     if opts and opts.debug and opts.debug_fn then
-      if M.BUFFER_STATE.SCRATCH then
-        api.nvim_buf_delete(M.BUFFER_STATE.SCRATCH, { force = true })
-        M.BUFFER_STATE.SCRATCH = nil
-      end
-      M.BUFFER_STATE.SCRATCH = kznllm.make_scratch_buffer()
+      local scratch_buf_id = kznllm.make_scratch_buffer()
+      api.nvim_buf_set_var(scratch_buf_id, 'debug', true)
+      stream_buf_id = scratch_buf_id
 
-      -- Set up key mapping to close the buffer
-      api.nvim_buf_set_keymap(M.BUFFER_STATE.SCRATCH, 'n', '<leader>q', '', {
-        noremap = true,
-        silent = true,
-        callback = function()
-          api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
-          api.nvim_buf_delete(M.BUFFER_STATE.SCRATCH, { force = true })
-          M.BUFFER_STATE.SCRATCH = nil
-        end,
-      })
-
-      stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.SCRATCH, M.NS_ID, 0, 0, {})
+      stream_end_extmark_id = api.nvim_buf_set_extmark(stream_buf_id, M.NS_ID, 0, 0, {})
       opts.debug_fn(data, M.NS_ID, stream_end_extmark_id, opts)
     else
-      stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, crow, ccol, { strict = false })
+      stream_end_extmark_id = api.nvim_buf_set_extmark(stream_buf_id, M.NS_ID, crow, ccol, { strict = false })
     end
 
     local args = make_curl_args_fn(data, opts)
@@ -255,7 +236,7 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
     active_job = make_job_fn(args, function(content)
       kznllm.write_content_at_extmark(content, M.NS_ID, stream_end_extmark_id)
     end, function()
-      api.nvim_buf_del_extmark(0, M.NS_ID, stream_end_extmark_id)
+      api.nvim_buf_del_extmark(stream_buf_id, M.NS_ID, stream_end_extmark_id)
     end)
 
     active_job:start()

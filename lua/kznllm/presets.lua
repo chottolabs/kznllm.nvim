@@ -200,7 +200,7 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
     M.PROMPT_ARGS_STATE.user_query = input
     M.PROMPT_ARGS_STATE.replace = not (api.nvim_get_mode().mode == 'n')
 
-    local visual_selection = kznllm.get_visual_selection(opts)
+    local visual_selection, crow, ccol = kznllm.get_visual_selection(opts)
     M.PROMPT_ARGS_STATE.visual_selection = visual_selection
 
     local context_dir = kznllm.find_context_directory(opts)
@@ -244,8 +244,7 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
       stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.SCRATCH, M.NS_ID, 0, 0, {})
       opts.debug_fn(data, M.NS_ID, stream_end_extmark_id, opts)
     else
-      local _, crow, ccol = unpack(vim.fn.getpos '.')
-      stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, crow - 1, ccol - 1, { strict = false })
+      stream_end_extmark_id = api.nvim_buf_set_extmark(M.BUFFER_STATE.ORIGIN, M.NS_ID, crow, ccol, { strict = false })
     end
 
     local args = make_curl_args_fn(data, opts)

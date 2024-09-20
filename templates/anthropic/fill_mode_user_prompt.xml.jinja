@@ -12,11 +12,11 @@
 {% endif %}
 {% if context_files %}
 <documents>
-{% for file_path in context_files %}
+{% for file in context_files %}
 <document index="{{loop.index}}">
-<source>{{file_path}}</source>
+<source>{{file.path}}</source>
 <document_content>
-{% include file_path %}
+{{ file.content }}
 </document_content>
 </document>
 {% endfor %}

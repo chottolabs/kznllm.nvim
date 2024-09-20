@@ -213,7 +213,8 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
 
     local data = make_data_fn(M.PROMPT_ARGS_STATE, opts)
 
-    local stream_end_extmark_id, stream_buf_id
+    local stream_end_extmark_id
+    local stream_buf_id = origin_buf_id
 
     -- open up scratch buffer before setting extmark
     if opts and opts.debug and opts.debug_fn then

@@ -363,4 +363,41 @@ local presets = {
   },
 }
 
+function M.switch_presets()
+  vim.ui.select(presets, {
+    format_item = function(item)
+      local options = {}
+      for k, v in pairs(item.opts.data_params or {}) do
+        if type(v) == 'number' then
+          local k_parts = {}
+          local k_split = vim.split(k, '_')
+          for i, term in ipairs(k_split) do
+            if i > 1 then
+              table.insert(k_parts, term:sub(0, 3))
+            else
+              table.insert(k_parts, term:sub(0, 4))
+            end
+          end
+          table.insert(options, ('%-5s %-5s'):format(table.concat(k_parts, '_'), v))
+        end
+      end
+      table.sort(options)
+      return ('%-20s %10s | %s'):format(item.id, item.provider, table.concat(options, ' '))
+    end,
+  }, function(choice, idx)
+    if not choice then
+      return
+    end
+    vim.g.PRESET_IDX = idx
+    print(('%-15s provider: %-10s'):format(choice.id, choice.provider))
+  end)
+end
+
+function M.load()
+  local idx = vim.g.PRESET_IDX or 1
+  local preset = presets[idx]
+  local spec = require(('kznllm.specs.%s'):format(preset.provider))
+  return spec, preset
+end
+
 return vim.tbl_extend('keep', M, presets)

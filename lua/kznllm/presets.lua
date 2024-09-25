@@ -259,7 +259,7 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
 end
 
 function M.switch_presets()
-  vim.ui.select(PRESETS, {
+  vim.ui.select(presets, {
     format_item = function(item)
       local options = {}
       for k, v in pairs(item.opts.data_params or {}) do
@@ -290,7 +290,7 @@ end
 
 function M.load()
   local idx = vim.g.PRESET_IDX or 1
-  local preset = PRESETS[idx]
+  local preset = presets[idx]
   local spec = require(('kznllm.specs.%s'):format(preset.provider))
 
   return spec, preset

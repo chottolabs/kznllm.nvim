@@ -69,52 +69,15 @@ Set the default `SELECTED_PRESET` based on [presets.lua](https://github.com/chot
   config = function(self)
     local presets = require 'kznllm.presets'
 
-    -- edit this to change the selected preset (or just fork the repo and add your own)
-    local SELECTED_PRESET = presets[1]
-    local spec = require(('kznllm.specs.%s'):format(SELECTED_PRESET.provider))
-
-    local function switch_presets()
-      table.sort(presets, function(a, _)
-        return a == SELECTED_PRESET
-      end)
-      vim.ui.select(presets, {
-        format_item = function(item)
-          local options = {}
-          for k, v in pairs(item.opts.data_params or {}) do
-            if type(v) == 'number' then
-              local k_parts = {}
-              local k_split = vim.split(k, '_')
-              for i, term in ipairs(k_split) do
-                if i > 1 then
-                  table.insert(k_parts, term:sub(0, 3))
-                else
-                  table.insert(k_parts, term:sub(0, 4))
-                end
-              end
-              table.insert(options, ('%-5s %-5s'):format(table.concat(k_parts, '_'), v))
-            end
-          end
-          table.sort(options)
-          return ('%-20s %10s | %s'):format(item.id, item.provider, table.concat(options, ' '))
-        end,
-      }, function(choice)
-        if not choice then
-          return
-        end
-        spec = require(('kznllm.specs.%s'):format(choice.provider))
-        SELECTED_PRESET = choice
-        print(('%-15s provider: %-10s'):format(choice.id, choice.provider))
-      end)
-    end
-
-    vim.keymap.set({ 'n', 'v' }, '<leader>m', switch_presets, { desc = 'switch between presets' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>m', presets.switch_presets, { desc = 'switch between presets' })
 
     local function llm_fill()
+      local spec, preset = presets.load()
       presets.invoke_llm(
-        SELECTED_PRESET.make_data_fn,
+        preset.make_data_fn,
         spec.make_curl_args,
         spec.make_job,
-        vim.tbl_extend('keep', SELECTED_PRESET.opts, {})
+        vim.tbl_extend('keep', preset.opts, {})
       )
     end
 
@@ -122,11 +85,12 @@ Set the default `SELECTED_PRESET` based on [presets.lua](https://github.com/chot
 
     -- optional for debugging purposes
     local function debug()
+      local spec, preset = presets.load()
       presets.invoke_llm(
-        SELECTED_PRESET.make_data_fn,
+        preset.make_data_fn,
         spec.make_curl_args,
         spec.make_job,
-        vim.tbl_extend('keep', SELECTED_PRESET.opts, {
+        vim.tbl_extend('keep', preset.opts, {
           debug = true,
         })
       )

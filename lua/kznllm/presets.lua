@@ -147,6 +147,7 @@ local function openai_debug_fn(data, ns_id, extmark_id, opts)
     kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
   end
   vim.cmd 'normal! G'
+  vim.cmd 'normal! zz'
 end
 
 local function vllm_completions_debug_fn(data, ns_id, extmark_id, opts)
@@ -155,6 +156,7 @@ local function vllm_completions_debug_fn(data, ns_id, extmark_id, opts)
   kznllm.write_content_at_extmark(data.prompt, ns_id, extmark_id)
   kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
   vim.cmd 'normal! G'
+  vim.cmd 'normal! zz'
 end
 
 local function anthropic_debug_fn(data, ns_id, extmark_id, opts)
@@ -168,8 +170,9 @@ local function anthropic_debug_fn(data, ns_id, extmark_id, opts)
     kznllm.write_content_at_extmark(message.role .. ':\n\n', ns_id, extmark_id)
     kznllm.write_content_at_extmark(message.content, ns_id, extmark_id)
     kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
-    vim.cmd 'normal! G'
   end
+  vim.cmd 'normal! G'
+  vim.cmd 'normal! zz'
 end
 
 --- Working implementation of "inline" fill mode
@@ -343,17 +346,18 @@ local presets = {
     },
   },
   {
-    id = 'completion-model',
+    id = 'chat-model',
     provider = 'vllm',
     make_data_fn = make_data_for_openai_chat,
     opts = {
-      model = 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+      model = 'meta-llama/Llama-3.2-3B-Instruct',
       data_params = {
         max_tokens = 8192,
         min_p = 0.9,
         temperature = 2.1,
       },
       debug_fn = openai_debug_fn,
+      base_url = 'http://worker.local:8000',
       endpoint = '/v1/chat/completions',
     },
   },

@@ -7,7 +7,7 @@ local Path = require 'plenary.path'
 local api = vim.api
 
 local M = {}
-local PRESETS = {}
+local presets = {}
 
 --TODO: PROMPT_ARGS_STATE is just a bad persistence layer at the moment, I don't really want to write files everywhere...
 
@@ -297,7 +297,7 @@ function M.load()
 end
 
 -- for vllm, add openai w/ kwargs (i.e. url + api_key)
-PRESETS = {
+presets = {
   {
     id = 'chat-model',
     provider = 'groq',
@@ -401,4 +401,4 @@ PRESETS = {
   },
 }
 
-return M
+return vim.tbl_extend('keep', M, presets)

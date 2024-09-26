@@ -259,6 +259,8 @@ function M.invoke_llm(make_data_fn, make_curl_args_fn, make_job_fn, opts)
 end
 
 function M.switch_presets()
+  local _, selected_preset = M.load()
+
   vim.ui.select(presets, {
     format_item = function(item)
       local options = {}
@@ -277,7 +279,7 @@ function M.switch_presets()
         end
       end
       table.sort(options)
-      return ('%-20s %10s | %s'):format(item.id, item.provider, table.concat(options, ' '))
+      return ('%-20s %10s | %s'):format(item.id .. (item == selected_preset and ' *' or '  '), item.provider, table.concat(options, ' '))
     end,
   }, function(choice, idx)
     if not choice then

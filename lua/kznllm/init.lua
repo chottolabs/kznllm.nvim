@@ -2,6 +2,7 @@ local Path = require 'plenary.path'
 local Scan = require 'plenary.scandir'
 local Job = require 'plenary.job'
 local api = vim.api
+local uv = vim.uv
 
 local M = {}
 
@@ -157,12 +158,21 @@ end
 ---@param opts table optional values
 ---@return string[] context_files list of files in the context directory
 function M.get_project_files(context_dir, opts)
-  local context_files = Scan.scan_dir(context_dir:absolute(), { hidden = false })
   vim.print('using context at: ' .. context_dir:absolute())
   local context = {}
-  for _, file in ipairs(context_files) do
-    table.insert(context, { path = file, content = Path:new(file):read() })
-  end
+  Scan.scan_dir(
+    context_dir:absolute(),
+    {
+      hidden = false,
+      on_insert = function (file, typ)
+        if typ == 'link' then
+          file = uv.fs_readlink(file)
+        end
+        local path = Path:new(file)
+        table.insert(context, { path = path.filename, content = path:read() })
+      end
+    }
+  )
 
   return context
 end

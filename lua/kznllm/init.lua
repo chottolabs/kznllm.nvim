@@ -156,7 +156,7 @@ end
 ---
 ---@param context_dir Path
 ---@param opts table optional values
----@return string[] context_files list of files in the context directory
+---@return { path: string, content: string }[] context_files list of files in the context directory
 function M.get_project_files(context_dir, opts)
   vim.print('using context at: ' .. context_dir:absolute())
   local context = {}

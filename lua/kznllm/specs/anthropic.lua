@@ -40,7 +40,7 @@ function M.make_curl_args(data, opts)
     '-H',
     'anthropic-version: 2023-06-01',
     '-H',
-    'anthropic-beta: max-tokens-3-5-sonnet-2024-07-15',
+    'anthropic-beta: prompt-caching-2024-07-31',
     url,
   }
 

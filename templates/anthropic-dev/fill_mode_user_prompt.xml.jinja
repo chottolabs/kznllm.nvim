@@ -10,19 +10,6 @@
 <context>{{current_buffer_path}}</context>
 
 {% endif %}
-{% if context_files %}
-<documents>
-{% for file in context_files %}
-<document index="{{loop.index}}">
-<source>{{file.path}}</source>
-<document_content>
-{{ file.content }}
-</document_content>
-</document>
-{% endfor %}
-</documents>
-
-{% endif %}
 {% if replace %}
 <query>{{user_query}}</query>
 

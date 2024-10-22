@@ -102,19 +102,57 @@ end
 ---@param prompt_args any
 ---@param opts any
 ---@return table
-local function make_data_for_anthropic_chat(prompt_args, opts)
+local function make_data_for_anthropic_chat_prefill(prompt_args, opts)
   local template_directory = opts.template_directory or TEMPLATE_DIRECTORY
-  local data = {
-    system = kznllm.make_prompt_from_template(template_directory / 'anthropic/fill_mode_system_prompt.xml.jinja', prompt_args),
-    messages = {
-      {
-        role = 'user',
-        content = kznllm.make_prompt_from_template(template_directory / 'anthropic/fill_mode_user_prompt.xml.jinja', prompt_args),
-      },
+  local messages = {
+    {
+      role = 'user',
+      content = kznllm.make_prompt_from_template(template_directory / 'anthropic/fill_mode_user_prompt.xml.jinja', prompt_args),
     },
+  }
+
+  local data = {
+    system = {
+      text = kznllm.make_prompt_from_template(template_directory / 'anthropic/fill_mode_system_prompt.xml.jinja', prompt_args),
+      cache_control = { type = 'ephemeral' },
+    },
+    messages = messages,
     model = opts.model,
     stream = true,
   }
+
+  if M.PROMPT_ARGS_STATE.replace and opts.prefill and opts.stop_param then
+    table.insert(messages, {
+      role = 'assistant',
+      content = opts.prefill,
+    })
+    data = vim.tbl_extend('keep', data, opts.stop_param)
+  end
+
+  data = vim.tbl_extend('keep', data, opts.data_params)
+
+  return data
+end
+
+---@param prompt_args any
+---@param opts any
+---@return table
+local function make_data_for_anthropic_chat(prompt_args, opts)
+  local template_directory = opts.template_directory or TEMPLATE_DIRECTORY
+  local messages = {
+    {
+      role = 'user',
+      content = kznllm.make_prompt_from_template(template_directory / 'anthropic/fill_mode_user_prompt.xml.jinja', prompt_args),
+    },
+  }
+
+  local data = {
+    system = kznllm.make_prompt_from_template(template_directory / 'anthropic/fill_mode_system_prompt.xml.jinja', prompt_args),
+    messages = messages,
+    model = opts.model,
+    stream = true,
+  }
+
   data = vim.tbl_extend('keep', data, opts.data_params)
 
   return data
@@ -339,7 +377,7 @@ presets = {
     },
   },
   {
-    id = 'chat-model',
+    id = 'sonnet-3-5',
     provider = 'anthropic',
     make_data_fn = make_data_for_anthropic_chat,
     opts = {
@@ -348,6 +386,23 @@ presets = {
         max_tokens = 8192,
         temperature = 0.7,
       },
+      debug_fn = anthropic_debug_fn,
+      base_url = 'https://api.anthropic.com',
+      endpoint = '/v1/messages',
+    },
+  },
+  {
+    id = 'sonnet-3-5-prefill',
+    provider = 'anthropic',
+    make_data_fn = make_data_for_anthropic_chat_prefill,
+    opts = {
+      model = 'claude-3-5-sonnet-20241022',
+      data_params = {
+        max_tokens = 8192,
+        temperature = 0.7,
+      },
+      stop_param = { stop_sequences = { '</code_fragment>' } },
+      prefill = '<code_fragment>',
       debug_fn = anthropic_debug_fn,
       base_url = 'https://api.anthropic.com',
       endpoint = '/v1/messages',

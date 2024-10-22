@@ -35,6 +35,27 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 ---@return table
 local function make_data_for_anthropic_chat_prefill(prompt_args, opts)
   local template_directory = opts.template_directory or TEMPLATE_DIRECTORY
+  local system = {
+    {
+      type = 'text',
+      text = kznllm.make_prompt_from_template(template_directory / 'anthropic-dev/fill_mode_system_prompt.xml.jinja', prompt_args),
+      cache_control = { type = 'ephemeral' },
+    },
+  }
+
+  if M.PROMPT_ARGS_STATE.context_files then
+    table.insert(system, {
+      type = 'text',
+      text = kznllm.make_prompt_from_template(
+        template_directory / 'anthropic-dev/document_template.xml.jinja',
+        { context_files = M.PROMPT_ARGS_STATE.context_files }
+      ),
+      cache_control = { type = 'ephemeral' },
+    })
+    -- for _, context in ipairs(M.PROMPT_ARGS_STATE.context_files) do
+    -- end
+  end
+
   local messages = {
     {
       role = 'user',
@@ -43,13 +64,7 @@ local function make_data_for_anthropic_chat_prefill(prompt_args, opts)
   }
 
   local data = {
-    system = {
-      {
-        type = 'text',
-        text = kznllm.make_prompt_from_template(template_directory / 'anthropic-dev/fill_mode_system_prompt.xml.jinja', prompt_args),
-        cache_control = { type = 'ephemeral' },
-      },
-    },
+    system = system,
     messages = messages,
     model = opts.model,
     stream = true,
@@ -235,29 +250,30 @@ end
 
 -- for vllm, add openai w/ kwargs (i.e. url + api_key)
 presets = {
-  {
-    id = 'haiku',
-    provider = 'anthropic',
-    make_data_fn = make_data_for_anthropic_chat,
-    opts = {
-      model = 'claude-3-5-haiku-latest',
-      data_params = {
-        max_tokens = 8192,
-        temperature = 0.7,
-      },
-      debug_fn = anthropic_debug_fn,
-      base_url = 'https://api.anthropic.com',
-      endpoint = '/v1/messages',
-    },
-  },
+  -- {
+  --   id = 'haiku',
+  --   provider = 'anthropic',
+  --   make_data_fn = make_data_for_anthropic_chat,
+  --   opts = {
+  --     model = 'claude-3-5-haiku-latest',
+  --     data_params = {
+  --       max_tokens = 8192,
+  --       temperature = 0.7,
+  --     },
+  --     debug_fn = anthropic_debug_fn,
+  --     base_url = 'https://api.anthropic.com',
+  --     endpoint = '/v1/messages',
+  --   },
+  -- },
   {
     id = 'sonnet-3-5-prefill',
     provider = 'anthropic',
     make_data_fn = make_data_for_anthropic_chat_prefill,
     opts = {
       model = 'claude-3-5-sonnet-20241022',
+      -- model = 'claude-3-5-sonnet-20240620',
       data_params = {
-        max_tokens = 8192,
+        max_tokens = 1024,
         temperature = 0.7,
       },
       stop_param = { stop_sequences = { '</code_fragment>' } },

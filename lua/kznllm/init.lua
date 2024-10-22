@@ -156,29 +156,26 @@ end
 ---
 ---@param context_dir Path
 ---@param opts table optional values
----@return string[] context_files list of files in the context directory
+---@return { path: string, content: string }[] context_files list of files in the context directory
 function M.get_project_files(context_dir, opts)
   vim.print('using context at: ' .. context_dir:absolute())
   local context = {}
   local function scan_dir(dir)
-    Scan.scan_dir(
-      dir,
-      {
-        hidden = false,
-        on_insert = function (file, typ)
-          if typ == 'link' then
-            file = vim.fn.resolve(file)
-            if uv.fs_stat(file).type == "directory" then
-              scan_dir(file)
-              return
-            end
+    Scan.scan_dir(dir, {
+      hidden = false,
+      on_insert = function(file, typ)
+        if typ == 'link' then
+          file = vim.fn.resolve(file)
+          if uv.fs_stat(file).type == 'directory' then
+            scan_dir(file)
+            return
           end
-
-          local path = Path:new(file)
-          table.insert(context, { path = path:absolute(), content = path:read() })
         end
-      }
-    )
+
+        local path = Path:new(file)
+        table.insert(context, { path = path:absolute(), content = path:read() })
+      end,
+    })
   end
   scan_dir(context_dir:absolute())
 

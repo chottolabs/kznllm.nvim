@@ -28,75 +28,6 @@ local plugin_dir = Path:new(debug.getinfo(1, 'S').source:sub(2)):parents()[3]
 local TEMPLATE_DIRECTORY = Path:new(plugin_dir) / 'templates'
 
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
----Example implementation of a `make_data_fn` compatible with `kznllm.invoke_llm` for groq spec
----@param prompt_args any
----@param opts { model: string, prefill:string, data_params: table, stop_param: table, template_directory: Path, debug: boolean }
----@return table
----
-local function make_data_for_openai_chat(prompt_args, opts)
-  local template_directory = opts.template_directory or TEMPLATE_DIRECTORY
-  local messages = {
-    {
-      role = 'system',
-      content = kznllm.make_prompt_from_template(template_directory / 'nous_research/fill_mode_system_prompt.xml.jinja', prompt_args),
-    },
-    {
-      role = 'user',
-      content = kznllm.make_prompt_from_template(template_directory / 'nous_research/fill_mode_user_prompt.xml.jinja', prompt_args),
-    },
-  }
-
-  local data = {
-    messages = messages,
-    model = opts.model,
-    stream = true,
-  }
-
-  if M.PROMPT_ARGS_STATE.replace and opts.prefill and opts.stop_param then
-    table.insert(messages, {
-      role = 'assistant',
-      content = opts.prefill .. prompt_args.current_buffer_filetype .. '\n',
-    })
-    data = vim.tbl_extend('keep', data, opts.stop_param)
-  end
-
-  data = vim.tbl_extend('keep', data, opts.data_params)
-
-  return data
-end
-
-local function make_data_for_deepseek_chat(prompt_args, opts)
-  local template_directory = opts.template_directory or TEMPLATE_DIRECTORY
-  local messages = {
-    {
-      role = 'system',
-      content = kznllm.make_prompt_from_template(template_directory / 'deepseek/fill_mode_system_prompt.xml.jinja', prompt_args),
-    },
-    {
-      role = 'user',
-      content = kznllm.make_prompt_from_template(template_directory / 'deepseek/fill_mode_user_prompt.xml.jinja', prompt_args),
-    },
-  }
-
-  local data = {
-    messages = messages,
-    model = opts.model,
-    stream = true,
-  }
-
-  if M.PROMPT_ARGS_STATE.replace and opts.prefill and opts.stop_param then
-    table.insert(messages, {
-      role = 'assistant',
-      content = opts.prefill .. prompt_args.current_buffer_filetype .. '\n',
-      prefix = true,
-    })
-    data = vim.tbl_extend('keep', data, opts.stop_param)
-  end
-
-  data = vim.tbl_extend('keep', data, opts.data_params)
-
-  return data
-end
 
 ---Example implementation of a `make_data_fn` compatible with `kznllm.invoke_llm` for anthropic spec
 ---@param prompt_args any
@@ -104,18 +35,36 @@ end
 ---@return table
 local function make_data_for_anthropic_chat_prefill(prompt_args, opts)
   local template_directory = opts.template_directory or TEMPLATE_DIRECTORY
+  local system = {
+    {
+      type = 'text',
+      text = kznllm.make_prompt_from_template(template_directory / 'anthropic-dev/fill_mode_system_prompt.xml.jinja', prompt_args),
+      cache_control = { type = 'ephemeral' },
+    },
+  }
+
+  if M.PROMPT_ARGS_STATE.context_files then
+    table.insert(system, {
+      type = 'text',
+      text = kznllm.make_prompt_from_template(
+        template_directory / 'anthropic-dev/document_template.xml.jinja',
+        { context_files = M.PROMPT_ARGS_STATE.context_files }
+      ),
+      cache_control = { type = 'ephemeral' },
+    })
+    -- for _, context in ipairs(M.PROMPT_ARGS_STATE.context_files) do
+    -- end
+  end
+
   local messages = {
     {
       role = 'user',
-      content = kznllm.make_prompt_from_template(template_directory / 'anthropic/fill_mode_user_prompt.xml.jinja', prompt_args),
+      content = kznllm.make_prompt_from_template(template_directory / 'anthropic-dev/fill_mode_user_prompt.xml.jinja', prompt_args),
     },
   }
 
   local data = {
-    system = {
-      text = kznllm.make_prompt_from_template(template_directory / 'anthropic/fill_mode_system_prompt.xml.jinja', prompt_args),
-      cache_control = { type = 'ephemeral' },
-    },
+    system = system,
     messages = messages,
     model = opts.model,
     stream = true,
@@ -158,53 +107,15 @@ local function make_data_for_anthropic_chat(prompt_args, opts)
   return data
 end
 
----Example implementation of a `make_data_fn` compatible with `kznllm.invoke_llm` for vllm completions spec
----@param prompt_args any
----@param opts any
----@return table
-local function make_data_for_openai_completions(prompt_args, opts)
-  local template_directory = opts.template_directory or TEMPLATE_DIRECTORY
-  local data = {
-    prompt = kznllm.make_prompt_from_template(template_directory / 'vllm/fill_mode_instruct_completion_prompt.xml.jinja', prompt_args),
-    model = opts.model,
-    temperature = 1.5,
-    min_p = 1.0,
-    stream = true,
-  }
-
-  return data
-end
-
-local function openai_debug_fn(data, ns_id, extmark_id, opts)
-  kznllm.write_content_at_extmark('model: ' .. opts.model, ns_id, extmark_id)
-  for _, message in ipairs(data.messages) do
-    kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
-    kznllm.write_content_at_extmark(message.role .. ':\n\n', ns_id, extmark_id)
-    kznllm.write_content_at_extmark(message.content, ns_id, extmark_id)
-  end
-  if not (M.PROMPT_ARGS_STATE.replace and opts.prefill) then
-    kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
-  end
-  vim.cmd 'normal! G'
-  vim.cmd 'normal! zz'
-end
-
-local function vllm_completions_debug_fn(data, ns_id, extmark_id, opts)
-  kznllm.write_content_at_extmark('model: ' .. opts.model, ns_id, extmark_id)
-  kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
-  kznllm.write_content_at_extmark(data.prompt, ns_id, extmark_id)
-  kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
-  vim.cmd 'normal! G'
-  vim.cmd 'normal! zz'
-end
-
 local function anthropic_debug_fn(data, ns_id, extmark_id, opts)
   kznllm.write_content_at_extmark('model: ' .. opts.model, ns_id, extmark_id)
   kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
 
   kznllm.write_content_at_extmark('system' .. ':\n\n', ns_id, extmark_id)
-  kznllm.write_content_at_extmark(data.system, ns_id, extmark_id)
-  kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
+  for _, item in ipairs(data.system) do
+    kznllm.write_content_at_extmark(item.text, ns_id, extmark_id)
+    kznllm.write_content_at_extmark('\n\n---\n\n', ns_id, extmark_id)
+  end
   for _, message in ipairs(data.messages) do
     kznllm.write_content_at_extmark(message.role .. ':\n\n', ns_id, extmark_id)
     kznllm.write_content_at_extmark(message.content, ns_id, extmark_id)
@@ -329,76 +240,40 @@ function M.switch_presets()
 end
 
 function M.load()
-  local idx = vim.g.PRESET_IDX or 1
+  vim.print(#presets, vim.g.PRESET_IDX)
+  local idx = (vim.g.PRESET_IDX <= #presets) and vim.g.PRESET_IDX or 1
   local preset = presets[idx]
-  local spec = require(('kznllm.specs.%s'):format(preset.provider))
+  local spec = require 'kznllm.specs.anthropic'
 
   return spec, preset
 end
 
 -- for vllm, add openai w/ kwargs (i.e. url + api_key)
 presets = {
-  {
-    id = 'chat-model',
-    provider = 'groq',
-    make_data_fn = make_data_for_openai_chat,
-    opts = {
-      model = 'llama-3.1-70b-versatile',
-      data_params = {
-        -- max_tokens = 8192,
-        temperature = 0.7,
-      },
-      -- doesn't support prefill
-      -- stop_param = { stop = { '```' } },
-      -- prefill = '```',
-      debug_fn = openai_debug_fn,
-      base_url = 'https://api.groq.com',
-      endpoint = '/openai/v1/chat/completions',
-    },
-  },
-  {
-    id = 'chat-model',
-    provider = 'lambda',
-    make_data_fn = make_data_for_openai_chat,
-    opts = {
-      model = 'hermes-3-llama-3.1-405b-fp8',
-      data_params = {
-        -- max_tokens = 8192,
-        -- temperature = 2.1,
-        temperature = 1.5,
-        min_p = 0.05,
-        logprobs = 1,
-      },
-      -- stop_param = { stop_token_ids = { 74694 } },
-      -- prefill = '```',
-      debug_fn = openai_debug_fn,
-      base_url = 'https://api.lambdalabs.com',
-      endpoint = '/v1/chat/completions',
-    },
-  },
-  {
-    id = 'sonnet-3-5',
-    provider = 'anthropic',
-    make_data_fn = make_data_for_anthropic_chat,
-    opts = {
-      model = 'claude-3-5-sonnet-20241022',
-      data_params = {
-        max_tokens = 8192,
-        temperature = 0.7,
-      },
-      debug_fn = anthropic_debug_fn,
-      base_url = 'https://api.anthropic.com',
-      endpoint = '/v1/messages',
-    },
-  },
+  -- {
+  --   id = 'haiku',
+  --   provider = 'anthropic',
+  --   make_data_fn = make_data_for_anthropic_chat,
+  --   opts = {
+  --     model = 'claude-3-5-haiku-latest',
+  --     data_params = {
+  --       max_tokens = 8192,
+  --       temperature = 0.7,
+  --     },
+  --     debug_fn = anthropic_debug_fn,
+  --     base_url = 'https://api.anthropic.com',
+  --     endpoint = '/v1/messages',
+  --   },
+  -- },
   {
     id = 'sonnet-3-5-prefill',
     provider = 'anthropic',
     make_data_fn = make_data_for_anthropic_chat_prefill,
     opts = {
       model = 'claude-3-5-sonnet-20241022',
+      -- model = 'claude-3-5-sonnet-20240620',
       data_params = {
-        max_tokens = 8192,
+        max_tokens = 1024,
         temperature = 0.7,
       },
       stop_param = { stop_sequences = { '</code_fragment>' } },
@@ -406,54 +281,6 @@ presets = {
       debug_fn = anthropic_debug_fn,
       base_url = 'https://api.anthropic.com',
       endpoint = '/v1/messages',
-    },
-  },
-  {
-    id = 'chat-model',
-    provider = 'openai',
-    make_data_fn = make_data_for_openai_chat,
-    opts = {
-      model = 'gpt-4o-mini',
-      data_params = {
-        max_tokens = 16384,
-        temperature = 0.7,
-      },
-      debug_fn = openai_debug_fn,
-      base_url = 'https://api.openai.com',
-      endpoint = '/v1/chat/completions',
-    },
-  },
-  {
-    id = 'chat-model',
-    provider = 'deepseek',
-    make_data_fn = make_data_for_deepseek_chat,
-    opts = {
-      model = 'deepseek-chat',
-      data_params = {
-        max_tokens = 8192,
-        temperature = 0,
-      },
-      stop_param = { stop = { '```' } },
-      prefill = '```',
-      debug_fn = openai_debug_fn,
-      base_url = 'https://api.deepseek.com',
-      endpoint = '/beta/v1/chat/completions',
-    },
-  },
-  {
-    id = 'chat-model',
-    provider = 'vllm',
-    make_data_fn = make_data_for_openai_chat,
-    opts = {
-      model = 'meta-llama/Llama-3.2-3B-Instruct',
-      data_params = {
-        max_tokens = 8192,
-        min_p = 0.9,
-        temperature = 2.1,
-      },
-      debug_fn = openai_debug_fn,
-      base_url = 'http://worker.local:8000',
-      endpoint = '/v1/chat/completions',
     },
   },
 }

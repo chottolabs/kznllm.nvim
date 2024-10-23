@@ -65,6 +65,7 @@ M.options = {
     description = 'claude-3-5-sonnet-20241022 | temp = 0.7',
     invoke = function(opts)
       api.nvim_clear_autocmds { group = group }
+      local origin_buf_id = api.nvim_win_get_buf(0)
 
       local provider = BaseProvider:new({
         api_key_name = 'ANTHROPIC_API_KEY',
@@ -80,8 +81,12 @@ M.options = {
         api.nvim_buf_set_text(0, pos.srow, pos.scol, pos.erow, pos.ecol, {})
       end
 
+      local user_query = kznllm.get_user_input()
+
+      if user_query == nil then return end
+
       local prompt_args = {
-        user_query = kznllm.get_user_input(),
+        user_query = user_query,
         visual_selection = selection,
         current_buffer_context = kznllm.get_buffer_context(0, {}),
         replace = replace,
@@ -136,6 +141,9 @@ M.options = {
 
         local last_line = vim.api.nvim_buf_line_count(stream_buf_id) - 1
         stream_end_extmark_id = api.nvim_buf_set_extmark(stream_buf_id, NS_ID, last_line, 0, {})
+      else
+        stream_buf_id = origin_buf_id
+        stream_end_extmark_id = api.nvim_buf_set_extmark(stream_buf_id, NS_ID, pos.srow, pos.scol, { strict = false })
       end
 
       -- Make a no-op change to the buffer at the specified extmark to avoid calling undojoin after undo

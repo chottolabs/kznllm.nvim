@@ -1,13 +1,13 @@
 {% if current_buffer_context %}
-<source>{{current_buffer_path}}</source>
+<source>{{current_buffer_context.path}}</source>
 <current_context>
-```{{current_buffer_filetype}}
-{{ current_buffer_context }}
+```{{current_buffer_context.filetype}}
+{{ current_buffer_context.text }}
 ```
 </current_context>
 
 {% elif current_buffer_path %}
-<context>{{current_buffer_path}}</context>
+<context>{{current_buffer_context.path}}</context>
 
 {% endif %}
 {% if context_files %}
@@ -31,7 +31,7 @@ You will be given a code snippet with comments. Your task is to fix any errors i
 Here is the code snippet:
 
 <code_snippet>
-```{{current_buffer_filetype}}
+```{{current_buffer_context.filetype}}
 {{visual_selection}}
 ```
 </code_snippet>

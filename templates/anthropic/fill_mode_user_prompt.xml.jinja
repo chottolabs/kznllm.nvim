@@ -1,3 +1,4 @@
+{% if current_buffer_context.text %}
 Let's establish the context of the current file:
 
 <current_file_context>
@@ -8,6 +9,8 @@ Let's establish the context of the current file:
 </content>
 </current_file_context>
 
+{% endif %}
+{% if visual_selection %}
 Now, here's the specific code snippet you need to work on:
 
 <code_snippet>
@@ -17,11 +20,13 @@ Now, here's the specific code snippet you need to work on:
 </selected_code>
 </code_snippet>
 
+{% endif %}
 Here's the user's specific query or instruction:
 <user_query>
 {{user_query | trim}}
 </user_query>
 
+<instructions>
 Your task is to improve this code snippet by following these steps:
 
 1. Analyze the code:
@@ -61,5 +66,6 @@ Remember:
 - Focus on substituting the user's selection with a valid code fragment, considering the given context
 - Provide thoughtful but brief and direct feedback
 - Speak as an expert in low-level concepts, identifying and correcting bad practices while preserving the user's unique style
+</instructions>
 
 Now, please proceed with your analysis and code correction.

@@ -10,14 +10,10 @@ local M = {}
 -- [ CONTEXT BUILDING UTILITY FUNCTIONS ]
 --
 
---- Gets user input and returns it.
----
 function M.get_user_input()
   local value
   vim.ui.input({ prompt = 'prompt: ' }, function(input)
-    if input ~= nil then
-      value = input
-    end
+    value = input
   end)
   return value
 end
@@ -59,6 +55,7 @@ function M.get_visual_selection(opts)
     visual_selection = table.concat(api.nvim_buf_get_text(0, srow, scol, erow, ecol, {}), '\n')
   end
 
+  -- clear the visual selection depending on condition
   local debug = opts and opts.debug
   if not debug and replace_mode then
     api.nvim_buf_set_text(0, srow, scol, erow, ecol, {})

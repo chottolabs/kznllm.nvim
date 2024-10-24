@@ -31,14 +31,14 @@ function M.switch_presets(preset_list)
 
   vim.ui.select(preset_list, {
     format_item = function(item)
-      return ('%-15s %40s'):format(item.id .. (item == selected_preset and ' *' or '  '), item.description)
+      return ('%-25s %40s'):format(item.id .. (item == selected_preset and ' *' or '  '), item.description)
     end,
   }, function(choice, idx)
     if choice then
       vim.g.PRESET_IDX = idx
-      selected_preset = preset_list[preset_idx]
+      selected_preset = preset_list[idx]
     end
-    print(('%-15s %40s'):format(selected_preset.id, selected_preset.description))
+    print(('%-25s %40s'):format(selected_preset.id, selected_preset.description))
   end)
 end
 

@@ -35,24 +35,6 @@ function M.make_prompt_from_template(opts)
   return table.concat(active_job:result(), '\n')
 end
 
----Creates a buffer in markdown mode (for syntax highlighting)
-function M.make_scratch_buffer()
-  local buf_id = api.nvim_create_buf(false, true)
-
-  -- api.nvim_set_option_value('buflisted', true, { buf = buf_id })
-  api.nvim_set_option_value('filetype', 'markdown', { buf = buf_id })
-  api.nvim_set_option_value('swapfile', false, { buf = buf_id })
-
-  api.nvim_set_current_buf(buf_id)
-  api.nvim_set_option_value('wrap', true, { win = 0 })
-  api.nvim_set_option_value('linebreak', true, { win = 0 })
-  api.nvim_set_option_value('breakindent', true, { win = 0 })
-
-  local num_lines = api.nvim_buf_line_count(buf_id)
-  api.nvim_win_set_cursor(0, { num_lines, 0 })
-  return buf_id
-end
-
 --
 -- [ CONTEXT BUILDING UTILITY FUNCTIONS ]
 --

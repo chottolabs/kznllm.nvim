@@ -2,7 +2,7 @@
 -- This module provides the basic feature set from kznllm v0.1 with the addition of exported presets.
 -- Your lazy config still wants to define the keymaps to make it work (see the main project README.md for recommended setup)
 --
-local kznllm = require 'kznllm-v3'
+local utils = require 'kznllm-v3.utils'
 local buffer_manager = (require 'kznllm-v3.buffers').buffer_manager
 local Path = require 'plenary.path'
 local api = vim.api
@@ -63,11 +63,11 @@ M.options = {
     invoke = function(opts)
       local replace, user_query, current_buffer_context, selection
 
-      user_query = kznllm.get_user_input()
+      user_query = utils.get_user_input()
       if user_query == nil then return end
 
       replace = not (api.nvim_get_mode().mode == 'n')
-      selection = kznllm.get_visual_selection(opts)
+      selection = utils.get_visual_selection(opts)
 
       current_buffer_context = buffer_manager:get_buffer_context(0)
 
@@ -112,7 +112,7 @@ M.options = {
           },
         },
       }
-      local context_files = kznllm.get_project_files({
+      local context_files = utils.get_project_files({
         stop_dir = Path:new(vim.fn.expand '~'),
         context_dir_id = '.kzn'
       })

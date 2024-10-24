@@ -98,8 +98,8 @@ M.options = {
         ["system"] = {
           {
             type = "text",
-            text = kznllm.make_prompt_from_template({
-              prompt_template_path = provider.template_directory / 'fill_mode_system_prompt.xml.jinja',
+            text = provider:make_prompt_from_template({
+              filename = 'fill_mode_system_prompt.xml.jinja',
               prompt_args = prompt_args,
             }),
             cache_control = { type = "ephemeral" },
@@ -108,8 +108,8 @@ M.options = {
         ["messages"] = {
           {
             role = 'user',
-            content = kznllm.make_prompt_from_template({
-              prompt_template_path = provider.template_directory / 'fill_mode_user_prompt.xml.jinja',
+            content = provider:make_prompt_from_template({
+              filename = 'fill_mode_user_prompt.xml.jinja',
               prompt_args = prompt_args,
             }),
           },
@@ -122,11 +122,9 @@ M.options = {
       if context_files then
         table.insert(data.system, {
           type = "text",
-          text = kznllm.make_prompt_from_template({
-            prompt_template_path = provider.template_directory / 'long_context_documents.xml.jinja',
-            prompt_args = {
-              context_files = context_files
-            },
+          text = provider:make_prompt_from_template({
+            filename = 'long_context_documents.xml.jinja',
+            prompt_args = { context_files = context_files },
           }),
           cache_control = { type = "ephemeral" },
         })
@@ -139,10 +137,7 @@ M.options = {
         stream_buf_id = scratch_buf_id
 
         api.nvim_buf_set_var(stream_buf_id, 'debug', true)
-        local debug_data = kznllm.make_prompt_from_template({
-          prompt_template_path = provider.template_directory / 'debug.xml.jinja',
-          prompt_args = data,
-        })
+        local debug_data = provider:make_prompt_from_template({ filename = 'debug.xml.jinja', prompt_args = data, })
         buffer_manager:write_content(debug_data, scratch_buf_id)
 
         vim.cmd 'normal! G'

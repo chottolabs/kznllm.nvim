@@ -63,4 +63,36 @@ function BaseProvider:make_curl_args(opts)
   return args
 end
 
+---Renders a prompt template using minijinja-cli and returns the rendered lines
+---
+---@param opts { filename: string, prompt_args:table } absolute path to a jinja file, typically PROMPT_ARGS_STATE which needs to be json encoded
+---@return string rendered_prompt
+function BaseProvider:make_prompt_from_template(opts)
+  if vim.fn.executable 'minijinja-cli' ~= 1 then
+    error("Can't find minijinja-cli, download it from https://github.com/mitsuhiko/minijinja or add it to $PATH", 1)
+  end
+
+  local prompt_template_path = self.template_directory / opts.filename
+
+  if not prompt_template_path:exists() then
+    error(string.format('could not find template at %s', prompt_template_path), 1)
+  end
+
+  local json_data = vim.json.encode(opts.prompt_args)
+  local active_job = Job:new {
+    command = 'minijinja-cli',
+    args = { '-f', 'json', '--lstrip-blocks', '--trim-blocks', prompt_template_path:absolute(), '-' },
+    writer = json_data,
+  }
+
+  active_job:sync()
+  if active_job.code ~= 0 then
+    local error_msg = table.concat(active_job:stderr_result(), '\n')
+    error('[minijinja-cli] (exit code: ' .. active_job.code .. ')\n' .. error_msg, vim.log.levels.ERROR)
+  end
+
+  return table.concat(active_job:result(), '\n')
+end
+
+
 return BaseProvider

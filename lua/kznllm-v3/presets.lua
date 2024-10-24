@@ -136,9 +136,6 @@ M.options = {
         vim.cmd 'normal! zz'
       end
 
-      -- Make a no-op change to the buffer at the specified extmark to avoid calling undojoin after undo
-      kznllm.noop()
-
       local args = provider:make_curl_args({
         endpoint = '/v1/messages',
         auth_format = 'x-api-key: %s',

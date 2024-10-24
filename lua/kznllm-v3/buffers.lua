@@ -53,6 +53,18 @@ function BufferManager:create_scratch_buffer()
   return buf_id
 end
 
+---Get buffer context without saving
+---@param buf_id integer Buffer ID to get context from
+---@return { filetype: string, path: string, text: string }
+function BufferManager:get_buffer_context(buf_id)
+  local state = self:get_or_add_buffer(buf_id)
+  return {
+    filetype = state.filetype,
+    path = state.path,
+    text = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n')
+  }
+end
+
 ---Write content at current buffer's extmark position
 ---@param content string Content to write
 ---@param buf_id? integer Optional buffer ID, defaults to current
@@ -74,16 +86,10 @@ function BufferManager:write_content(content, buf_id)
   api.nvim_buf_set_text(buf_id, mrow, mcol, mrow, mcol, lines)
 end
 
----Get buffer context without saving
----@param buf_id integer Buffer ID to get context from
----@return { filetype: string, path: string, text: string }
-function BufferManager:get_buffer_context(buf_id)
-  local state = self:get_or_add_buffer(buf_id)
-  return {
-    filetype = state.filetype,
-    path = state.path,
-    text = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n')
-  }
+--- Makes a no-op change to the buffer
+--- This is used before making changes to avoid calling undojoin after undo.
+local function noop()
+  api.nvim_buf_set_text(0, 0, 0, 0, 0, {})
 end
 
 -- Add to providers/base.lua
@@ -92,6 +98,9 @@ end
 function BufferManager:create_streaming_job(provider, args)
   local buf_id = api.nvim_get_current_buf()
   local state = self:get_or_add_buffer(buf_id)
+
+  --- should be safe to do this before any jobs
+  noop()
 
   local job = Job:new({
     command = 'curl',

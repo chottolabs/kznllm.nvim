@@ -131,10 +131,4 @@ function M.get_project_files(opts)
   return context
 end
 
---- Makes a no-op change to the buffer at the specified extmark.
---- This is used before making changes to avoid calling undojoin after undo.
-function M.noop()
-  api.nvim_buf_set_text(0, 0, 0, 0, 0, {})
-end
-
 return M

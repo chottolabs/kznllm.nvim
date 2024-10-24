@@ -2,7 +2,7 @@
 <source>{{current_buffer_context.path}}</source>
 <current_context>
 ```{{current_buffer_context.filetype}}
-{{ current_buffer_context.text }}
+{{ current_buffer_context.text | trim }}
 ```
 </current_context>
 
@@ -16,7 +16,7 @@
 <document index="{{loop.index}}">
 <source>{{file.path}}</source>
 <document_content>
-{{ file.content }}
+{{ file.content | trim }}
 </document_content>
 </document>
 {% endfor %}
@@ -24,15 +24,13 @@
 
 {% endif %}
 {% if replace %}
-<query>{{user_query}}</query>
-
 You will be given a code snippet with comments. Your task is to fix any errors in the code and implement any unfinished functionality indicated in the comments. Only output valid code fragment in the provided language.
 
 Here is the code snippet:
 
 <code_snippet>
 ```{{current_buffer_context.filetype}}
-{{visual_selection}}
+{{ visual_selection | trim }}
 ```
 </code_snippet>
 
@@ -62,6 +60,8 @@ Follow these steps to complete the task:
 Output your corrected and implemented code. Ensure that the code fragment you output is valid, and ready to run in the language of the original snippet.
 
 Remember, only output valid code without any backticks. Do not include any explanations, notes, or anything other than the corrected code itself.
+
+<query>{{ user_query | trim }}</query>
 {% else %}
-{{user_query}}
+<query>{{ user_query | trim }}</query>
 {% endif %}

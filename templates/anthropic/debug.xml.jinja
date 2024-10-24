@@ -2,18 +2,17 @@ model: {{model}}
 
 system:
 {% for context in system %}
-{{context.text}}
+{{ context.text | trim }}
 
 cache_control: {{context.cache_control}}
 
 ---
 
 {% endfor %}
-
 {% for message in messages %}
 {{message.role}}:
 
-{{message.content}}
+{{ message.content | trim }}
 
 {% endfor %}
 ---

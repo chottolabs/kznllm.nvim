@@ -21,6 +21,12 @@ Now, here's the specific code snippet you need to work on:
 </code_snippet>
 
 {% endif %}
+{% if replace %}
+Here's the user's specific query or instruction:
+<user_query>
+{{user_query | trim}}
+</user_query>
+{% else %}
 Here's the user's specific query or instruction:
 <user_query>
 {{user_query | trim}}
@@ -67,5 +73,6 @@ Remember:
 - Provide thoughtful but brief and direct feedback
 - Speak as an expert in low-level concepts, identifying and correcting bad practices while preserving the user's unique style
 </instructions>
+{% endif %}
 
 Now, please proceed with your analysis and code correction.

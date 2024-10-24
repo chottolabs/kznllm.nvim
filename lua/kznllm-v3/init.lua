@@ -77,8 +77,10 @@ function M.find_context_directory(opts)
       return nil
     end
 
-    return context_dir:parent() / context_dir_id
+    context_dir = context_dir:parent()
   end
+
+  return context_dir / context_dir_id
 end
 ---project scoped context
 ---

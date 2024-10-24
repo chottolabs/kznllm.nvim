@@ -35,18 +35,6 @@ function M.make_prompt_from_template(opts)
   return table.concat(active_job:result(), '\n')
 end
 
----@param content string
----@param extmark_id integer
-function M.write_content_at_extmark(content, ns_id, extmark_id)
-  local extmark = api.nvim_buf_get_extmark_by_id(0, ns_id, extmark_id, { details = false })
-  local mrow, mcol = extmark[1], extmark[2]
-
-  local lines = vim.split(content, '\n')
-
-  vim.cmd 'undojoin'
-  api.nvim_buf_set_text(0, mrow, mcol, mrow, mcol, lines)
-end
-
 ---Creates a buffer in markdown mode (for syntax highlighting)
 function M.make_scratch_buffer()
   local buf_id = api.nvim_create_buf(false, true)
@@ -191,19 +179,6 @@ function M.get_project_files(opts)
   scan_dir(context_dir:absolute())
 
   return context
-end
-
----similar to rendering a template, but we want to get the context of the file without relying on the changes being saved
----@param buf_id integer the id of the buffer to retrieve context for
----@param opts table optional values to pass to the function
----@return { filetype: string, path: string, context: string }
-function M.get_buffer_context(buf_id, opts)
-  local buf_filetype, buf_path, buf_context
-  buf_filetype = vim.bo.filetype
-  buf_path = api.nvim_buf_get_name(buf_id)
-  buf_context = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n')
-
-  return { filetype = buf_filetype, path = buf_path, text = buf_context }
 end
 
 --- Makes a no-op change to the buffer at the specified extmark.

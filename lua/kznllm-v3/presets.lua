@@ -141,23 +141,18 @@ M.options = {
       if opts.debug then
         local scratch_buf_id = buffer_manager:create_scratch_buffer()
         stream_buf_id = scratch_buf_id
-        -- local scratch_buf_id = kznllm.make_scratch_buffer()
+
         api.nvim_buf_set_var(stream_buf_id, 'debug', true)
         local debug_data = kznllm.make_prompt_from_template({
           prompt_template_path = provider.template_directory / 'debug.xml.jinja',
           prompt_args = data,
         })
         buffer_manager:write_content(debug_data, scratch_buf_id)
-        -- api.nvim_buf_set_lines(scratch_buf_id, 0, 0, false, vim.split(debug_data, '\n'))
+
         vim.cmd 'normal! G'
         vim.cmd 'normal! zz'
-
-
-        -- local last_line = vim.api.nvim_buf_line_count(stream_buf_id) - 1
-        -- stream_end_extmark_id = api.nvim_buf_set_extmark(stream_buf_id, NS_ID, last_line, 0, {})
       else
         stream_buf_id = origin_buf_id
-      --   stream_end_extmark_id = api.nvim_buf_set_extmark(stream_buf_id, NS_ID, pos.srow, pos.scol, { strict = false })
       end
 
       -- Make a no-op change to the buffer at the specified extmark to avoid calling undojoin after undo
@@ -172,12 +167,6 @@ M.options = {
         },
         data = data,
       })
-
-      -- local active_job = provider:make_job(args, function(content)
-      --   kznllm.write_content_at_extmark(content, NS_ID, stream_end_extmark_id)
-      -- end, function()
-      --   api.nvim_buf_del_extmark(stream_buf_id, NS_ID, stream_end_extmark_id)
-      -- end)
 
       local active_job = buffer_manager:create_streaming_job(provider, stream_buf_id, args)
       active_job:start()

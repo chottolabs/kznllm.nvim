@@ -36,7 +36,7 @@ end
 ---@field endpoint string
 ---@field auth_format? string
 ---@field extra_headers? string[]
----@field data table
+---@field data? table
 
 ---@param opts BaseProviderCurlOptions
 ---@return string[]

@@ -1,5 +1,30 @@
 local M = {}
 
+---
+--- TYPE ANNOTATIONS
+---
+
+---@class OpenAIAPIBody : OpenAIParameters
+---@field messages OpenAIMessage[]
+---@field stop? string[] | string
+---@field stream? boolean
+---@field stream_options? { include_usage: boolean }
+---@field n? integer
+---@field tool_choice? table
+---@field tools? table[]
+---@field response_format? { type: "json_object" } | { type: "json_schema", json_schema: table }
+
+---@class OpenAIParameters
+---@field max_completion_tokens? integer
+---@field temperature? number
+---@field top_p? number
+---@field frequency_penalty? number
+---@field presence_penalty? number
+
+---@class OpenAIMessage
+---@field role "system" | "user" | "assistant"
+---@field content string
+
 --- Process server-sent events based on OpenAI spec
 --- [See Documentation](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream)
 ---

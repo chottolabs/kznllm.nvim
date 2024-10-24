@@ -63,32 +63,4 @@ function BaseProvider:make_curl_args(opts)
   return args
 end
 
----@param args table
----@param writer_fn fun(content: string)
----@param on_exit_fn function
-function BaseProvider:make_job(args, writer_fn, on_exit_fn)
-
-  return Job:new({
-    command = 'curl',
-    args = args,
-    enable_recording = true,
-    on_stdout = function(_, line)
-      local content = self.handle_data_fn(line)
-      if content then
-        vim.schedule(function() writer_fn(content) end)
-      end
-    end,
-    on_stderr = function(err) error(err, 1) end,
-    on_exit = function(job, code)
-      vim.schedule(function()
-        if code ~= 0 then
-          vim.notify(('[curl] (exit code: %d)\n%s'):format(code, table.concat(job:result(), '\n')), vim.log.levels.ERROR)
-        else
-          on_exit_fn()
-        end
-      end)
-    end
-  })
-end
-
 return BaseProvider

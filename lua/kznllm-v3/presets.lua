@@ -3,11 +3,11 @@
 -- Your lazy config still wants to define the keymaps to make it work (see the main project README.md for recommended setup)
 --
 local utils = require 'kznllm-v3.utils'
-local buffer_manager = (require 'kznllm-v3.buffers').buffer_manager
+local buffer_manager = (require 'kznllm-v3.buffer').buffer_manager
 local Path = require 'plenary.path'
 local api = vim.api
 
-local BaseProvider = require 'kznllm-v3.providers.base'
+local BaseProvider = require 'kznllm-v3.provider'
 local anthropic = require 'kznllm-v3.providers.anthropic'
 local openai = require 'kznllm-v3.providers.openai'
 

@@ -13,12 +13,8 @@ local openai = require 'kznllm-v3.providers.openai'
 
 local M = {}
 
-local NS_ID = api.nvim_create_namespace 'kznllm_ns'
-
 local plugin_dir = Path:new(debug.getinfo(1, 'S').source:sub(2)):parents()[3]
 local TEMPLATE_DIRECTORY = Path:new(plugin_dir) / 'templates'
-
-local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
 ---@class PromptArguments
 ---@field visual_selection? string
@@ -168,19 +164,9 @@ M.options = {
         data = data,
       })
 
-      local active_job = buffer_manager:create_streaming_job(provider, stream_buf_id, args)
-      active_job:start()
+      local job = buffer_manager:create_streaming_job(provider, stream_buf_id, args)
+      job:start()
 
-      api.nvim_create_autocmd('User', {
-        group = group,
-        pattern = 'LLM_Escape',
-        callback = function()
-          if active_job.is_shutdown ~= true then
-            active_job:shutdown()
-            print 'LLM streaming cancelled'
-          end
-        end,
-      })
     end
   },
 }

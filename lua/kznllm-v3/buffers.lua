@@ -3,6 +3,8 @@ local BufferManager = {}
 local api = vim.api
 local Job = require 'plenary.job'
 
+local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
+
 BufferManager.state = {
   buffers = {},  -- Map of buffer_id -> buffer state
   ns_id = api.nvim_create_namespace('kznllm_ns')
@@ -88,11 +90,10 @@ end
 ---@param provider BaseProvider
 ---@param buf_id integer
 ---@param args table
----@return Job
 function BufferManager:create_streaming_job(provider, buf_id, args)
   local state = self:get_or_create_buffer(buf_id)
 
-  return Job:new({
+  local job = Job:new({
     command = 'curl',
     args = args,
     enable_recording = true,
@@ -107,10 +108,10 @@ function BufferManager:create_streaming_job(provider, buf_id, args)
     on_stderr = function(err) error(err, 1) end,
     on_exit = function(job, code)
       vim.schedule(function()
-        if code ~= 0 then
+        if code and code ~= 0 then
           vim.notify(('[curl] (exit code: %d)\n%s'):format(
             code,
-            table.concat(job:result(), '\n')
+            (job:result() and #job:result() > 0) and table.concat(job:result(), '\n') or 'No additional error output'
           ), vim.log.levels.ERROR)
         else
           -- Clean up extmark on successful completion
@@ -122,6 +123,17 @@ function BufferManager:create_streaming_job(provider, buf_id, args)
       end)
     end
   })
+  api.nvim_create_autocmd('User', {
+    group = group,
+    pattern = 'LLM_Escape',
+    callback = function()
+      if job.is_shutdown ~= true then
+        job:shutdown()
+        print 'LLM streaming cancelled'
+      end
+    end,
+  })
+  return job
 end
 
 -- Export the singleton

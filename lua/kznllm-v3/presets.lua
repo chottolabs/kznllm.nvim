@@ -61,8 +61,15 @@ M.options = {
     id = "sonnet-3-5-chat",
     description = 'claude-3-5-sonnet-20241022 | temp = 0.7',
     invoke = function(opts)
-      api.nvim_clear_autocmds { group = group }
-      local origin_buf_id = api.nvim_win_get_buf(0)
+      local replace, user_query, current_buffer_context, selection
+
+      user_query = kznllm.get_user_input()
+      if user_query == nil then return end
+
+      replace = not (api.nvim_get_mode().mode == 'n')
+      selection = kznllm.get_visual_selection(opts)
+
+      current_buffer_context = buffer_manager:get_buffer_context(0)
 
       local provider = BaseProvider:new({
         api_key_name = 'ANTHROPIC_API_KEY',
@@ -70,16 +77,6 @@ M.options = {
         handle_data_fn = anthropic.handle_sse_stream,
         template_directory = (opts.template_directory or TEMPLATE_DIRECTORY) / 'anthropic'
       })
-
-      local replace, user_query, current_buffer_context, selection
-      replace = not (api.nvim_get_mode().mode == 'n')
-      selection = kznllm.get_visual_selection(opts)
-
-      user_query = kznllm.get_user_input()
-
-      if user_query == nil then return end
-
-      current_buffer_context = buffer_manager:get_buffer_context(0)
 
       local prompt_args = {
         user_query = user_query,
@@ -130,20 +127,13 @@ M.options = {
         })
       end
 
-      local stream_buf_id
-
       if opts.debug then
         local scratch_buf_id = buffer_manager:create_scratch_buffer()
-        stream_buf_id = scratch_buf_id
-
-        api.nvim_buf_set_var(stream_buf_id, 'debug', true)
         local debug_data = provider:make_prompt_from_template({ filename = 'debug.xml.jinja', prompt_args = data, })
         buffer_manager:write_content(debug_data, scratch_buf_id)
 
         vim.cmd 'normal! G'
         vim.cmd 'normal! zz'
-      else
-        stream_buf_id = origin_buf_id
       end
 
       -- Make a no-op change to the buffer at the specified extmark to avoid calling undojoin after undo
@@ -159,7 +149,7 @@ M.options = {
         data = data,
       })
 
-      local job = buffer_manager:create_streaming_job(provider, stream_buf_id, args)
+      local job = buffer_manager:create_streaming_job(provider, args)
       job:start()
 
     end

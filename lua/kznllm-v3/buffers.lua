@@ -88,9 +88,9 @@ end
 
 -- Add to providers/base.lua
 ---@param provider BaseProvider
----@param buf_id integer
 ---@param args table
-function BufferManager:create_streaming_job(provider, buf_id, args)
+function BufferManager:create_streaming_job(provider, args)
+  local buf_id = api.nvim_get_current_buf()
   local state = self:get_or_add_buffer(buf_id)
 
   local job = Job:new({

@@ -18,7 +18,7 @@ BufferManager.state = {
 ---Initialize or get buffer state
 ---@param buf_id integer
 ---@return BufferState
-function BufferManager:get_or_create_buffer(buf_id)
+function BufferManager:get_or_add_buffer(buf_id)
   if not self.state.buffers[buf_id] then
     self.state.buffers[buf_id] = {
       extmark_id = nil,
@@ -40,7 +40,7 @@ end
 ---@return integer buf_id
 function BufferManager:create_scratch_buffer()
   local buf_id = api.nvim_create_buf(false, true)
-  local state = self:get_or_create_buffer(buf_id)
+  _ = self:get_or_add_buffer(buf_id)
 
   api.nvim_set_option_value('filetype', 'markdown', { buf = buf_id })
   api.nvim_set_option_value('swapfile', false, { buf = buf_id })
@@ -58,7 +58,7 @@ end
 ---@param buf_id? integer Optional buffer ID, defaults to current
 function BufferManager:write_content(content, buf_id)
   buf_id = buf_id or api.nvim_get_current_buf()
-  local state = self:get_or_create_buffer(buf_id)
+  local state = self:get_or_add_buffer(buf_id)
 
   if not state.extmark_id then
     -- Create new extmark at current cursor position
@@ -78,7 +78,7 @@ end
 ---@param buf_id integer Buffer ID to get context from
 ---@return { filetype: string, path: string, text: string }
 function BufferManager:get_buffer_context(buf_id)
-  local state = self:get_or_create_buffer(buf_id)
+  local state = self:get_or_add_buffer(buf_id)
   return {
     filetype = state.filetype,
     path = state.path,
@@ -91,7 +91,7 @@ end
 ---@param buf_id integer
 ---@param args table
 function BufferManager:create_streaming_job(provider, buf_id, args)
-  local state = self:get_or_create_buffer(buf_id)
+  local state = self:get_or_add_buffer(buf_id)
 
   local job = Job:new({
     command = 'curl',

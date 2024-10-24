@@ -130,8 +130,8 @@ M.options = {
       if opts.debug then
         local scratch_buf_id = buffer_manager:create_scratch_buffer()
         local debug_data = provider:make_prompt_from_template({ filename = 'debug.xml.jinja', prompt_args = data, })
-        buffer_manager:write_content(debug_data, scratch_buf_id)
 
+        buffer_manager:write_content(debug_data, scratch_buf_id)
         vim.cmd 'normal! G'
         vim.cmd 'normal! zz'
       end
@@ -148,7 +148,6 @@ M.options = {
 
       local job = buffer_manager:create_streaming_job(provider, args)
       job:start()
-
     end
   },
 }

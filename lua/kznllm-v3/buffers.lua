@@ -65,7 +65,7 @@ function BufferManager:get_buffer_context(buf_id)
   }
 end
 
----Write content at current buffer's extmark position
+---Write content at current buffer's extmark position. If extmark does not exist, set it to the current cursor position
 ---@param content string Content to write
 ---@param buf_id? integer Optional buffer ID, defaults to current
 function BufferManager:write_content(content, buf_id)

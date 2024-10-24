@@ -1,6 +1,5 @@
 local Path = require 'plenary.path'
 local Scan = require 'plenary.scandir'
-local Job = require 'plenary.job'
 local api = vim.api
 local uv = vim.uv
 
@@ -67,7 +66,7 @@ end
 ---Locates the path value for context directory
 ---
 ---@param opts { stop_dir: Path?, context_dir_id: string? } `stop_dir` - Path to stop traversing directories (default `$HOME`, `context_dir_id` - identifier that this function will scan for (default `.kzn`)
----@return Path context_dir directory path
+---@return Path? context_dir directory path
 function M.find_context_directory(opts)
   local stop_dir = opts and opts.stop_dir or Path:new(vim.fn.expand '~')
   local context_dir_id = opts and opts.context_dir_id or '.kzn'
@@ -75,18 +74,11 @@ function M.find_context_directory(opts)
 
   while not (context_dir / context_dir_id):exists() and context_dir:is_dir() do
     if context_dir:absolute() == stop_dir:absolute() then
-      context_dir = nil
-      break
+      return nil
     end
 
-    context_dir = context_dir:parent()
+    return context_dir:parent() / context_dir_id
   end
-
-  if context_dir then
-    context_dir = context_dir / context_dir_id
-  end
-
-  return context_dir
 end
 ---project scoped context
 ---
@@ -95,40 +87,34 @@ end
 ---@param opts { stop_dir: Path, context_dir_id: string } values
 ---@return { path: string, content: string }? context_files list of files in the context directory
 function M.get_project_files(opts)
-  local context_dir = M.find_context_directory({
-    stop_dir = Path:new(vim.fn.expand '~'),
-    context_dir_id = '.kzn'
-  })
-
-  if context_dir == nil then
-    return nil
-  end
-
-  vim.print('using context at: ' .. context_dir:absolute())
-  local context = {}
-  local function scan_dir(dir)
-    Scan.scan_dir(
-      dir,
-      {
-        hidden = false,
-        on_insert = function (file, typ)
-          if typ == 'link' then
-            file = vim.fn.resolve(file)
-            if uv.fs_stat(file).type == "directory" then
-              scan_dir(file)
-              return
+  local context_dir = M.find_context_directory(opts)
+  if context_dir then
+    vim.print('using context at: ' .. context_dir:absolute())
+    local context = {}
+    local function scan_dir(dir)
+      Scan.scan_dir(
+        dir,
+        {
+          hidden = false,
+          on_insert = function (file, typ)
+            if typ == 'link' then
+              file = vim.fn.resolve(file)
+              if uv.fs_stat(file).type == "directory" then
+                scan_dir(file)
+                return
+              end
             end
+
+            local path = Path:new(file)
+            table.insert(context, { path = path:absolute(), content = path:read() })
           end
+        }
+      )
+    end
+    scan_dir(context_dir:absolute())
 
-          local path = Path:new(file)
-          table.insert(context, { path = path:absolute(), content = path:read() })
-        end
-      }
-    )
+    return context
   end
-  scan_dir(context_dir:absolute())
-
-  return context
 end
 
 return M

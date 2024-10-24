@@ -9,6 +9,7 @@ local openai = require 'kznllm-v3.specs.openai'
 
 local M = {}
 
+-- NOTE: this is a relative path meant to point at the template directory
 local plugin_dir = Path:new(debug.getinfo(1, 'S').source:sub(2)):parents()[4]
 local TEMPLATE_DIRECTORY = Path:new(plugin_dir) / 'templates'
 
@@ -189,7 +190,6 @@ local OpenAIPresetBuilder = BasicPresetBuilder:new({
 
 
 -- Example preset configurations
--- /v1/chat/completions
 M.options = {
   AnthropicPresetBuilder:build({
     id = "sonnet-3-5-chat",

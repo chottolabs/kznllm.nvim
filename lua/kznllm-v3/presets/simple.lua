@@ -13,6 +13,7 @@ local openai = require 'kznllm-v3.providers.openai'
 
 local M = {}
 
+-- NOTE: this is a relative path meant to point at the template directory
 local plugin_dir = Path:new(debug.getinfo(1, 'S').source:sub(2)):parents()[4]
 local TEMPLATE_DIRECTORY = Path:new(plugin_dir) / 'templates'
 

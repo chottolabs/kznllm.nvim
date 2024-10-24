@@ -1,7 +1,7 @@
 local Job = require('plenary.job')
 
 ---@class BaseProvider
----@field api_key string
+---@field private api_key string
 ---@field base_url string
 ---@field handle_data_fn fun(string)
 ---@field template_directory Path

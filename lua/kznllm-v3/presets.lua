@@ -1,14 +1,15 @@
-local BaseProvider = require 'kznllm-v3.providers.base'
-local anthropic = require 'kznllm-v3.providers.anthropic'
-local openai = require 'kznllm-v3.providers.openai'
-
 --
 -- This module provides the basic feature set from kznllm v0.1 with the addition of exported presets.
 -- Your lazy config still wants to define the keymaps to make it work (see the main project README.md for recommended setup)
 --
 local kznllm = require 'kznllm-v3'
+local buffer_manager = (require 'kznllm-v3.buffers').buffer_manager
 local Path = require 'plenary.path'
 local api = vim.api
+
+local BaseProvider = require 'kznllm-v3.providers.base'
+local anthropic = require 'kznllm-v3.providers.anthropic'
+local openai = require 'kznllm-v3.providers.openai'
 
 local M = {}
 
@@ -74,26 +75,21 @@ M.options = {
         template_directory = (opts.template_directory or TEMPLATE_DIRECTORY) / 'anthropic'
       })
 
-      local replace = not (api.nvim_get_mode().mode == 'n')
-      local selection, pos = kznllm.get_visual_selection({ debug = true })
+      local replace, user_query, current_buffer_context, selection
+      replace = not (api.nvim_get_mode().mode == 'n')
+      selection = kznllm.get_visual_selection(opts)
 
-      if replace then
-        api.nvim_buf_set_text(0, pos.srow, pos.scol, pos.erow, pos.ecol, {})
-      end
-
-      local user_query = kznllm.get_user_input()
+      user_query = kznllm.get_user_input()
 
       if user_query == nil then return end
+
+      current_buffer_context = buffer_manager:get_buffer_context(0)
 
       local prompt_args = {
         user_query = user_query,
         visual_selection = selection,
-        current_buffer_context = kznllm.get_buffer_context(0, {}),
+        current_buffer_context = current_buffer_context,
         replace = replace,
-        context_files = kznllm.get_project_files({
-          stop_dir = Path:new(vim.fn.expand '~'),
-          context_dir_id = '.kzn'
-        }),
       }
 
       ---@type AnthropicAPIBody
@@ -123,31 +119,49 @@ M.options = {
           },
         },
       }
+      local context_files = kznllm.get_project_files({
+        stop_dir = Path:new(vim.fn.expand '~'),
+        context_dir_id = '.kzn'
+      })
+      if context_files then
+        table.insert(data.system, {
+          type = "text",
+          text = kznllm.make_prompt_from_template({
+            prompt_template_path = provider.template_directory / 'long_context_documents.xml.jinja',
+            prompt_args = {
+              context_files = context_files
+            },
+          }),
+          cache_control = { type = "ephemeral" },
+        })
+      end
 
-      local stream_buf_id, stream_end_extmark_id
+      local stream_buf_id
 
       if opts.debug then
-        local scratch_buf_id = kznllm.make_scratch_buffer()
-        api.nvim_buf_set_var(scratch_buf_id, 'debug', true)
+        local scratch_buf_id = buffer_manager:create_scratch_buffer()
+        stream_buf_id = scratch_buf_id
+        -- local scratch_buf_id = kznllm.make_scratch_buffer()
+        api.nvim_buf_set_var(stream_buf_id, 'debug', true)
         local debug_data = kznllm.make_prompt_from_template({
           prompt_template_path = provider.template_directory / 'debug.xml.jinja',
           prompt_args = data,
         })
-        api.nvim_buf_set_lines(scratch_buf_id, 0, 0, false, vim.split(debug_data, '\n'))
+        buffer_manager:write_content(debug_data, scratch_buf_id)
+        -- api.nvim_buf_set_lines(scratch_buf_id, 0, 0, false, vim.split(debug_data, '\n'))
         vim.cmd 'normal! G'
         vim.cmd 'normal! zz'
 
-        stream_buf_id = scratch_buf_id
 
-        local last_line = vim.api.nvim_buf_line_count(stream_buf_id) - 1
-        stream_end_extmark_id = api.nvim_buf_set_extmark(stream_buf_id, NS_ID, last_line, 0, {})
+        -- local last_line = vim.api.nvim_buf_line_count(stream_buf_id) - 1
+        -- stream_end_extmark_id = api.nvim_buf_set_extmark(stream_buf_id, NS_ID, last_line, 0, {})
       else
         stream_buf_id = origin_buf_id
-        stream_end_extmark_id = api.nvim_buf_set_extmark(stream_buf_id, NS_ID, pos.srow, pos.scol, { strict = false })
+      --   stream_end_extmark_id = api.nvim_buf_set_extmark(stream_buf_id, NS_ID, pos.srow, pos.scol, { strict = false })
       end
 
       -- Make a no-op change to the buffer at the specified extmark to avoid calling undojoin after undo
-      kznllm.noop(NS_ID, stream_buf_id, stream_end_extmark_id)
+      kznllm.noop()
 
       local args = provider:make_curl_args({
         endpoint = '/v1/messages',
@@ -159,12 +173,13 @@ M.options = {
         data = data,
       })
 
-      local active_job = provider:make_job(args, function(content)
-        kznllm.write_content_at_extmark(content, NS_ID, stream_end_extmark_id)
-      end, function()
-        api.nvim_buf_del_extmark(stream_buf_id, NS_ID, stream_end_extmark_id)
-      end)
+      -- local active_job = provider:make_job(args, function(content)
+      --   kznllm.write_content_at_extmark(content, NS_ID, stream_end_extmark_id)
+      -- end, function()
+      --   api.nvim_buf_del_extmark(stream_buf_id, NS_ID, stream_end_extmark_id)
+      -- end)
 
+      local active_job = buffer_manager:create_streaming_job(provider, stream_buf_id, args)
       active_job:start()
 
       api.nvim_create_autocmd('User', {

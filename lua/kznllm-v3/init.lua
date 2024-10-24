@@ -86,7 +86,6 @@ end
 ---
 ---@param opts { debug: boolean? } optional values including debug mode
 ---@return string selection
----@return { srow: integer, scol: integer, erow: integer, ecol: integer } position
 function M.get_visual_selection(opts)
   local mode = api.nvim_get_mode().mode
 
@@ -124,7 +123,7 @@ function M.get_visual_selection(opts)
     api.nvim_buf_set_text(0, srow, scol, erow, ecol, {})
   end
 
-  return visual_selection, { srow = srow, scol = scol, erow = erow, ecol = ecol }
+  return visual_selection
 end
 
 ---Locates the path value for context directory
@@ -209,12 +208,8 @@ end
 
 --- Makes a no-op change to the buffer at the specified extmark.
 --- This is used before making changes to avoid calling undojoin after undo.
----
----@param extmark_id integer the id of the extmark
-function M.noop(ns_id, buf_id, extmark_id)
-  local extmark = api.nvim_buf_get_extmark_by_id(0, ns_id, extmark_id, { details = false })
-  local mrow, mcol = extmark[1], extmark[2]
-  api.nvim_buf_set_text(buf_id, mrow, mcol, mrow, mcol, {})
+function M.noop()
+  api.nvim_buf_set_text(0, 0, 0, 0, 0, {})
 end
 
 return M

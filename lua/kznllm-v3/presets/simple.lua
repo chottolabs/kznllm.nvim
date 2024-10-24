@@ -13,7 +13,7 @@ local openai = require 'kznllm-v3.providers.openai'
 
 local M = {}
 
-local plugin_dir = Path:new(debug.getinfo(1, 'S').source:sub(2)):parents()[3]
+local plugin_dir = Path:new(debug.getinfo(1, 'S').source:sub(2)):parents()[4]
 local TEMPLATE_DIRECTORY = Path:new(plugin_dir) / 'templates'
 
 ---@class PromptArguments
@@ -69,7 +69,8 @@ M.options = {
       replace = not (api.nvim_get_mode().mode == 'n')
       selection = utils.get_visual_selection(opts)
 
-      current_buffer_context = buffer_manager:get_buffer_context(0)
+      local current_buf_id = api.nvim_get_current_buf()
+      current_buffer_context = buffer_manager:get_buffer_context(current_buf_id)
 
       local provider = BaseProvider:new({
         api_key_name = 'ANTHROPIC_API_KEY',

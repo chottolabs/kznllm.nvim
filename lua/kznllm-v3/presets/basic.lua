@@ -9,7 +9,7 @@ local openai = require 'kznllm-v3.specs.openai'
 
 local M = {}
 
-local plugin_dir = Path:new(debug.getinfo(1, 'S').source:sub(2)):parents()[3]
+local plugin_dir = Path:new(debug.getinfo(1, 'S').source:sub(2)):parents()[4]
 local TEMPLATE_DIRECTORY = Path:new(plugin_dir) / 'templates'
 
 ---@class BasicPreset
@@ -45,26 +45,24 @@ function BasicPresetBuilder:build(config)
     description = config.description,
     invoke = function(opts)
       local provider = self.provider
-      local replace, user_query, current_buffer_context, selection
 
-      user_query = utils.get_user_input()
+      local user_query = utils.get_user_input()
       if user_query == nil then return end
 
-      replace = not (api.nvim_get_mode().mode == 'n')
-      selection = utils.get_visual_selection(opts)
-      current_buffer_context = buffer_manager:get_buffer_context(0)
+      local selection = utils.get_visual_selection(opts)
 
-      local context_files = utils.get_project_files({
-        stop_dir = Path:new(vim.fn.expand '~'),
-        context_dir_id = '.kzn'
-      })
+      local current_buf_id = api.nvim_get_current_buf()
+      local current_buffer_context = buffer_manager:get_buffer_context(current_buf_id)
 
       local prompt_args = {
         user_query = user_query,
         selection = selection,
         current_buffer_context = current_buffer_context,
-        replace = replace,
-        context_files = context_files,
+        replace = not (api.nvim_get_mode().mode == 'n'),
+        context_files = utils.get_project_files({
+          stop_dir = Path:new(vim.fn.expand '~'),
+          context_dir_id = '.kzn'
+        }),
       }
 
       if self.spec == "anthropic" then
@@ -78,8 +76,7 @@ function BasicPresetBuilder:build(config)
         local debug_data = provider:make_prompt_from_template({ filename = 'debug.xml.jinja', prompt_args = config.curl_options.data })
 
         buffer_manager:write_content(debug_data, scratch_buf_id)
-        vim.cmd 'normal! G'
-        vim.cmd 'normal! zz'
+        vim.cmd 'normal! Gzz'
       end
 
       local args = provider:make_curl_args(config.curl_options)

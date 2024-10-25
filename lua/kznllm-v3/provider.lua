@@ -65,7 +65,7 @@ end
 
 ---Renders a prompt template using minijinja-cli and returns the rendered lines
 ---
----@param opts { filename: string, prompt_args:table } absolute path to a jinja file, typically PROMPT_ARGS_STATE which needs to be json encoded
+---@param opts { filename: string, prompt_args:table } absolute path to a jinja file
 ---@return string rendered_prompt
 function BaseProvider:make_prompt_from_template(opts)
   if vim.fn.executable 'minijinja-cli' ~= 1 then

@@ -92,7 +92,7 @@ function BasicPresetBuilder:make_data_for_anthropic_spec(curl_options, prompt_ar
     {
       type = "text",
       text = self.provider:make_prompt_from_template({
-        filename = 'long_context_documents.xml.jinja',
+        filename = 'fill_mode_system_prompt.xml.jinja',
         prompt_args = prompt_args,
       }),
       cache_control = { type = "ephemeral" },
@@ -113,7 +113,7 @@ function BasicPresetBuilder:make_data_for_anthropic_spec(curl_options, prompt_ar
       {
         type = "text",
         text = self.provider:make_prompt_from_template({
-          filename = 'fill_mode_system_prompt.xml.jinja',
+          filename = 'long_context_documents.xml.jinja',
           prompt_args = prompt_args,
         }),
         cache_control = { type = "ephemeral" },

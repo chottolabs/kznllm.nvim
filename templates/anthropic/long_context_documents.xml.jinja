@@ -1,0 +1,13 @@
+First, let's establish the context of related documents:
+
+<related_documents>
+{% for file in context_files %}
+<document index="{{loop.index}}">
+<path>{{file.path}}</path>
+<content>
+{{file.content | trim}}
+</content>
+</document>
+{% endfor %}
+</related_documents>
+

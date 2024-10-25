@@ -7,9 +7,7 @@ local buffer_manager = (require 'kznllm-v3.buffer').buffer_manager
 local Path = require 'plenary.path'
 local api = vim.api
 
-local BaseProvider = require 'kznllm-v3.provider'
-local anthropic = require 'kznllm-v3.providers.anthropic'
-local openai = require 'kznllm-v3.providers.openai'
+local anthropic = require 'kznllm-v3.specs.anthropic'
 
 local M = {}
 
@@ -73,12 +71,7 @@ M.options = {
       local current_buf_id = api.nvim_get_current_buf()
       current_buffer_context = buffer_manager:get_buffer_context(current_buf_id)
 
-      local provider = BaseProvider:new({
-        api_key_name = 'ANTHROPIC_API_KEY',
-        base_url = 'https://api.anthropic.com',
-        handle_data_fn = anthropic.handle_sse_stream,
-        template_directory = (opts.template_directory or TEMPLATE_DIRECTORY) / 'anthropic'
-      })
+      local provider = anthropic.AnthropicProvider
 
       local prompt_args = {
         user_query = user_query,

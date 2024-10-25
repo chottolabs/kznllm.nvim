@@ -1,0 +1,11 @@
+model: {{model}}
+
+{% for message in messages %}
+{{message.role}}:
+
+{{ message.content | trim }}
+
+{% endfor %}
+---
+
+

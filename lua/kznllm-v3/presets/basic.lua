@@ -33,7 +33,7 @@ function BasicPresetBuilder:new(config)
 end
 
 function BasicPresetBuilder:make_data(curl_options, prompt_args)
-  error("handle_sse_stream NOT IMPLEMENTED", 1)
+  error("make_data NOT IMPLEMENTED", 1)
 end
 
 ---@param config BasicPresetConfig
@@ -145,9 +145,13 @@ function OpenAIPresetBuilder:make_data(curl_options, prompt_args)
   }
 end
 
----@class OpenAIPresetBuilder : BasicPresetBuilder
+---@class LambdaPresetBuilder: OpenAIPresetBuilder
 local LambdaPresetBuilder = OpenAIPresetBuilder:new({
   provider = openai.LambdaProvider,
+})
+---@class DeepSeekPresetBuilder: OpenAIPresetBuilder
+local DeepSeekPresetBuilder = OpenAIPresetBuilder:new({
+  provider = openai.DeepSeekProvider,
 })
 
 ---@param preset_list BasicPreset[]
@@ -212,6 +216,20 @@ M.options = {
         ["stream"] = true,
         ["max_tokens"] = 4096,
         ["temperature"] = 0.7,
+      }
+    }
+  }),
+  DeepSeekPresetBuilder:build({
+    id = "deepseek-chat",
+    description = 'deepseek-chat | temp = 0.0',
+    curl_options = {
+      endpoint = '/beta/v1/chat/completions',
+      extra_headers = {},
+      data = {
+        ["model"] = 'deepseek-chat',
+        ["stream"] = true,
+        ["max_completion_tokens"] = 8192,
+        ["temperature"] = 0,
       }
     }
   }),

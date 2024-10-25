@@ -16,21 +16,21 @@ M.OpenAIProvider = BaseProvider:new({
 })
 
 ---@class LambdaProvider : OpenAIProvider
-M.LambdaProvider = BaseProvider:new({
+M.LambdaProvider = M.OpenAIProvider:new({
   api_key_name = 'LAMBDA_API_KEY',
   base_url = 'https://api.lambdalabs.com',
   template_path = TEMPLATE_DIRECTORY / 'lambda',
 })
 
 ---@class GroqProvider : OpenAIProvider
-M.GroqProvider = BaseProvider:new({
+M.GroqProvider = M.OpenAIProvider:new({
   api_key_name = 'GROQ_API_KEY',
   base_url = 'https://api.groq.com/openai',
   template_path = TEMPLATE_DIRECTORY / 'groq',
 })
 
 ---@class DeepSeekProvider : OpenAIProvider
-M.DeepSeekProvider = BaseProvider:new({
+M.DeepSeekProvider = M.OpenAIProvider:new({
   api_key_name = 'DEEPSEEK_API_KEY',
   base_url = 'https://api.deepseek.com',
   template_path = TEMPLATE_DIRECTORY / 'deepseek',

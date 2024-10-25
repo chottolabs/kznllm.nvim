@@ -107,7 +107,7 @@ function BufferManager:create_streaming_job(provider, args)
     args = args,
     enable_recording = true,
     on_stdout = function(_, line)
-      local content = provider.handle_data_fn(line)
+      local content = provider:handle_sse_stream(line)
       if content then
         vim.schedule(function()
           self:write_content(content, buf_id)

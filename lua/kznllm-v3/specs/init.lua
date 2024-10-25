@@ -9,6 +9,7 @@ local BaseProvider = {}
 ---@class BaseProviderOptions
 ---@field api_key_name string
 ---@field base_url string
+---@field template_path Path
 
 ---@param opts BaseProviderOptions
 ---@return BaseProvider
@@ -21,6 +22,7 @@ function BaseProvider:new(opts)
   local instance = {
     api_key = api_key,
     base_url = opts.base_url,
+    template_path = opts.template_path,
   }
 
   setmetatable(instance, {__index = self})

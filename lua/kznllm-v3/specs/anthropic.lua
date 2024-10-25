@@ -1,4 +1,10 @@
 local BaseProvider = require 'kznllm-v3.specs'
+local Path = require 'plenary.path'
+
+-- NOTE: this is a relative path meant to point at the template directory
+local plugin_dir = Path:new(debug.getinfo(1, 'S').source:sub(2)):parents()[4]
+local TEMPLATE_DIRECTORY = Path:new(plugin_dir) / 'templates'
+
 
 local M = {}
 
@@ -40,6 +46,7 @@ local M = {}
 M.AnthropicProvider = BaseProvider:new({
   api_key_name = 'ANTHROPIC_API_KEY',
   base_url = 'https://api.anthropic.com',
+  template_path = TEMPLATE_DIRECTORY / 'anthropic',
 })
 
 ---

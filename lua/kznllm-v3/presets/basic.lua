@@ -3,15 +3,10 @@ local buffer_manager = (require 'kznllm-v3.buffer').buffer_manager
 local Path = require 'plenary.path'
 local api = vim.api
 
-local BaseProvider = require 'kznllm-v3.provider'
 local anthropic = require 'kznllm-v3.specs.anthropic'
 local openai = require 'kznllm-v3.specs.openai'
 
 local M = {}
-
--- NOTE: this is a relative path meant to point at the template directory
-local plugin_dir = Path:new(debug.getinfo(1, 'S').source:sub(2)):parents()[4]
-local TEMPLATE_DIRECTORY = Path:new(plugin_dir) / 'templates'
 
 ---@class BasicPreset
 ---@field id? string
@@ -23,19 +18,22 @@ local TEMPLATE_DIRECTORY = Path:new(plugin_dir) / 'templates'
 ---@field id string
 ---@field description string
 ---@field curl_options BaseProviderCurlOptions
----@field template_overrides? table
 
 ---@class BasicPresetBuilder
----@field spec "openai" | "anthropic"
 ---@field provider BaseProvider
+---@field template_path Path
 local BasicPresetBuilder = {}
 
----@param config { spec: string, provider: BaseProvider }
+---@param config { provider: BaseProvider, template_path: Path }
 ---@return BasicPresetBuilder
 function BasicPresetBuilder:new(config)
-  local instance = { spec = config.spec, provider = config.provider }
+  local instance = { provider = config.provider }
   setmetatable(instance, { __index = self })
   return instance
+end
+
+function BasicPresetBuilder:make_data(curl_options, prompt_args)
+  error("handle_sse_stream NOT IMPLEMENTED", 1)
 end
 
 ---@param config BasicPresetConfig
@@ -66,11 +64,7 @@ function BasicPresetBuilder:build(config)
         }),
       }
 
-      if self.spec == "anthropic" then
-        self:make_data_for_anthropic_spec(config.curl_options, prompt_args)
-      elseif self.spec == "openai" then
-        self:make_data_for_openai_spec(config.curl_options, prompt_args)
-      end
+      self:make_data(config.curl_options, prompt_args)
 
       if opts.debug then
         local scratch_buf_id = buffer_manager:create_scratch_buffer()
@@ -87,7 +81,12 @@ function BasicPresetBuilder:build(config)
   }
 end
 
-function BasicPresetBuilder:make_data_for_anthropic_spec(curl_options, prompt_args)
+---@class AnthropicPresetBuilder : BasicPresetBuilder
+local AnthropicPresetBuilder = BasicPresetBuilder:new({
+  provider = anthropic.AnthropicProvider,
+})
+
+function AnthropicPresetBuilder:make_data(curl_options, prompt_args)
   curl_options.data.system = {
     {
       type = "text",
@@ -122,7 +121,12 @@ function BasicPresetBuilder:make_data_for_anthropic_spec(curl_options, prompt_ar
   end
 end
 
-function BasicPresetBuilder:make_data_for_openai_spec(curl_options, prompt_args)
+---@class OpenAIPresetBuilder : BasicPresetBuilder
+local OpenAIPresetBuilder = BasicPresetBuilder:new({
+  provider = openai.OpenAIProvider,
+})
+
+function OpenAIPresetBuilder:make_data(curl_options, prompt_args)
   curl_options.data.messages = {
     {
       role = 'system',
@@ -140,6 +144,11 @@ function BasicPresetBuilder:make_data_for_openai_spec(curl_options, prompt_args)
     },
   }
 end
+
+---@class OpenAIPresetBuilder : BasicPresetBuilder
+local LambdaPresetBuilder = OpenAIPresetBuilder:new({
+  provider = openai.LambdaProvider,
+})
 
 ---@param preset_list BasicPreset[]
 function M.switch_presets(preset_list)
@@ -166,26 +175,6 @@ function M.load_selected_preset(preset_list)
 
   return preset
 end
-
-local AnthropicPresetBuilder = BasicPresetBuilder:new({
-  spec = "anthropic",
-  provider = BaseProvider:new({
-    api_key_name = "ANTHROPIC_API_KEY",
-    base_url = 'https://api.anthropic.com',
-    handle_data_fn = anthropic.handle_sse_stream,
-    template_directory = TEMPLATE_DIRECTORY / 'anthropic'
-  }),
-})
-
-local OpenAIPresetBuilder = BasicPresetBuilder:new({
-  spec = "openai",
-  provider = BaseProvider:new({
-    api_key_name = "OPENAI_API_KEY",
-    base_url = 'https://api.openai.com',
-    handle_data_fn = openai.handle_sse_stream,
-    template_directory = TEMPLATE_DIRECTORY / 'openai'
-  }),
-})
 
 
 -- Example preset configurations

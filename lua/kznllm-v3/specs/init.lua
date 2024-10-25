@@ -3,15 +3,12 @@ local Job = require('plenary.job')
 ---@class BaseProvider
 ---@field private api_key string
 ---@field base_url string
----@field handle_data_fn fun(string)
----@field template_directory Path
+---@field template_path Path
 local BaseProvider = {}
 
 ---@class BaseProviderOptions
 ---@field api_key_name string
 ---@field base_url string
----@field handle_data_fn fun(string)
----@field template_directory Path
 
 ---@param opts BaseProviderOptions
 ---@return BaseProvider
@@ -24,19 +21,20 @@ function BaseProvider:new(opts)
   local instance = {
     api_key = api_key,
     base_url = opts.base_url,
-    handle_data_fn = opts.handle_data_fn,
-    template_directory = opts.template_directory,
   }
 
   setmetatable(instance, {__index = self})
   return instance
 end
 
----@class BaseProviderCurlOptions
+
+---@class BaseProviderCurlOptions: BaseProviderHeaderOptions
+---@field data table
+
+---@class BaseProviderHeaderOptions
 ---@field endpoint string
 ---@field auth_format? string
 ---@field extra_headers? string[]
----@field data? table
 
 ---@param opts BaseProviderCurlOptions
 ---@return string[]
@@ -72,7 +70,7 @@ function BaseProvider:make_prompt_from_template(opts)
     error("Can't find minijinja-cli, download it from https://github.com/mitsuhiko/minijinja or add it to $PATH", 1)
   end
 
-  local prompt_template_path = self.template_directory / opts.filename
+  local prompt_template_path = self.template_path / opts.filename
 
   if not prompt_template_path:exists() then
     error(string.format('could not find template at %s', prompt_template_path), 1)
@@ -94,5 +92,10 @@ function BaseProvider:make_prompt_from_template(opts)
   return table.concat(active_job:result(), '\n')
 end
 
+---@param line string
+---@return string?
+function BaseProvider:handle_sse_stream(line)
+  error("handle_sse_stream NOT IMPLEMENTED", 1)
+end
 
 return BaseProvider

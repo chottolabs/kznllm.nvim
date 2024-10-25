@@ -1,22 +1,31 @@
+local BaseProvider = require 'kznllm-v3.specs'
+
 local M = {}
 
 ---
 --- TYPE ANNOTATIONS
 ---
 
+---@class AnthropicCurlOptions
+---@field endpoint string
+---@field auth_format? string
+---@field extra_headers? string[]
+---@field data AnthropicAPIBody
+---
 ---@class AnthropicAPIBody : AnthropicParameters
 ---@field system AnthropicSystemContext[]
 ---@field messages AnthropicMessage[]
----@field stop_sequences? string[]
----@field stream? boolean
----@field tool_choice? table
----@field tools? table[]
 
 ---@class AnthropicParameters
+---@field model string
+---@field stop_sequences? string[]
 ---@field max_tokens? integer
 ---@field temperature? number
 ---@field top_k? integer
 ---@field top_p? number
+---@field stream? boolean
+---@field tool_choice? table
+---@field tools? table[]
 
 ---@class AnthropicSystemContext
 ---@field type "text"
@@ -26,6 +35,12 @@ local M = {}
 ---@class AnthropicMessage
 ---@field role "user" | "assistant"
 ---@field content string
+
+---@class AnthropicProvider : BaseProvider
+M.AnthropicProvider = BaseProvider:new({
+  api_key_name = 'ANTHROPIC_API_KEY',
+  base_url = 'https://api.anthropic.com',
+})
 
 ---
 --- DATA HANDLERS
@@ -56,7 +71,7 @@ local current_event_state
 --- event types: `[message_start, content_block_start, content_block_delta, content_block_stop, message_delta, message_stop, error]`
 ---@param line string
 ---@return string?
-function M.handle_sse_stream(line)
+function M.AnthropicProvider:handle_sse_stream(line)
   local event = line:match('^event: (.+)$')
   if event then
     current_event_state = event

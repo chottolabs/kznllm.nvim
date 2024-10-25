@@ -1,4 +1,32 @@
+local BaseProvider = require 'kznllm-v3.specs'
+
+
 local M = {}
+
+---@class OpenAIProvider : BaseProvider
+M.OpenAIProvider = BaseProvider:new({
+  api_key_name = 'OPENAI_API_KEY',
+  base_url = 'https://api.openai.com',
+})
+
+---@class LambdaProvider : OpenAIProvider
+M.LambdaProvider = BaseProvider:new({
+  api_key_name = 'LAMBDA_API_KEY',
+  base_url = 'https://api.lambdalabs.com',
+})
+
+---@class GroqProvider : OpenAIProvider
+M.GroqProvider = BaseProvider:new({
+  api_key_name = 'GROQ_API_KEY',
+  base_url = 'https://api.groq.com/openai',
+})
+
+---@class DeepSeekProvider : OpenAIProvider
+M.GroqProvider = BaseProvider:new({
+  api_key_name = 'DEEPSEEK_API_KEY',
+  base_url = 'https://api.deepseek.com',
+})
+
 
 ---
 --- TYPE ANNOTATIONS
@@ -30,7 +58,7 @@ local M = {}
 ---
 ---@param line string
 ---@return string
-function M.handle_sse_stream(line)
+function M.OpenAIProvider:handle_sse_stream(line)
   -- based on sse spec (OpenAI spec uses data-only server-sent events)
   local data = line:match '^data: (.+)$'
 

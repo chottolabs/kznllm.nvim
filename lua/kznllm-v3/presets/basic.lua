@@ -88,7 +88,6 @@ function BasicPresetBuilder:build(config)
 end
 
 function BasicPresetBuilder:make_data_for_anthropic_spec(curl_options, prompt_args)
-  vim.print(prompt_args)
   curl_options.data.system = {
     {
       type = "text",
@@ -205,6 +204,24 @@ M.options = {
         ["model"] = 'claude-3-5-sonnet-20241022',
         ["stream"] = true,
         ["max_tokens"] = 8192,
+        ["temperature"] = 0.7,
+      }
+    }
+  }),
+  AnthropicPresetBuilder:build({
+    id = "haiku-3-chat",
+    description = 'claude-3-haiku-20240307 | temp = 0.7',
+    curl_options = {
+      endpoint = '/v1/messages',
+      auth_format = 'x-api-key: %s',
+      extra_headers = {
+        'anthropic-version: 2023-06-01',
+        'anthropic-beta: prompt-caching-2024-07-31',
+      },
+      data = {
+        ["model"] = 'claude-3-haiku-20240307',
+        ["stream"] = true,
+        ["max_tokens"] = 4096,
         ["temperature"] = 0.7,
       }
     }

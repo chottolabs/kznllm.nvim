@@ -27,13 +27,13 @@ local BasicPresetBuilder = {}
 ---@param config { provider: BaseProvider, template_path: Path }
 ---@return BasicPresetBuilder
 function BasicPresetBuilder:new(config)
-  local instance = { provider = config.provider }
+  local instance = { provider = config.provider, template_path = config.template_path }
   setmetatable(instance, { __index = self })
   return instance
 end
 
 function BasicPresetBuilder:make_data(curl_options, prompt_args)
-  error("make_data NOT IMPLEMENTED", 1)
+  error('make_data NOT IMPLEMENTED', 1)
 end
 
 ---@param config BasicPresetConfig
@@ -46,7 +46,9 @@ function BasicPresetBuilder:build(config)
       local provider = self.provider
 
       local user_query = utils.get_user_input()
-      if user_query == nil then return end
+      if user_query == nil then
+        return
+      end
 
       local selection = utils.get_visual_selection(opts)
 
@@ -58,17 +60,21 @@ function BasicPresetBuilder:build(config)
         selection = selection,
         current_buffer_context = current_buffer_context,
         replace = not (api.nvim_get_mode().mode == 'n'),
-        context_files = utils.get_project_files({
+        context_files = utils.get_project_files {
           stop_dir = Path:new(vim.fn.expand '~'),
-          context_dir_id = '.kzn'
-        }),
+          context_dir_id = '.kzn',
+        },
       }
 
       self:make_data(config.curl_options, prompt_args)
 
       if opts.debug then
         local scratch_buf_id = buffer_manager:create_scratch_buffer()
-        local debug_data = provider:make_prompt_from_template({ filename = 'debug.xml.jinja', prompt_args = config.curl_options.data })
+        local debug_data = utils.make_prompt_from_template {
+          template_path = self.template_path,
+          filename = 'debug.xml.jinja',
+          prompt_args = config.curl_options.data
+        }
 
         buffer_manager:write_content(debug_data, scratch_buf_id)
         vim.cmd 'normal! Gzz'
@@ -77,82 +83,87 @@ function BasicPresetBuilder:build(config)
       local args = provider:make_curl_args(config.curl_options)
       local job = buffer_manager:create_streaming_job(provider, args)
       job:start()
-    end
+    end,
   }
 end
 
 ---@class AnthropicPresetBuilder : BasicPresetBuilder
-local AnthropicPresetBuilder = BasicPresetBuilder:new({
+local AnthropicPresetBuilder = BasicPresetBuilder:new {
   provider = anthropic.AnthropicProvider,
-})
+  template_path = utils.TEMPLATE_PATH / 'anthropic'
+}
 
 function AnthropicPresetBuilder:make_data(curl_options, prompt_args)
   curl_options.data.system = {
     {
-      type = "text",
-      text = self.provider:make_prompt_from_template({
+      type = 'text',
+      text = utils.make_prompt_from_template {
+        template_path = self.template_path,
         filename = 'fill_mode_system_prompt.xml.jinja',
         prompt_args = prompt_args,
-      }),
-      cache_control = { type = "ephemeral" },
+      },
+      cache_control = { type = 'ephemeral' },
     },
   }
   curl_options.data.messages = {
     {
       role = 'user',
-      content = self.provider:make_prompt_from_template({
+      content = utils.make_prompt_from_template {
+        template_path = self.template_path,
         filename = 'fill_mode_user_prompt.xml.jinja',
         prompt_args = prompt_args,
-      }),
+      },
     },
   }
   if prompt_args.context_files then
-    table.insert(
-      curl_options.data.system,
-      {
-        type = "text",
-        text = self.provider:make_prompt_from_template({
-          filename = 'long_context_documents.xml.jinja',
-          prompt_args = prompt_args,
-        }),
-        cache_control = { type = "ephemeral" },
-      }
-    )
+    table.insert(curl_options.data.system, {
+      type = 'text',
+      text = utils.make_prompt_from_template {
+        template_path = self.template_path,
+        filename = 'long_context_documents.xml.jinja',
+        prompt_args = prompt_args,
+      },
+      cache_control = { type = 'ephemeral' },
+    })
   end
 end
 
 ---@class OpenAIPresetBuilder : BasicPresetBuilder
-local OpenAIPresetBuilder = BasicPresetBuilder:new({
+local OpenAIPresetBuilder = BasicPresetBuilder:new {
   provider = openai.OpenAIProvider,
-})
+}
 
 function OpenAIPresetBuilder:make_data(curl_options, prompt_args)
   curl_options.data.messages = {
     {
       role = 'system',
-      content = self.provider:make_prompt_from_template({
+      content = utils.make_prompt_from_template {
+        template_path = self.template_path,
         filename = 'fill_mode_system_prompt.xml.jinja',
         prompt_args = prompt_args,
-      }),
+      },
     },
     {
       role = 'user',
-      content = self.provider:make_prompt_from_template({
+      content = utils.make_prompt_from_template {
+        template_path = self.template_path,
         filename = 'fill_mode_user_prompt.xml.jinja',
         prompt_args = prompt_args,
-      }),
+      },
     },
   }
 end
 
 ---@class LambdaPresetBuilder: OpenAIPresetBuilder
-local LambdaPresetBuilder = OpenAIPresetBuilder:new({
+local LambdaPresetBuilder = OpenAIPresetBuilder:new {
   provider = openai.LambdaProvider,
-})
+  template_path = utils.TEMPLATE_PATH / 'openai'
+}
 ---@class DeepSeekPresetBuilder: OpenAIPresetBuilder
-local DeepSeekPresetBuilder = OpenAIPresetBuilder:new({
+local DeepSeekPresetBuilder = OpenAIPresetBuilder:new {
   provider = openai.DeepSeekProvider,
-})
+  template_path = utils.TEMPLATE_PATH / 'deepseek'
+}
 
 ---@param preset_list BasicPreset[]
 function M.switch_presets(preset_list)
@@ -180,11 +191,10 @@ function M.load_selected_preset(preset_list)
   return preset
 end
 
-
 -- Example preset configurations
 M.options = {
-  AnthropicPresetBuilder:build({
-    id = "sonnet-3-5-chat",
+  AnthropicPresetBuilder:build {
+    id = 'sonnet-3-5-chat',
     description = 'claude-3-5-sonnet-20241022 | temp = 0.7',
     curl_options = {
       endpoint = '/v1/messages',
@@ -194,15 +204,15 @@ M.options = {
         'anthropic-beta: prompt-caching-2024-07-31',
       },
       data = {
-        ["model"] = 'claude-3-5-sonnet-20241022',
-        ["stream"] = true,
-        ["max_tokens"] = 8192,
-        ["temperature"] = 0.7,
-      }
-    }
-  }),
-  AnthropicPresetBuilder:build({
-    id = "haiku-3-chat",
+        ['model'] = 'claude-3-5-sonnet-20241022',
+        ['stream'] = true,
+        ['max_tokens'] = 8192,
+        ['temperature'] = 0.7,
+      },
+    },
+  },
+  AnthropicPresetBuilder:build {
+    id = 'haiku-3-chat',
     description = 'claude-3-haiku-20240307 | temp = 0.7',
     curl_options = {
       endpoint = '/v1/messages',
@@ -212,41 +222,41 @@ M.options = {
         'anthropic-beta: prompt-caching-2024-07-31',
       },
       data = {
-        ["model"] = 'claude-3-haiku-20240307',
-        ["stream"] = true,
-        ["max_tokens"] = 4096,
-        ["temperature"] = 0.7,
-      }
-    }
-  }),
-  DeepSeekPresetBuilder:build({
-    id = "deepseek-chat",
+        ['model'] = 'claude-3-haiku-20240307',
+        ['stream'] = true,
+        ['max_tokens'] = 4096,
+        ['temperature'] = 0.7,
+      },
+    },
+  },
+  DeepSeekPresetBuilder:build {
+    id = 'deepseek-chat',
     description = 'deepseek-chat | temp = 0.0',
     curl_options = {
       endpoint = '/beta/v1/chat/completions',
       extra_headers = {},
       data = {
-        ["model"] = 'deepseek-chat',
-        ["stream"] = true,
-        ["max_completion_tokens"] = 8192,
-        ["temperature"] = 0,
-      }
-    }
-  }),
-  OpenAIPresetBuilder:build({
-    id = "gpt-4o-mini",
+        ['model'] = 'deepseek-chat',
+        ['stream'] = true,
+        ['max_completion_tokens'] = 8192,
+        ['temperature'] = 0,
+      },
+    },
+  },
+  OpenAIPresetBuilder:build {
+    id = 'gpt-4o-mini',
     description = 'gpt-4o-mini | temp = 0.7',
     curl_options = {
       endpoint = '/v1/chat/completions',
       extra_headers = {},
       data = {
-        ["model"] = 'gpt-4o-mini',
-        ["stream"] = true,
-        ["max_completion_tokens"] = 8192,
-        ["temperature"] = 0.7,
-      }
-    }
-  }),
+        ['model'] = 'gpt-4o-mini',
+        ['stream'] = true,
+        ['max_completion_tokens'] = 8192,
+        ['temperature'] = 0.7,
+      },
+    },
+  },
 }
 
 return M

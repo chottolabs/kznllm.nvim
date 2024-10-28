@@ -1,10 +1,4 @@
 local BaseProvider = require 'kznllm-v3.specs'
-local Path = require 'plenary.path'
-
--- NOTE: this is a relative path meant to point at the template directory
-local plugin_dir = Path:new(debug.getinfo(1, 'S').source:sub(2)):parents()[4]
-local TEMPLATE_DIRECTORY = Path:new(plugin_dir) / 'templates'
-
 
 local M = {}
 
@@ -12,28 +6,24 @@ local M = {}
 M.OpenAIProvider = BaseProvider:new({
   api_key_name = 'OPENAI_API_KEY',
   base_url = 'https://api.openai.com',
-  template_path = TEMPLATE_DIRECTORY / 'anthropic',
 })
 
 ---@class LambdaProvider : OpenAIProvider
 M.LambdaProvider = M.OpenAIProvider:new({
   api_key_name = 'LAMBDA_API_KEY',
   base_url = 'https://api.lambdalabs.com',
-  template_path = TEMPLATE_DIRECTORY / 'lambda',
 })
 
 ---@class GroqProvider : OpenAIProvider
 M.GroqProvider = M.OpenAIProvider:new({
   api_key_name = 'GROQ_API_KEY',
   base_url = 'https://api.groq.com/openai',
-  template_path = TEMPLATE_DIRECTORY / 'groq',
 })
 
 ---@class DeepSeekProvider : OpenAIProvider
 M.DeepSeekProvider = M.OpenAIProvider:new({
   api_key_name = 'DEEPSEEK_API_KEY',
   base_url = 'https://api.deepseek.com',
-  template_path = TEMPLATE_DIRECTORY / 'deepseek',
 })
 
 

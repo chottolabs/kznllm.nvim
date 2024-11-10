@@ -1,11 +1,11 @@
-{% if current_buffer_context or context_files %}
+{% if current_buffer_context.text or context_files %}
 CONTEXT:
 {% endif %}
-{% if current_buffer_context.path %}
+{% if current_buffer_context.text %}
 Document:0
 Title: {{ current_buffer_context.path }}
 {% endif %}
-{% if current_buffer_context %}
+{% if current_buffer_context.text %}
 Content:
 ```{{ current_buffer_context.filetype }}
 {{ current_buffer_context.text }}

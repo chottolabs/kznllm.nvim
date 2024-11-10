@@ -6,8 +6,8 @@ local Job = require 'plenary.job'
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
 BufferManager.state = {
-  buffers = {},  -- Map of buffer_id -> buffer state
-  ns_id = api.nvim_create_namespace('kznllm_ns')
+  buffers = {}, -- Map of buffer_id -> buffer state
+  ns_id = api.nvim_create_namespace 'kznllm_ns',
 }
 
 ---@class BufferState
@@ -30,7 +30,7 @@ function BufferManager:get_or_add_buffer(buf_id)
     api.nvim_buf_attach(buf_id, false, {
       on_detach = function()
         self.state.buffers[buf_id] = nil
-      end
+      end,
     })
   end
   return self.state.buffers[buf_id]
@@ -61,7 +61,7 @@ function BufferManager:get_buffer_context(buf_id)
   return {
     filetype = state.filetype,
     path = state.path,
-    text = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n')
+    text = table.concat(api.nvim_buf_get_lines(buf_id, 0, -1, false), '\n'),
   }
 end
 
@@ -75,14 +75,14 @@ function BufferManager:write_content(content, buf_id)
   if not state.extmark_id then
     -- Create new extmark at current cursor position
     local pos = api.nvim_win_get_cursor(0)
-    state.extmark_id = api.nvim_buf_set_extmark(buf_id, self.state.ns_id, pos[1]-1, pos[2], {})
+    state.extmark_id = api.nvim_buf_set_extmark(buf_id, self.state.ns_id, pos[1] - 1, pos[2], {})
   end
 
   local extmark = api.nvim_buf_get_extmark_by_id(buf_id, self.state.ns_id, state.extmark_id, { details = false })
   local mrow, mcol = extmark[1], extmark[2]
   local lines = vim.split(content, '\n')
 
-  vim.cmd('undojoin')
+  vim.cmd 'undojoin'
   api.nvim_buf_set_text(buf_id, mrow, mcol, mrow, mcol, lines)
 end
 
@@ -102,7 +102,7 @@ function BufferManager:create_streaming_job(provider, args)
   --- should be safe to do this before any jobs
   noop()
 
-  local job = Job:new({
+  local job = Job:new {
     command = 'curl',
     args = args,
     enable_recording = true,
@@ -114,14 +114,19 @@ function BufferManager:create_streaming_job(provider, args)
         end)
       end
     end,
-    on_stderr = function(err) error(err, 1) end,
+    on_stderr = function(err)
+      error(err, 1)
+    end,
     on_exit = function(job, code)
       vim.schedule(function()
         if code and code ~= 0 then
-          vim.notify(('[curl] (exit code: %d)\n%s'):format(
-            code,
-            (job:result() and #job:result() > 0) and table.concat(job:result(), '\n') or 'No additional error output'
-          ), vim.log.levels.ERROR)
+          vim.notify(
+            ('[curl] (exit code: %d)\n%s'):format(
+              code,
+              (job:result() and #job:result() > 0) and table.concat(job:result(), '\n') or 'No additional error output'
+            ),
+            vim.log.levels.ERROR
+          )
         else
           -- Clean up extmark on successful completion
           if state.extmark_id then
@@ -130,8 +135,8 @@ function BufferManager:create_streaming_job(provider, args)
           end
         end
       end)
-    end
-  })
+    end,
+  }
   api.nvim_create_autocmd('User', {
     group = group,
     pattern = 'LLM_Escape',

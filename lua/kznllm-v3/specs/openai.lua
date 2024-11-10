@@ -3,29 +3,34 @@ local BaseProvider = require 'kznllm-v3.specs'
 local M = {}
 
 ---@class OpenAIProvider : BaseProvider
-M.OpenAIProvider = BaseProvider:new({
+M.OpenAIProvider = BaseProvider:new {
   api_key_name = 'OPENAI_API_KEY',
   base_url = 'https://api.openai.com',
-})
+}
 
 ---@class LambdaProvider : OpenAIProvider
-M.LambdaProvider = M.OpenAIProvider:new({
+M.LambdaProvider = M.OpenAIProvider:new {
   api_key_name = 'LAMBDA_API_KEY',
   base_url = 'https://api.lambdalabs.com',
-})
+}
 
 ---@class GroqProvider : OpenAIProvider
-M.GroqProvider = M.OpenAIProvider:new({
+M.GroqProvider = M.OpenAIProvider:new {
   api_key_name = 'GROQ_API_KEY',
   base_url = 'https://api.groq.com/openai',
-})
+}
 
 ---@class DeepSeekProvider : OpenAIProvider
-M.DeepSeekProvider = M.OpenAIProvider:new({
+M.DeepSeekProvider = M.OpenAIProvider:new {
   api_key_name = 'DEEPSEEK_API_KEY',
   base_url = 'https://api.deepseek.com',
-})
+}
 
+---@class VLLMProvider : OpenAIProvider
+M.VLLMProvider = M.OpenAIProvider:new {
+  api_key_name = 'VLLM_API_KEY',
+  base_url = 'http://research.local:8000',
+}
 
 ---
 --- TYPE ANNOTATIONS
@@ -65,7 +70,8 @@ function M.OpenAIProvider:handle_sse_stream(line)
 
   if data and data:match '"delta":' then
     local json = vim.json.decode(data)
-    if json.choices and json.choices[1] and json.choices[1].delta and json.choices[1].delta.content then
+    -- sglang server returns the role as one of the events and it becomes `vim.NIL`, so we have to handle it here
+    if json.choices and json.choices[1] and json.choices[1].delta and json.choices[1].delta.content and json.choices[1].delta.content ~= vim.NIL then
       content = json.choices[1].delta.content
     else
       vim.print(data)

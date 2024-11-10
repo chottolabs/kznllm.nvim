@@ -73,7 +73,7 @@ function BasicPresetBuilder:build(config)
         local debug_data = utils.make_prompt_from_template {
           template_path = self.template_path,
           filename = 'debug.xml.jinja',
-          prompt_args = config.curl_options.data
+          prompt_args = config.curl_options.data,
         }
 
         buffer_manager:write_content(debug_data, scratch_buf_id)
@@ -90,7 +90,7 @@ end
 ---@class AnthropicPresetBuilder : BasicPresetBuilder
 local AnthropicPresetBuilder = BasicPresetBuilder:new {
   provider = anthropic.AnthropicProvider,
-  template_path = utils.TEMPLATE_PATH / 'anthropic'
+  template_path = utils.TEMPLATE_PATH / 'anthropic',
 }
 
 function AnthropicPresetBuilder:make_data(curl_options, prompt_args)
@@ -131,6 +131,7 @@ end
 ---@class OpenAIPresetBuilder : BasicPresetBuilder
 local OpenAIPresetBuilder = BasicPresetBuilder:new {
   provider = openai.OpenAIProvider,
+  template_path = utils.TEMPLATE_PATH / 'openai',
 }
 
 function OpenAIPresetBuilder:make_data(curl_options, prompt_args)
@@ -154,15 +155,21 @@ function OpenAIPresetBuilder:make_data(curl_options, prompt_args)
   }
 end
 
+---@class VLLMPresetBuilder: OpenAIPresetBuilder
+local VLLMPresetBuilder = OpenAIPresetBuilder:new {
+  provider = openai.VLLMProvider,
+  template_path = utils.TEMPLATE_PATH / 'openai',
+}
+
 ---@class LambdaPresetBuilder: OpenAIPresetBuilder
 local LambdaPresetBuilder = OpenAIPresetBuilder:new {
   provider = openai.LambdaProvider,
-  template_path = utils.TEMPLATE_PATH / 'openai'
+  template_path = utils.TEMPLATE_PATH / 'openai',
 }
 ---@class DeepSeekPresetBuilder: OpenAIPresetBuilder
 local DeepSeekPresetBuilder = OpenAIPresetBuilder:new {
   provider = openai.DeepSeekProvider,
-  template_path = utils.TEMPLATE_PATH / 'deepseek'
+  template_path = utils.TEMPLATE_PATH / 'deepseek',
 }
 
 ---@param preset_list BasicPreset[]
@@ -212,8 +219,8 @@ M.options = {
     },
   },
   AnthropicPresetBuilder:build {
-    id = 'haiku-3-chat',
-    description = 'claude-3-haiku-20240307 | temp = 0.7',
+    id = 'haiku-3-5-chat',
+    description = 'claude-3-5-haiku-20241022 | temp = 0.7',
     curl_options = {
       endpoint = '/v1/messages',
       auth_format = 'x-api-key: %s',
@@ -222,7 +229,7 @@ M.options = {
         'anthropic-beta: prompt-caching-2024-07-31',
       },
       data = {
-        ['model'] = 'claude-3-haiku-20240307',
+        ['model'] = 'claude-3-5-haiku-20241022',
         ['stream'] = true,
         ['max_tokens'] = 4096,
         ['temperature'] = 0.7,
@@ -254,6 +261,20 @@ M.options = {
         ['stream'] = true,
         ['max_completion_tokens'] = 8192,
         ['temperature'] = 0.7,
+      },
+    },
+  },
+  VLLMPresetBuilder:build {
+    id = 'Llama-3.2-Instruct',
+    description = 'Llama-3.2-Instruct | temp = 0.7',
+    curl_options = {
+      endpoint = '/v1/chat/completions',
+      extra_headers = {},
+      data = {
+        ['model'] = 'meta-llama/Llama-3.2-Instruct',
+        ['stream'] = true,
+        ['temperature'] = 0.7,
+        -- ['max_completion_tokens'] = 512,
       },
     },
   },

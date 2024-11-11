@@ -50,7 +50,7 @@ function BasicPresetBuilder:build(config)
         return
       end
 
-      local selection = utils.get_visual_selection(opts)
+      local selection, replace = utils.get_visual_selection(opts)
 
       local current_buf_id = api.nvim_get_current_buf()
       local current_buffer_context = buffer_manager:get_buffer_context(current_buf_id)
@@ -59,7 +59,7 @@ function BasicPresetBuilder:build(config)
         user_query = user_query,
         selection = selection,
         current_buffer_context = current_buffer_context,
-        replace = not (api.nvim_get_mode().mode == 'n'),
+        replace = replace,
         context_files = utils.get_project_files {
           stop_dir = Path:new(vim.fn.expand '~'),
           context_dir_id = '.kzn',

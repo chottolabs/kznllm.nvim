@@ -23,10 +23,11 @@ function M.get_user_input()
 end
 
 ---Handles visual selection depending on the specified mode and some expected states of the user's current buffer.
---- Returns an appropriate position to stream output tokens and
+--- Returns the selection and whether or not text was replaced
 ---
 ---@param opts { debug: boolean? } optional values including debug mode
 ---@return string selection
+---@return boolean replace
 function M.get_visual_selection(opts)
   local mode = api.nvim_get_mode().mode
 
@@ -65,7 +66,7 @@ function M.get_visual_selection(opts)
     api.nvim_buf_set_text(0, srow, scol, erow, ecol, {})
   end
 
-  return visual_selection
+  return visual_selection, replace_mode
 end
 
 ---Locates the path value for context directory
@@ -99,24 +100,21 @@ function M.get_project_files(opts)
     vim.print('using context at: ' .. context_dir:absolute())
     local context = {}
     local function scan_dir(dir)
-      Scan.scan_dir(
-        dir,
-        {
-          hidden = false,
-          on_insert = function (file, typ)
-            if typ == 'link' then
-              file = vim.fn.resolve(file)
-              if uv.fs_stat(file).type == "directory" then
-                scan_dir(file)
-                return
-              end
+      Scan.scan_dir(dir, {
+        hidden = false,
+        on_insert = function(file, typ)
+          if typ == 'link' then
+            file = vim.fn.resolve(file)
+            if uv.fs_stat(file).type == 'directory' then
+              scan_dir(file)
+              return
             end
-
-            local path = Path:new(file)
-            table.insert(context, { path = path:absolute(), content = path:read() })
           end
-        }
-      )
+
+          local path = Path:new(file)
+          table.insert(context, { path = path:absolute(), content = path:read() })
+        end,
+      })
     end
     scan_dir(context_dir:absolute())
 

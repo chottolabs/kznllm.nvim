@@ -29,8 +29,6 @@ Code:
 
 {% endif %}
 {% if replace %}
-INSTRUCTION: Replace the code in the block given above. ONLY return the valid code fragment surrounded by a code fence with backticks.
-{% else %}
 INSTRUCTION: Replace the code in the block given above. ONLY return the code fragment that is requested in the code snippet WITHOUT backticks. DO NOT surround the code fragment in backticks.
 {% endif %}
 QUERY: {{ user_query }}

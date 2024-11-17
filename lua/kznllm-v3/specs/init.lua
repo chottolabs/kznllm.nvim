@@ -12,7 +12,7 @@ local BaseProvider = {}
 function BaseProvider:new(opts)
   local api_key = os.getenv(opts.api_key_name)
   if not api_key then
-    error(("ERROR: %s is missing from environment variables"):format(opts.api_key_name))
+    error(('ERROR: %s is missing from environment variables'):format(opts.api_key_name))
   end
 
   local instance = {
@@ -20,10 +20,9 @@ function BaseProvider:new(opts)
     base_url = opts.base_url,
   }
 
-  setmetatable(instance, {__index = self})
+  setmetatable(instance, { __index = self })
   return instance
 end
-
 
 ---@class BaseProviderCurlOptions: BaseProviderHeaderOptions
 ---@field data table
@@ -61,7 +60,7 @@ end
 ---@param line string
 ---@return string?
 function BaseProvider:handle_sse_stream(line)
-  error("handle_sse_stream NOT IMPLEMENTED", 1)
+  error('handle_sse_stream NOT IMPLEMENTED', 1)
 end
 
 return BaseProvider

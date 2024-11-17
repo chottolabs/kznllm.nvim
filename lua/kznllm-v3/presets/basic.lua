@@ -265,6 +265,22 @@ M.options = {
     },
   },
   VLLMPresetBuilder:build {
+    id = 'Qwen2.5-Coder-32B-Instruct',
+    description = 'Qwen2.5-Coder-32B-Instruct | temp = 0.7',
+    curl_options = {
+      endpoint = '/v1/chat/completions',
+      extra_headers = {},
+      data = {
+        ['model'] = 'Qwen/Qwen2.5-Coder-32B-Instruct',
+        ['stream'] = true,
+        ['temperature'] = 0.7,
+        ['top_p'] = 0.8,
+        ['repetition_penalty'] = 1.05,
+        ['max_tokens'] = 512,
+      },
+    },
+  },
+  VLLMPresetBuilder:build {
     id = 'Llama-3.2-Instruct',
     description = 'Llama-3.2-Instruct | temp = 0.7',
     curl_options = {

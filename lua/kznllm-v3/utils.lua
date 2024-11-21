@@ -76,6 +76,8 @@ end
 function M.find_context_directory(opts)
   local stop_dir = opts and opts.stop_dir or Path:new(vim.fn.expand '~')
   local context_dir_id = opts and opts.context_dir_id or '.kzn'
+
+  local cur_buf_dir = Path:new(vim.api.nvim_buf_get_name(0)):parent()
   local context_dir = Path:new(vim.fn.getcwd())
 
   while not (context_dir / context_dir_id):exists() and context_dir:is_dir() do
@@ -88,6 +90,7 @@ function M.find_context_directory(opts)
 
   return context_dir / context_dir_id
 end
+
 ---project scoped context
 ---
 ---Retrieves project files based on the context directory identifier and the current working directory.

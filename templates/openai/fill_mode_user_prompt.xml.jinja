@@ -12,14 +12,16 @@ Content:
 ```
 {% endif %}
 {% if context_files %}
-  {% for file in context_files %}
-Document:{{ loop.index }}
-Title: {{ file.path }}
-Content:
-```
-{{ file.content }}
-```
-  {% endfor %}
+<related_documents>
+{% for file in context_files %}
+<document index="{{loop.index}}">
+<path>{{file.path}}</path>
+<content>
+{{file.content | trim}}
+</content>
+</document>
+{% endfor %}
+</related_documents>
 {% endif %}
 {% if visual_selection %}
 Code:

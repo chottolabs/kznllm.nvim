@@ -134,6 +134,32 @@ local OpenAIPresetBuilder = BasicPresetBuilder:new {
   template_path = utils.TEMPLATE_PATH / 'openai',
 }
 
+---@class OpenAIReasoningPresetBuilder : BasicPresetBuilder
+local OpenAIReasoningPresetBuilder = BasicPresetBuilder:new {
+  provider = openai.OpenAIProvider,
+  template_path = utils.TEMPLATE_PATH / 'openai',
+}
+
+function OpenAIReasoningPresetBuilder:make_data(curl_options, prompt_args)
+  curl_options.data.messages = {
+    {
+      role = 'user',
+      content = table.concat({
+        utils.make_prompt_from_template {
+          template_path = self.template_path,
+          filename = 'fill_mode_system_prompt.xml.jinja',
+          prompt_args = prompt_args,
+        },
+        utils.make_prompt_from_template {
+          template_path = self.template_path,
+          filename = 'fill_mode_user_prompt.xml.jinja',
+          prompt_args = prompt_args,
+        },
+      }, '\n'),
+    },
+  }
+end
+
 function OpenAIPresetBuilder:make_data(curl_options, prompt_args)
   curl_options.data.messages = {
     {
@@ -250,6 +276,21 @@ M.options = {
       },
     },
   },
+
+  OpenAIReasoningPresetBuilder:build {
+    id = 'o1-mini',
+    description = 'o1-mini | temp = 0.7',
+    curl_options = {
+      endpoint = '/v1/chat/completions',
+      extra_headers = {},
+      data = {
+        ['model'] = 'o1-mini',
+        ['stream'] = true,
+        -- ['max_completion_tokens'] = 8192,
+        -- ['temperature'] = 0.7,
+      },
+    },
+  },
   OpenAIPresetBuilder:build {
     id = 'gpt-4o-mini',
     description = 'gpt-4o-mini | temp = 0.7',
@@ -276,7 +317,7 @@ M.options = {
         ['temperature'] = 0.7,
         ['top_p'] = 0.8,
         ['repetition_penalty'] = 1.05,
-        ['max_tokens'] = 512,
+        -- ['max_tokens'] = 512,
       },
     },
   },

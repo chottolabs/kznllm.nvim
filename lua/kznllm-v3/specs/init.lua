@@ -1,5 +1,5 @@
 ---@class BaseProvider
----@field private api_key string
+---@field api_key_name string
 ---@field base_url string
 local BaseProvider = {}
 
@@ -10,13 +10,8 @@ local BaseProvider = {}
 ---@param opts BaseProviderOptions
 ---@return BaseProvider
 function BaseProvider:new(opts)
-  local api_key = os.getenv(opts.api_key_name)
-  if not api_key then
-    error(('ERROR: %s is missing from environment variables'):format(opts.api_key_name))
-  end
-
   local instance = {
-    api_key = api_key,
+    api_key_name = opts.api_key_name,
     base_url = opts.base_url,
   }
 
@@ -37,11 +32,16 @@ end
 function BaseProvider:make_curl_args(opts)
   local url = self.base_url .. opts.endpoint
 
+  local api_key = os.getenv(self.api_key_name)
+  if not api_key then
+    error(('ERROR: %s is missing from environment variables'):format(self.api_key_name))
+  end
+
   local args = {
     '-s', '--fail-with-body', '-N', --silent, with errors, unbuffered output
     '-X', 'POST',
     '-H', 'Content-Type: application/json',
-    '-H', (opts.auth_format and opts.auth_format or 'Authorization: Bearer %s'):format(self.api_key),
+    '-H', (opts.auth_format and opts.auth_format or 'Authorization: Bearer %s'):format(api_key),
   }
 
   if opts.extra_headers ~= nil then

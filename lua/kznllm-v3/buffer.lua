@@ -1,7 +1,6 @@
 -- Buffer management singleton
 local BufferManager = {}
 local api = vim.api
-local Job = require 'plenary.job'
 
 local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
@@ -102,29 +101,31 @@ function BufferManager:create_streaming_job(provider, args)
   --- should be safe to do this before any jobs
   noop()
 
-  local job = Job:new {
-    command = 'curl',
-    args = args,
-    enable_recording = true,
-    on_stdout = function(_, line)
-      local content = provider:handle_sse_stream(line)
-      if content then
-        vim.schedule(function()
-          self:write_content(content, buf_id)
-        end)
-      end
-    end,
-    on_stderr = function(err)
-      error(err, 1)
-    end,
-    on_exit = function(job, code)
+  local captured_stdout = ""
+  --- NOTE: vim.system can flush multiple consecutive lines into the same stdout buffer
+  --- (different from how plenary jobs handles it)
+  local job = vim.system(
+    vim.list_extend({ 'curl' }, args),
+    {
+      stdout = function(err, data)
+        if data == nil then
+          return
+        end
+        captured_stdout = data
+
+        local content = provider:handle_sse_stream(data)
+        if content then
+          vim.schedule(function()
+            self:write_content(content, buf_id)
+          end)
+        end
+      end,
+    },
+    function(obj)
       vim.schedule(function()
-        if code and code ~= 0 then
+        if obj.code and obj.code ~= 0 then
           vim.notify(
-            ('[curl] (exit code: %d)\n%s'):format(
-              code,
-              (job:result() and #job:result() > 0) and table.concat(job:result(), '\n') or 'No additional error output'
-            ),
+            ('[curl] (exit code: %d) %s'):format(obj.code, captured_stdout),
             vim.log.levels.ERROR
           )
         else
@@ -135,14 +136,15 @@ function BufferManager:create_streaming_job(provider, args)
           end
         end
       end)
-    end,
-  }
+    end
+  )
+
   api.nvim_create_autocmd('User', {
     group = group,
     pattern = 'LLM_Escape',
     callback = function()
-      if job.is_shutdown ~= true then
-        job:shutdown()
+      if job:is_closing() ~= true then
+        job:kill(9)
         print 'LLM streaming cancelled'
       end
     end,

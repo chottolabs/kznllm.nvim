@@ -1,5 +1,4 @@
 local Path = require 'plenary.path'
-local Job = require 'plenary.job'
 local Scan = require 'plenary.scandir'
 local api = vim.api
 local uv = vim.uv
@@ -140,19 +139,17 @@ function M.make_prompt_from_template(opts)
   end
 
   local json_data = vim.json.encode(opts.prompt_args)
-  local active_job = Job:new {
-    command = 'minijinja-cli',
-    args = { '-f', 'json', '--lstrip-blocks', '--trim-blocks', prompt_template_path:absolute(), '-' },
-    writer = json_data,
-  }
 
-  active_job:sync()
+  local active_job = vim.system(
+    { 'minijinja-cli', '-f', 'json', '--lstrip-blocks', '--trim-blocks', prompt_template_path:absolute(), '-' },
+    { stdin = json_data }
+  ):wait()
+
   if active_job.code ~= 0 then
-    local error_msg = table.concat(active_job:stderr_result(), '\n')
-    error('[minijinja-cli] (exit code: ' .. active_job.code .. ')\n' .. error_msg, vim.log.levels.ERROR)
+    error('[minijinja-cli] (exit code: ' .. active_job.code .. ')\n' .. active_job.stderr, vim.log.levels.ERROR)
   end
 
-  return table.concat(active_job:result(), '\n')
+  return active_job.stdout
 end
 
 return M

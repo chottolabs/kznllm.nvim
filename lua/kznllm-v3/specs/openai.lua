@@ -60,25 +60,25 @@ M.VLLMProvider = M.OpenAIProvider:new {
 --- Process server-sent events based on OpenAI spec
 --- [See Documentation](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream)
 ---
----@param line string
+---@param buf string
 ---@return string
-function M.OpenAIProvider:handle_sse_stream(line)
+function M.OpenAIProvider:handle_sse_stream(buf)
   -- based on sse spec (OpenAI spec uses data-only server-sent events)
-  local data = line:match '^data: (.+)$'
+  local content = {}
 
-  local content = ''
-
-  if data and data:match '"delta":' then
-    local json = vim.json.decode(data)
-    -- sglang server returns the role as one of the events and it becomes `vim.NIL`, so we have to handle it here
-    if json.choices and json.choices[1] and json.choices[1].delta and json.choices[1].delta.content and json.choices[1].delta.content ~= vim.NIL then
-      content = json.choices[1].delta.content
-    else
-      vim.print(data)
+  for data in buf:gmatch('data: (%b{})%s+') do
+    if data and data:match '"delta":' then
+      local json = vim.json.decode(data)
+      -- sglang server returns the role as one of the events and it becomes `vim.NIL`, so we have to handle it here
+      if json.choices and json.choices[1] and json.choices[1].delta and json.choices[1].delta.content and json.choices[1].delta.content ~= vim.NIL then
+        table.insert(content, json.choices[1].delta.content)
+      else
+        vim.print(data)
+      end
     end
   end
 
-  return content
+  return table.concat(content, '')
 end
 
 return M

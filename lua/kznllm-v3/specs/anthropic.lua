@@ -74,30 +74,27 @@ local current_event_state
 ---@param line string
 ---@return string?
 function M.AnthropicProvider:handle_sse_stream(line)
-  local event = line:match('^event: (.+)$')
-  if event then
-    current_event_state = event
-    return nil
-  end
-
-  local data
-  if current_event_state == 'content_block_delta' then
-    data = line:match('^data: (.+)$')
-    if data then
+  local content = {}
+  for event, data in line:gmatch('event: ([%w_]+)\ndata: (%b{})%s+') do
+    if event == 'content_block_delta' then
       local json = vim.json.decode(data)
       if json.delta and json.delta.text then
-        return json.delta.text
+        table.insert(content, json.delta.text)
       end
+    elseif event == 'content_block_start' then
+    elseif event == 'content_block_stop' then
+    elseif event == 'message_start' then
+      vim.print(data)
+    elseif event == 'message_delta' then
+    elseif event == 'ping' then
+    elseif event == 'error' then
+      vim.print(data)
+    else
+      vim.print(data)
     end
-  elseif current_event_state == 'message_start' then
-    data = line:match '^data: (.+)$'
-  elseif current_event_state == 'message_delta' then
-    data = line:match '^data: (.+)$'
   end
 
-  if data then
-    vim.print(data)
-  end
+  return table.concat(content)
 end
 
 return M

@@ -81,8 +81,7 @@ function BasicPresetBuilder:build(config)
       end
 
       local args = provider:make_curl_args(config.curl_options)
-      local job = buffer_manager:create_streaming_job(provider, args)
-      job:start()
+      local _ = buffer_manager:create_streaming_job(provider, args)
     end,
   }
 end

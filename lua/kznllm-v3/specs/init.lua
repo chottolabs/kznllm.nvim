@@ -19,13 +19,13 @@ function BaseProvider:new(opts)
   return instance
 end
 
----@class BaseProviderCurlOptions: BaseProviderHeaderOptions
----@field data table
-
 ---@class BaseProviderHeaderOptions
 ---@field endpoint string
 ---@field auth_format? string
 ---@field extra_headers? string[]
+
+---@class BaseProviderCurlOptions: BaseProviderHeaderOptions
+---@field data table
 
 ---@param opts BaseProviderCurlOptions
 ---@return string[]
@@ -50,10 +50,7 @@ function BaseProvider:make_curl_args(opts)
     end
   end
 
-  vim.list_extend(args, {
-    '-d', vim.json.encode(opts.data),
-    url,
-  })
+  vim.list_extend(args, { '-d', vim.json.encode(opts.data), url })
   return args
 end
 

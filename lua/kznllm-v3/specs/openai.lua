@@ -36,17 +36,19 @@ M.VLLMProvider = M.OpenAIProvider:new {
 --- TYPE ANNOTATIONS
 ---
 
----@class OpenAIAPIBody : OpenAIParameters
+---@class OpenAICurlOptions
+---@field endpoint string
+---@field auth_format? string
+---@field extra_headers? string[]
+---@field data OpenAIBody
+
+---@class OpenAIBody : OpenAIParameters, OpenAIPromptContext
+
+---@class OpenAIPromptContext
 ---@field messages OpenAIMessage[]
----@field stop? string[] | string
----@field stream? boolean
----@field stream_options? { include_usage: boolean }
----@field n? integer
----@field tool_choice? table
----@field tools? table[]
----@field response_format? { type: "json_object" } | { type: "json_schema", json_schema: table }
 
 ---@class OpenAIParameters
+---@field model string
 ---@field max_completion_tokens? integer
 ---@field temperature? number
 ---@field top_p? number
@@ -64,21 +66,21 @@ M.VLLMProvider = M.OpenAIProvider:new {
 ---@return string
 function M.OpenAIProvider:handle_sse_stream(buf)
   -- based on sse spec (OpenAI spec uses data-only server-sent events)
-  local content = {}
+  local content = ''
 
   for data in buf:gmatch('data: (%b{})%s+') do
     if data and data:match '"delta":' then
       local json = vim.json.decode(data)
       -- sglang server returns the role as one of the events and it becomes `vim.NIL`, so we have to handle it here
       if json.choices and json.choices[1] and json.choices[1].delta and json.choices[1].delta.content and json.choices[1].delta.content ~= vim.NIL then
-        table.insert(content, json.choices[1].delta.content)
+        content = content .. json.choices[1].delta.content
       else
         vim.print(data)
       end
     end
   end
 
-  return table.concat(content, '')
+  return content
 end
 
 return M

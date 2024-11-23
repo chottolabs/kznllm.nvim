@@ -108,26 +108,19 @@ function BufferManager:create_streaming_job(provider, args)
     vim.list_extend({ 'curl' }, args),
     {
       stdout = function(err, data)
-        if data == nil then
-          return
-        end
-        captured_stdout = data
+        if data == nil then return end
 
+        captured_stdout = data
         local content = provider:handle_sse_stream(data)
         if content then
-          vim.schedule(function()
-            self:write_content(content, buf_id)
-          end)
+          vim.schedule(function() self:write_content(content, buf_id) end)
         end
       end,
     },
     function(obj)
       vim.schedule(function()
         if obj.code and obj.code ~= 0 then
-          vim.notify(
-            ('[curl] (exit code: %d) %s'):format(obj.code, captured_stdout),
-            vim.log.levels.ERROR
-          )
+          vim.notify(('[curl] (exit code: %d) %s'):format(obj.code, captured_stdout), vim.log.levels.ERROR)
         else
           -- Clean up extmark on successful completion
           if state.extmark_id then

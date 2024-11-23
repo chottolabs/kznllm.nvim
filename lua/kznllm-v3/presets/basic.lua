@@ -12,7 +12,7 @@ local M = {}
 ---@field id? string
 ---@field description? string
 ---@field invoke fun(opts: table)
----
+
 -- Preset configuration builder
 ---@class BasicPresetConfig
 ---@field id string
@@ -32,6 +32,8 @@ function BasicPresetBuilder:new(config)
   return instance
 end
 
+---@param curl_options BaseProviderCurlOptions
+---@param prompt_args table
 function BasicPresetBuilder:make_data(curl_options, prompt_args)
   error('make_data NOT IMPLEMENTED', 1)
 end
@@ -92,6 +94,7 @@ local AnthropicPresetBuilder = BasicPresetBuilder:new {
   template_path = utils.TEMPLATE_PATH / 'anthropic',
 }
 
+---@param curl_options AnthropicCurlOptions
 function AnthropicPresetBuilder:make_data(curl_options, prompt_args)
   curl_options.data.system = {
     {
@@ -133,32 +136,7 @@ local OpenAIPresetBuilder = BasicPresetBuilder:new {
   template_path = utils.TEMPLATE_PATH / 'openai',
 }
 
----@class OpenAIReasoningPresetBuilder : BasicPresetBuilder
-local OpenAIReasoningPresetBuilder = BasicPresetBuilder:new {
-  provider = openai.OpenAIProvider,
-  template_path = utils.TEMPLATE_PATH / 'openai',
-}
-
-function OpenAIReasoningPresetBuilder:make_data(curl_options, prompt_args)
-  curl_options.data.messages = {
-    {
-      role = 'user',
-      content = table.concat({
-        utils.make_prompt_from_template {
-          template_path = self.template_path,
-          filename = 'fill_mode_system_prompt.xml.jinja',
-          prompt_args = prompt_args,
-        },
-        utils.make_prompt_from_template {
-          template_path = self.template_path,
-          filename = 'fill_mode_user_prompt.xml.jinja',
-          prompt_args = prompt_args,
-        },
-      }, '\n'),
-    },
-  }
-end
-
+---@param curl_options OpenAICurlOptions
 function OpenAIPresetBuilder:make_data(curl_options, prompt_args)
   curl_options.data.messages = {
     {
@@ -176,6 +154,33 @@ function OpenAIPresetBuilder:make_data(curl_options, prompt_args)
         filename = 'fill_mode_user_prompt.xml.jinja',
         prompt_args = prompt_args,
       },
+    },
+  }
+end
+
+---@class OpenAIReasoningPresetBuilder : BasicPresetBuilder
+local OpenAIReasoningPresetBuilder = BasicPresetBuilder:new {
+  provider = openai.OpenAIProvider,
+  template_path = utils.TEMPLATE_PATH / 'openai',
+}
+
+---@param curl_options OpenAICurlOptions
+function OpenAIReasoningPresetBuilder:make_data(curl_options, prompt_args)
+  curl_options.data.messages = {
+    {
+      role = 'user',
+      content = table.concat({
+        utils.make_prompt_from_template {
+          template_path = self.template_path,
+          filename = 'fill_mode_system_prompt.xml.jinja',
+          prompt_args = prompt_args,
+        },
+        utils.make_prompt_from_template {
+          template_path = self.template_path,
+          filename = 'fill_mode_user_prompt.xml.jinja',
+          prompt_args = prompt_args,
+        },
+      }, '\n'),
     },
   }
 end
@@ -320,20 +325,21 @@ M.options = {
       },
     },
   },
-  VLLMPresetBuilder:build {
-    id = 'Llama-3.2-Instruct',
-    description = 'Llama-3.2-Instruct | temp = 0.7',
-    curl_options = {
-      endpoint = '/v1/chat/completions',
-      extra_headers = {},
-      data = {
-        ['model'] = 'meta-llama/Llama-3.2-Instruct',
-        ['stream'] = true,
-        ['temperature'] = 0.7,
-        -- ['max_completion_tokens'] = 512,
+  VLLMPresetBuilder:build(
+    {
+      id = 'Llama-3.2-Instruct',
+      description = 'Llama-3.2-Instruct | temp = 0.7',
+      curl_options = {
+        endpoint = '/v1/chat/completions',
+        extra_headers = {},
+        data = {
+          ['model'] = 'meta-llama/Llama-3.2-Instruct',
+          ['stream'] = true,
+          ['temperature'] = 0.7,
+          -- ['max_completion_tokens'] = 512,
+        },
       },
-    },
-  },
+    }),
 }
 
 return M

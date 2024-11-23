@@ -2,6 +2,12 @@ local BaseProvider = require 'kznllm-v3.specs'
 
 local M = {}
 
+---@class AnthropicProvider : BaseProvider
+M.AnthropicProvider = BaseProvider:new({
+  api_key_name = 'ANTHROPIC_API_KEY',
+  base_url = 'https://api.anthropic.com',
+})
+
 ---
 --- TYPE ANNOTATIONS
 ---
@@ -19,7 +25,7 @@ local M = {}
 ---@field messages AnthropicMessage[]
 
 ---@class AnthropicParameters
----@field model string
+---@field model string | 'claude-3-5-sonnet-latest' | 'claude-3-5-haiku-latest'
 ---@field stop_sequences? string[]
 ---@field max_tokens? integer
 ---@field temperature? number
@@ -37,12 +43,6 @@ local M = {}
 ---@class AnthropicMessage
 ---@field role "user" | "assistant"
 ---@field content string
-
----@class AnthropicProvider : BaseProvider
-M.AnthropicProvider = BaseProvider:new({
-  api_key_name = 'ANTHROPIC_API_KEY',
-  base_url = 'https://api.anthropic.com',
-})
 
 ---
 --- DATA HANDLERS
@@ -74,12 +74,12 @@ local current_event_state
 ---@param line string
 ---@return string?
 function M.AnthropicProvider:handle_sse_stream(line)
-  local content = {}
+  local content = ''
   for event, data in line:gmatch('event: ([%w_]+)\ndata: (%b{})%s+') do
     if event == 'content_block_delta' then
       local json = vim.json.decode(data)
       if json.delta and json.delta.text then
-        table.insert(content, json.delta.text)
+        content = content .. json.delta.text
       end
     elseif event == 'content_block_start' then
     elseif event == 'content_block_stop' then
@@ -95,7 +95,7 @@ function M.AnthropicProvider:handle_sse_stream(line)
     end
   end
 
-  return table.concat(content)
+  return content
 end
 
 return M

@@ -10,25 +10,25 @@ local progress = require 'fidget.progress'
 
 local M = {}
 
----@class BasicPreset
+---@class YapPreset
 ---@field id? string
 ---@field description? string
 ---@field invoke fun(opts: table)
 
 -- Preset configuration builder
----@class BasicPresetConfig
+---@class YapPresetConfig
 ---@field id string
 ---@field description string
 ---@field curl_options BaseProviderCurlOptions
 
----@class BasicPresetBuilder
+---@class YapPresetBuilder
 ---@field provider BaseProvider
 ---@field template_path Path
-local BasicPresetBuilder = {}
+local YapPresetBuilder = {}
 
 ---@param config { provider: BaseProvider, template_path: Path }
----@return BasicPresetBuilder
-function BasicPresetBuilder:new(config)
+---@return YapPresetBuilder
+function YapPresetBuilder:new(config)
   local instance = { provider = config.provider, template_path = config.template_path }
   setmetatable(instance, { __index = self })
   return instance
@@ -36,13 +36,13 @@ end
 
 ---@param curl_options BaseProviderCurlOptions
 ---@param prompt_args table
-function BasicPresetBuilder:make_data(curl_options, prompt_args)
+function YapPresetBuilder:make_data(curl_options, prompt_args)
   error('make_data NOT IMPLEMENTED', 1)
 end
 
----@param config BasicPresetConfig
----@return BasicPreset
-function BasicPresetBuilder:build(config)
+---@param config YapPresetConfig
+---@return YapPreset
+function YapPresetBuilder:build(config)
   return {
     id = config.id,
     description = config.description,
@@ -90,19 +90,27 @@ function BasicPresetBuilder:build(config)
       end
 
       local args = provider:make_curl_args(config.curl_options)
-      local start = os.time()
+
+      local state = { start = os.time(), last_updated = nil }
+      local message = opts.progress_message_fn(state)
       local _ = buffer_manager:create_streaming_job(
         provider,
         args,
-        function() p:report({ message = ("yapped %ds"):format(os.time() - start) }) end,
+        function()
+          local progress_message = opts.progress_message_fn(state)
+          if progress_message ~= nil then
+            message = progress_message
+          end
+          p:report({ message = message:format(os.time() - state.start) })
+        end,
         function() p:finish() end
       )
     end,
   }
 end
 
----@class AnthropicPresetBuilder : BasicPresetBuilder
-local AnthropicPresetBuilder = BasicPresetBuilder:new {
+---@class AnthropicPresetBuilder : YapPresetBuilder
+local AnthropicPresetBuilder = YapPresetBuilder:new {
   provider = anthropic.AnthropicProvider,
   template_path = utils.TEMPLATE_PATH / 'anthropic',
 }
@@ -143,8 +151,8 @@ function AnthropicPresetBuilder:make_data(curl_options, prompt_args)
   end
 end
 
----@class OpenAIPresetBuilder : BasicPresetBuilder
-local OpenAIPresetBuilder = BasicPresetBuilder:new {
+---@class OpenAIPresetBuilder : YapPresetBuilder
+local OpenAIPresetBuilder = YapPresetBuilder:new {
   provider = openai.OpenAIProvider,
   template_path = utils.TEMPLATE_PATH / 'openai',
 }
@@ -171,8 +179,8 @@ function OpenAIPresetBuilder:make_data(curl_options, prompt_args)
   }
 end
 
----@class OpenAIReasoningPresetBuilder : BasicPresetBuilder
-local OpenAIReasoningPresetBuilder = BasicPresetBuilder:new {
+---@class OpenAIReasoningPresetBuilder : YapPresetBuilder
+local OpenAIReasoningPresetBuilder = YapPresetBuilder:new {
   provider = openai.OpenAIProvider,
   template_path = utils.TEMPLATE_PATH / 'openai',
 }
@@ -215,7 +223,7 @@ local DeepSeekPresetBuilder = OpenAIPresetBuilder:new {
   template_path = utils.TEMPLATE_PATH / 'deepseek',
 }
 
----@param preset_list BasicPreset[]
+---@param preset_list YapPreset[]
 function M.switch_presets(preset_list)
   local preset_idx = math.min(vim.g.PRESET_IDX, #preset_list) or 1
   local selected_preset = preset_list[preset_idx]
@@ -233,7 +241,7 @@ function M.switch_presets(preset_list)
   end)
 end
 
----@param preset_list BasicPreset[]
+---@param preset_list YapPreset[]
 function M.load_selected_preset(preset_list)
   local idx = vim.g.PRESET_IDX or 1
   local preset = preset_list[idx]

@@ -66,7 +66,7 @@ function BasicPresetBuilder:build(config)
 
       local prompt_args = {
         user_query = user_query,
-        selection = selection,
+        visual_selection = selection,
         current_buffer_context = current_buffer_context,
         replace = replace,
         context_files = utils.get_project_files {

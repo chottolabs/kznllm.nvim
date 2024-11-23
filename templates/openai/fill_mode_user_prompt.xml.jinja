@@ -1,3 +1,4 @@
+{% if current_buffer_context %}
 {% if current_buffer_context.text or context_files %}
 CONTEXT:
 {% endif %}
@@ -10,6 +11,7 @@ Content:
 ```{{ current_buffer_context.filetype }}
 {{ current_buffer_context.text }}
 ```
+{% endif %}
 {% endif %}
 {% if context_files %}
 <related_documents>

@@ -6,6 +6,8 @@ local api = vim.api
 local anthropic = require 'kznllm-v3.specs.anthropic'
 local openai = require 'kznllm-v3.specs.openai'
 
+local progress = require 'fidget.progress'
+
 local M = {}
 
 ---@class BasicPreset
@@ -57,6 +59,11 @@ function BasicPresetBuilder:build(config)
       local current_buf_id = api.nvim_get_current_buf()
       local current_buffer_context = buffer_manager:get_buffer_context(current_buf_id)
 
+      local p = progress.handle.create({
+        title = ("[%s]"):format(replace and "replacing" or "yapping"),
+        lsp_client = { name = "kznllm" },
+      })
+
       local prompt_args = {
         user_query = user_query,
         selection = selection,
@@ -83,7 +90,7 @@ function BasicPresetBuilder:build(config)
       end
 
       local args = provider:make_curl_args(config.curl_options)
-      local _ = buffer_manager:create_streaming_job(provider, args)
+      local _ = buffer_manager:create_streaming_job(provider, args, function() p:finish() end)
     end,
   }
 end

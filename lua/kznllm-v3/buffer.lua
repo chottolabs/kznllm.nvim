@@ -94,7 +94,7 @@ end
 -- Add to providers/base.lua
 ---@param provider BaseProvider
 ---@param args table
-function BufferManager:create_streaming_job(provider, args)
+function BufferManager:create_streaming_job(provider, args, on_complete_fn)
   local buf_id = api.nvim_get_current_buf()
   local state = self:get_or_add_buffer(buf_id)
 
@@ -109,7 +109,6 @@ function BufferManager:create_streaming_job(provider, args)
     {
       stdout = function(err, data)
         if data == nil then return end
-
         captured_stdout = data
         local content = provider:handle_sse_stream(data)
         if content then
@@ -118,6 +117,7 @@ function BufferManager:create_streaming_job(provider, args)
       end,
     },
     function(obj)
+      on_complete_fn()
       vim.schedule(function()
         if obj.code and obj.code ~= 0 then
           vim.notify(('[curl] (exit code: %d) %s'):format(obj.code, captured_stdout), vim.log.levels.ERROR)

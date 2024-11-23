@@ -85,6 +85,7 @@ function M.AnthropicProvider:handle_sse_stream(line)
     elseif event == 'content_block_stop' then
     elseif event == 'message_start' then
       vim.print(data)
+    elseif event == 'message_stop' then
     elseif event == 'message_delta' then
     elseif event == 'ping' then
     elseif event == 'error' then

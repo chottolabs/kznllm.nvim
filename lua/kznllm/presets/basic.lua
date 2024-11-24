@@ -217,21 +217,6 @@ M.options = {
       })
   }),
   NewBaseTask({
-    id = 'lambda-hermes3-405b',
-    description = 'lambda-hermes3-405b | temp = ?',
-    preset_builder = BasicOpenAIPreset:with_opts(
-      {
-        provider = openai.OpenAIProvider:new {
-          api_key_name = 'LAMBDA_API_KEY',
-          base_url = 'https://api.lambdalabs.com',
-        },
-        params = {
-          ['model'] = 'hermes3-405b',
-          ['stream'] = true,
-        }
-      })
-  }),
-  NewBaseTask({
     id = 'llama-3.2-90b-vision',
     description = 'llama-3.2-90b-vision | temp = 0.7',
     preset_builder = BasicOpenAIPreset:with_opts(

@@ -1,5 +1,5 @@
-local Path = require 'plenary.path'
-local Scan = require 'plenary.scandir'
+local Path = require('plenary.path')
+local Scan = require('plenary.scandir')
 local api = vim.api
 local uv = vim.uv
 
@@ -31,8 +31,8 @@ function M.get_visual_selection(opts)
   local mode = api.nvim_get_mode().mode
 
   -- get visual selection and current cursor position (1-indexed)
-  local _, srow, scol = unpack(vim.fn.getpos 'v')
-  local _, erow, ecol = unpack(vim.fn.getpos '.')
+  local _, srow, scol = unpack(vim.fn.getpos('v'))
+  local _, erow, ecol = unpack(vim.fn.getpos('.'))
 
   -- normalize start + end such that start_pos < end_pos and converts to 0-index
   srow, scol, erow, ecol = srow - 1, scol - 1, erow - 1, ecol - 1
@@ -73,7 +73,7 @@ end
 ---@param opts { stop_dir: Path?, context_dir_id: string? } `stop_dir` - Path to stop traversing directories (default `$HOME`, `context_dir_id` - identifier that this function will scan for (default `.kzn`)
 ---@return Path? context_dir directory path
 function M.find_context_directory(opts)
-  local stop_dir = opts and opts.stop_dir or Path:new(vim.fn.expand '~')
+  local stop_dir = opts and opts.stop_dir or Path:new(vim.fn.expand('~'))
   local context_dir_id = opts and opts.context_dir_id or '.kzn'
 
   local context_dir = Path:new(vim.fn.getcwd())
@@ -127,7 +127,7 @@ end
 ---@param opts { template_path: Path, prompt_args: table }
 ---@return string
 function M.make_prompt_from_template(opts)
-  if vim.fn.executable 'minijinja-cli' ~= 1 then
+  if vim.fn.executable('minijinja-cli') ~= 1 then
     error("Can't find minijinja-cli, download it from https://github.com/mitsuhiko/minijinja or add it to $PATH", 1)
   end
 
@@ -139,10 +139,12 @@ function M.make_prompt_from_template(opts)
 
   local json_data = vim.json.encode(opts.prompt_args)
 
-  local active_job = vim.system(
-    { 'minijinja-cli', '-f', 'json', '--lstrip-blocks', '--trim-blocks', prompt_template_path:absolute(), '-' },
-    { stdin = json_data }
-  ):wait()
+  local active_job = vim
+    .system(
+      { 'minijinja-cli', '-f', 'json', '--lstrip-blocks', '--trim-blocks', prompt_template_path:absolute(), '-' },
+      { stdin = json_data }
+    )
+    :wait()
 
   if active_job.code ~= 0 then
     error('[minijinja-cli] (exit code: ' .. active_job.code .. ')\n' .. active_job.stderr, vim.log.levels.ERROR)

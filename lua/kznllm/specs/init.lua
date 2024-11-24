@@ -29,6 +29,7 @@ function BaseProvider:make_curl_args(opts)
     error(('ERROR: %s is missing from environment variables'):format(self.api_key_name))
   end
 
+  -- stylua: ignore
   local args = {
     '-s', '--fail-with-body', '-N', --silent, with errors, unbuffered output
     '-X', 'POST',

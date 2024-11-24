@@ -1,5 +1,5 @@
-local BaseProvider = require 'kznllm.specs'
-local utils = require 'kznllm.utils'
+local BaseProvider = require('kznllm.specs')
+local utils = require('kznllm.utils')
 
 local M = {}
 
@@ -73,8 +73,6 @@ end
 ---@class AnthropicMessage
 ---@field role AnthropicMessageRole
 ---@field content string | AnthropicMessageTextContent[]
-
-
 
 ---
 --- DATA HANDLERS
@@ -156,7 +154,8 @@ M.AnthropicPresetBuilder = {}
 ---@return AnthropicPresetBuilder
 function M.AnthropicPresetBuilder:new(opts)
   local instance = {
-    debug_template_path = (opts and opts.debug_template_path) and opts.debug_template_path or utils.TEMPLATE_PATH / 'anthropic' / 'debug.xml.jinja',
+    debug_template_path = (opts and opts.debug_template_path) and opts.debug_template_path
+      or utils.TEMPLATE_PATH / 'anthropic' / 'debug.xml.jinja',
     provider = (opts and opts.provider) and opts.provider or M.AnthropicProvider:new(),
     headers = (opts and opts.headers) and opts.headers or {
       endpoint = '/v1/messages',
@@ -173,7 +172,7 @@ function M.AnthropicPresetBuilder:new(opts)
       ['temperature'] = 0.7,
     },
     system_templates = {},
-    message_templates = {}
+    message_templates = {},
   }
   setmetatable(instance, { __index = self })
   return instance
@@ -213,17 +212,15 @@ function M.AnthropicPresetBuilder:build(args)
   local system = {}
 
   for _, template in ipairs(self.system_templates) do
-    if template.type == "text" then
-      table.insert(system,
-        {
-          type = template.type,
-          text = utils.make_prompt_from_template {
-            template_path = template.path,
-            prompt_args = args,
-          },
-          cache_control = template.cache_control,
-        }
-      )
+    if template.type == 'text' then
+      table.insert(system, {
+        type = template.type,
+        text = utils.make_prompt_from_template({
+          template_path = template.path,
+          prompt_args = args,
+        }),
+        cache_control = template.cache_control,
+      })
     end
   end
 
@@ -231,35 +228,28 @@ function M.AnthropicPresetBuilder:build(args)
   local messages = {}
 
   for _, template in ipairs(self.message_templates) do
-    if template.type == "text" then
+    if template.type == 'text' then
       ---@type AnthropicMessage
       local message = {
         role = template.role,
         content = {
           {
-            type = "text",
-            text = utils.make_prompt_from_template {
+            type = 'text',
+            text = utils.make_prompt_from_template({
               template_path = template.path,
               prompt_args = args,
-            },
+            }),
             cache_control = template.cache_control,
           },
-        }
+        },
       }
       table.insert(messages, message)
     end
   end
 
-  return vim.tbl_extend(
-    'keep',
-    self.headers,
-    {
-      data = vim.tbl_extend(
-        'keep',
-        self.params,
-        { system = system, messages = messages }
-      )
-    })
+  return vim.tbl_extend('keep', self.headers, {
+    data = vim.tbl_extend('keep', self.params, { system = system, messages = messages }),
+  })
 end
 
 return M

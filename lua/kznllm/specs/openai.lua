@@ -1,6 +1,6 @@
-local BaseProvider = require 'kznllm.specs'
-local Path = require 'plenary.path'
-local utils = require 'kznllm.utils'
+local BaseProvider = require('kznllm.specs')
+local Path = require('plenary.path')
+local utils = require('kznllm.utils')
 
 local M = {}
 
@@ -29,7 +29,6 @@ end
 ---
 --- TYPE ANNOTATIONS
 ---
-
 
 ---@class OpenAICurlOptions : OpenAIHeaders
 ---@field data OpenAIBody
@@ -63,7 +62,6 @@ end
 ---@field type OpenAIMessageContentType
 ---@field text string
 
-
 --- Process server-sent events based on OpenAI spec
 --- [See Documentation](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream)
 ---
@@ -74,15 +72,21 @@ function M.OpenAIProvider.handle_sse_stream(buf)
   local content = ''
 
   for data in buf:gmatch('data: ({.-})\n') do
-    if data and data:match '"delta":' then
-      local json = vim.json.decode(data)
-      -- sglang server returns the role as one of the events and it becomes `vim.NIL`, so we have to handle it here
-      if json.choices and json.choices[1] and json.choices[1].delta and json.choices[1].delta.content and json.choices[1].delta.content ~= vim.NIL then
-        content = content .. json.choices[1].delta.content
-      else
-        vim.print(data)
-      end
+    -- if data and data:match '"delta":' then
+    local json = vim.json.decode(data)
+    -- sglang server returns the role as one of the events and it becomes `vim.NIL`, so we have to handle it here
+    if
+      json.choices
+      and json.choices[1]
+      and json.choices[1].delta
+      and json.choices[1].delta.content
+      and json.choices[1].delta.content ~= vim.NIL
+    then
+      content = content .. json.choices[1].delta.content
+    else
+      vim.print(data)
     end
+    -- end
   end
 
   return content
@@ -115,7 +119,8 @@ M.OpenAIPresetBuilder = {}
 function M.OpenAIPresetBuilder:new(opts)
   local instance = {
     provider = (opts and opts.provider) and opts.provider or M.OpenAIProvider:new(),
-    debug_template_path = (opts and opts.debug_template_path) and opts.debug_template_path or utils.TEMPLATE_PATH / 'openai' / 'debug.xml.jinja',
+    debug_template_path = (opts and opts.debug_template_path) and opts.debug_template_path
+      or utils.TEMPLATE_PATH / 'openai' / 'debug.xml.jinja',
     headers = (opts and opts.headers) and opts.headers or {
       endpoint = '/v1/chat/completions',
       extra_headers = {},
@@ -125,7 +130,7 @@ function M.OpenAIPresetBuilder:new(opts)
       ['stream'] = true,
     },
     system_templates = {},
-    message_templates = {}
+    message_templates = {},
   }
   setmetatable(instance, { __index = self })
   return instance
@@ -162,46 +167,35 @@ function M.OpenAIPresetBuilder:build(args)
   local messages = {}
 
   for _, template in ipairs(self.system_templates) do
-    table.insert(
-      messages,
-      {
-        role = "system",
-        content = utils.make_prompt_from_template {
-          template_path = template.path,
-          prompt_args = args,
-        }
-      })
+    table.insert(messages, {
+      role = 'system',
+      content = utils.make_prompt_from_template({
+        template_path = template.path,
+        prompt_args = args,
+      }),
+    })
   end
 
   for _, template in ipairs(self.message_templates) do
-    if template.type == "text" then
-      table.insert(
-        messages,
-        {
-          role = template.role,
-          content = {
-            {
-              type = template.type,
-              text = utils.make_prompt_from_template {
-                template_path = template.path,
-                prompt_args = args,
-              }
-            },
-          }
-        })
+    if template.type == 'text' then
+      table.insert(messages, {
+        role = template.role,
+        content = {
+          {
+            type = template.type,
+            text = utils.make_prompt_from_template({
+              template_path = template.path,
+              prompt_args = args,
+            }),
+          },
+        },
+      })
     end
   end
 
-  return vim.tbl_extend(
-    'keep',
-    self.headers,
-    {
-      data = vim.tbl_extend(
-        'keep',
-        self.params,
-        { messages = messages }
-      )
-    })
+  return vim.tbl_extend('keep', self.headers, {
+    data = vim.tbl_extend('keep', self.params, { messages = messages }),
+  })
 end
 
 return M

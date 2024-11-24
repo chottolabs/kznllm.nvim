@@ -6,7 +6,7 @@ local group = api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 
 BufferManager.state = {
   buffers = {}, -- Map of buffer_id -> buffer state
-  ns_id = api.nvim_create_namespace 'kznllm_ns',
+  ns_id = api.nvim_create_namespace('kznllm_ns'),
 }
 
 ---@class BufferState
@@ -81,7 +81,7 @@ function BufferManager:write_content(content, buf_id)
   local mrow, mcol = extmark[1], extmark[2]
   local lines = vim.split(content, '\n')
 
-  vim.cmd 'undojoin'
+  vim.cmd('undojoin')
   api.nvim_buf_set_text(buf_id, mrow, mcol, mrow, mcol, lines)
 end
 
@@ -99,37 +99,37 @@ function BufferManager:create_streaming_job(args, handle_sse_stream_fn, progress
   --- should be safe to do this before any jobs
   noop()
 
-  local captured_stdout = ""
+  local captured_stdout = ''
   --- NOTE: vim.system can flush multiple consecutive lines into the same stdout buffer
   --- (different from how plenary jobs handles it)
-  local job = vim.system(
-    vim.list_extend({ 'curl' }, args),
-    {
-      stdout = function(err, data)
-        if data == nil then return end
-        progress_fn()
-        captured_stdout = data
-        local content = handle_sse_stream_fn(data)
-        if content then
-          vim.schedule(function() self:write_content(content, buf_id) end)
+  local job = vim.system(vim.list_extend({ 'curl' }, args), {
+    stdout = function(err, data)
+      if data == nil then
+        return
+      end
+      progress_fn()
+      captured_stdout = data
+      local content = handle_sse_stream_fn(data)
+      if content then
+        vim.schedule(function()
+          self:write_content(content, buf_id)
+        end)
+      end
+    end,
+  }, function(obj)
+    on_complete_fn()
+    vim.schedule(function()
+      if obj.code and obj.code ~= 0 then
+        vim.notify(('[curl] (exit code: %d) %s'):format(obj.code, captured_stdout), vim.log.levels.ERROR)
+      else
+        -- Clean up extmark on successful completion
+        if state.extmark_id then
+          api.nvim_buf_del_extmark(buf_id, self.state.ns_id, state.extmark_id)
+          state.extmark_id = nil
         end
-      end,
-    },
-    function(obj)
-      on_complete_fn()
-      vim.schedule(function()
-        if obj.code and obj.code ~= 0 then
-          vim.notify(('[curl] (exit code: %d) %s'):format(obj.code, captured_stdout), vim.log.levels.ERROR)
-        else
-          -- Clean up extmark on successful completion
-          if state.extmark_id then
-            api.nvim_buf_del_extmark(buf_id, self.state.ns_id, state.extmark_id)
-            state.extmark_id = nil
-          end
-        end
-      end)
-    end
-  )
+      end
+    end)
+  end)
 
   api.nvim_create_autocmd('User', {
     group = group,
@@ -137,7 +137,7 @@ function BufferManager:create_streaming_job(args, handle_sse_stream_fn, progress
     callback = function()
       if job:is_closing() ~= true then
         job:kill(9)
-        print 'LLM streaming cancelled'
+        print('LLM streaming cancelled')
       end
     end,
   })

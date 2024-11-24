@@ -1,12 +1,12 @@
-local utils = require 'kznllm.utils'
-local buffer_manager = (require 'kznllm.buffer').buffer_manager
-local Path = require 'plenary.path'
+local utils = require('kznllm.utils')
+local buffer_manager = require('kznllm.buffer').buffer_manager
+local Path = require('plenary.path')
 local api = vim.api
 
-local anthropic = require 'kznllm.specs.anthropic'
-local openai = require 'kznllm.specs.openai'
+local anthropic = require('kznllm.specs.anthropic')
+local openai = require('kznllm.specs.openai')
 
-local progress = require 'fidget.progress'
+local progress = require('fidget.progress')
 
 local M = {}
 
@@ -32,8 +32,8 @@ local function NewBaseTask(config)
       local current_buffer_context = buffer_manager:get_buffer_context(current_buf_id)
 
       local p = progress.handle.create({
-        title = ("[%s]"):format(replace and "replacing" or "yapping"),
-        lsp_client = { name = "kznllm" },
+        title = ('[%s]'):format(replace and 'replacing' or 'yapping'),
+        lsp_client = { name = 'kznllm' },
       })
 
       local prompt_args = {
@@ -41,48 +41,48 @@ local function NewBaseTask(config)
         visual_selection = selection,
         current_buffer_context = current_buffer_context,
         replace = replace,
-        context_files = utils.get_project_files {
-          stop_dir = Path:new(vim.fn.expand '~'),
+        context_files = utils.get_project_files({
+          stop_dir = Path:new(vim.fn.expand('~')),
           context_dir_id = '.kzn',
-        },
+        }),
       }
 
       local curl_options = config.preset_builder:build(prompt_args)
 
       if opts.debug then
         local scratch_buf_id = buffer_manager:create_scratch_buffer()
-        local debug_data = utils.make_prompt_from_template {
+        local debug_data = utils.make_prompt_from_template({
           template_path = config.preset_builder.debug_template_path,
           prompt_args = curl_options,
-        }
+        })
 
         buffer_manager:write_content(debug_data, scratch_buf_id)
-        vim.cmd 'normal! Gzz'
+        vim.cmd('normal! Gzz')
       end
 
       local provider = config.preset_builder.provider
       local args = provider:make_curl_args(curl_options)
 
       local state = { start = os.time(), last_updated = nil }
-      p:report({ message = ("%s"):format(config.description) })
-      local message_fn = opts.progress_message_fn and opts.progress_message_fn or function(s) return "yapped" end
+      p:report({ message = ('%s'):format(config.description) })
+      local message_fn = opts.progress_message_fn and opts.progress_message_fn
+        or function(s)
+          return 'yapped'
+        end
       local message = message_fn(state)
-      local _ = buffer_manager:create_streaming_job(
-        args,
-        provider.handle_sse_stream,
-        function()
-          local progress_message = message_fn(state)
-          if progress_message ~= nil then
-            message = progress_message
-          end
+      local _ = buffer_manager:create_streaming_job(args, provider.handle_sse_stream, function()
+        local progress_message = message_fn(state)
+        if progress_message ~= nil then
+          message = progress_message
+        end
 
-          local elapsed = os.time() - state.start
-          if message:format(elapsed) ~= message then
-            p:report({ message = message:format(os.time() - state.start) })
-          end
-        end,
-        function() p:finish() end
-      )
+        local elapsed = os.time() - state.start
+        if message:format(elapsed) ~= message then
+          p:report({ message = message:format(os.time() - state.start) })
+        end
+      end, function()
+        p:finish()
+      end)
     end,
   }
 end
@@ -115,145 +115,138 @@ end
 local anthropic_system_template = utils.TEMPLATE_PATH / 'anthropic' / 'fill_mode_system_prompt.xml.jinja'
 local anthropic_user_template = utils.TEMPLATE_PATH / 'anthropic' / 'fill_mode_user_prompt.xml.jinja'
 
-local BasicAnthropicPreset =
-    anthropic.AnthropicPresetBuilder:new()
-    :add_system_prompts({
-      { type = 'text', path = anthropic_system_template, cache_control = { type = 'ephemeral' } }
-    })
-    :add_message_prompts({
-      { type = "text", role = 'user', path = anthropic_user_template }
-    })
+local BasicAnthropicPreset = anthropic.AnthropicPresetBuilder
+  :new()
+  :add_system_prompts({
+    {
+      type = 'text',
+      path = anthropic_system_template,
+      cache_control = { type = 'ephemeral' },
+    },
+  })
+  :add_message_prompts({
+    { type = 'text', role = 'user', path = anthropic_user_template },
+  })
 
 local openai_system_template = utils.TEMPLATE_PATH / 'openai' / 'fill_mode_system_prompt.xml.jinja'
 local openai_user_template = utils.TEMPLATE_PATH / 'openai' / 'fill_mode_user_prompt.xml.jinja'
 
-local BasicOpenAIPreset =
-    openai.OpenAIPresetBuilder:new()
-    :add_system_prompts({
-      { type = 'text', path = openai_system_template }
-    })
-    :add_message_prompts({
-      { type = "text", role = 'user', path = openai_user_template }
-    })
+local BasicOpenAIPreset = openai.OpenAIPresetBuilder
+  :new()
+  :add_system_prompts({
+    { type = 'text', path = openai_system_template },
+  })
+  :add_message_prompts({
+    { type = 'text', role = 'user', path = openai_user_template },
+  })
 
 --- doesn't support system prompt
-local BasicOpenAIReasoningPreset =
-    openai.OpenAIPresetBuilder:new()
-    :add_message_prompts({
-      { type = 'text', role = 'user', path = openai_system_template },
-      { type = "text", role = 'user', path = openai_user_template },
-    })
+local BasicOpenAIReasoningPreset = openai.OpenAIPresetBuilder:new():add_message_prompts({
+  { type = 'text', role = 'user', path = openai_system_template },
+  { type = 'text', role = 'user', path = openai_user_template },
+})
 
 -- Example task configurations
 M.options = {
   NewBaseTask({
     id = 'sonnet-3-5-chat',
     description = 'claude-3-5-sonnet-20241022 | temp = 0.7',
-    preset_builder = BasicAnthropicPreset:with_opts(
-      {
-        params = {
-          ['model'] = 'claude-3-5-sonnet-20241022',
-          ['stream'] = true,
-          ['max_tokens'] = 8192,
-          ['temperature'] = 0.7,
-        }
-      }
-    )
+    preset_builder = BasicAnthropicPreset:with_opts({
+      params = {
+        ['model'] = 'claude-3-5-sonnet-20241022',
+        ['stream'] = true,
+        ['max_tokens'] = 8192,
+        ['temperature'] = 0.7,
+      },
+    }),
   }),
   NewBaseTask({
     id = 'haiku-3-5-chat',
     description = 'claude-3-5-haiku-20241022 | temp = 0.7',
-    preset_builder = BasicAnthropicPreset:with_opts(
-      {
-        params = {
-          ['model'] = 'claude-3-5-haiku-20241022',
-          ['stream'] = true,
-          ['max_tokens'] = 8192,
-          ['temperature'] = 0.7,
-        }
-      }
-    )
+    preset_builder = BasicAnthropicPreset:with_opts({
+      params = {
+        ['model'] = 'claude-3-5-haiku-20241022',
+        ['stream'] = true,
+        ['max_tokens'] = 8192,
+        ['temperature'] = 0.7,
+      },
+    }),
   }),
   NewBaseTask({
     id = 'gpt-4o-mini',
     description = 'gpt-4o-mini | temp = 0.7',
-    preset_builder = BasicOpenAIPreset:with_opts(
-      {
-        params = {
-          ['model'] = 'gpt-4o-mini',
-          ['stream'] = true,
-          ['max_completion_tokens'] = 8192,
-          ['temperature'] = 0.7,
-        }
-      })
+    preset_builder = BasicOpenAIPreset:with_opts({
+      params = {
+        ['model'] = 'gpt-4o-mini',
+        ['stream'] = true,
+        ['max_completion_tokens'] = 8192,
+        ['temperature'] = 0.7,
+      },
+    }),
   }),
   NewBaseTask({
     id = 'o1-mini',
     description = 'o1-mini | temp = ?',
-    preset_builder = BasicOpenAIReasoningPreset:with_opts(
-      {
-        params = {
-          ['model'] = 'o1-mini',
-          ['stream'] = true,
-        }
-      })
+    preset_builder = BasicOpenAIReasoningPreset:with_opts({
+      params = {
+        ['model'] = 'o1-mini',
+        ['stream'] = true,
+      },
+    }),
   }),
   NewBaseTask({
     id = 'Qwen2.5-Coder-32B-Instruct',
     description = 'Qwen2.5-Coder-32B-Instruct | temp = 0.7',
-    preset_builder = BasicOpenAIPreset:with_opts(
-      {
-        provider = openai.OpenAIProvider:new {
-          api_key_name = 'VLLM_API_KEY',
-          base_url = 'http://research.local:8000',
-        },
-        params = {
-          ['model'] = 'Qwen/Qwen2.5-Coder-32B-Instruct',
-          ['stream'] = true,
-          ['temperature'] = 0.7,
-          ['top_p'] = 0.8,
-          ['repetition_penalty'] = 1.05,
-        }
-      })
+    preset_builder = BasicOpenAIPreset:with_opts({
+      provider = openai.OpenAIProvider:new({
+        api_key_name = 'VLLM_API_KEY',
+        base_url = 'http://research.local:8000',
+      }),
+      params = {
+        ['model'] = 'Qwen/Qwen2.5-Coder-32B-Instruct',
+        ['stream'] = true,
+        ['temperature'] = 0.7,
+        ['top_p'] = 0.8,
+        ['repetition_penalty'] = 1.05,
+      },
+    }),
   }),
   NewBaseTask({
     id = 'llama-3.2-90b-vision',
     description = 'llama-3.2-90b-vision | temp = 0.7',
-    preset_builder = BasicOpenAIPreset:with_opts(
-      {
-        provider = openai.OpenAIProvider:new {
-          api_key_name = 'GROQ_API_KEY',
-          base_url = 'https://api.groq.com/openai',
-        },
-        params = {
-          ['model'] = 'llama-3.2-90b-vision-preview',
-          ['stream'] = true,
-          ['temperature'] = 0.7,
-          ['top_p'] = 1,
-          ['max_tokens'] = 8192,
-        }
-      })
+    preset_builder = BasicOpenAIPreset:with_opts({
+      provider = openai.OpenAIProvider:new({
+        api_key_name = 'GROQ_API_KEY',
+        base_url = 'https://api.groq.com/openai',
+      }),
+      params = {
+        ['model'] = 'llama-3.2-90b-vision-preview',
+        ['stream'] = true,
+        ['temperature'] = 0.7,
+        ['top_p'] = 1,
+        ['max_tokens'] = 8192,
+      },
+    }),
   }),
   NewBaseTask({
     id = 'deepseek-chat',
     description = 'deepseek-chat | temp = 0.0',
-    preset_builder = BasicOpenAIPreset:with_opts(
-      {
-        provider = openai.OpenAIProvider:new {
-          api_key_name = 'DEEPSEEK_API_KEY',
-          base_url = 'https://api.deepseek.com',
-        },
-        headers = {
-          endpoint = '/beta/v1/chat/completions',
-          extra_headers = {},
-        },
-        params = {
-          ['model'] = 'deepseek-chat',
-          ['stream'] = true,
-          ['max_completion_tokens'] = 8192,
-          ['temperature'] = 0,
-        }
-      })
+    preset_builder = BasicOpenAIPreset:with_opts({
+      provider = openai.OpenAIProvider:new({
+        api_key_name = 'DEEPSEEK_API_KEY',
+        base_url = 'https://api.deepseek.com',
+      }),
+      headers = {
+        endpoint = '/beta/v1/chat/completions',
+        extra_headers = {},
+      },
+      params = {
+        ['model'] = 'deepseek-chat',
+        ['stream'] = true,
+        ['max_completion_tokens'] = 8192,
+        ['temperature'] = 0,
+      },
+    }),
   }),
 }
 

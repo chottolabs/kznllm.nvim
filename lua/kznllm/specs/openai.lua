@@ -115,7 +115,7 @@ M.OpenAIPresetBuilder = {}
 function M.OpenAIPresetBuilder:new(opts)
   local instance = {
     provider = (opts and opts.provider) and opts.provider or M.OpenAIProvider:new(),
-    debug_template_path = (opts and opts.debug_template_path) or utils.TEMPLATE_PATH / 'openai' / 'debug.xml.jinja',
+    debug_template_path = (opts and opts.debug_template_path) and opts.debug_template_path or utils.TEMPLATE_PATH / 'openai' / 'debug.xml.jinja',
     headers = (opts and opts.headers) and opts.headers or {
       endpoint = '/v1/chat/completions',
       extra_headers = {},

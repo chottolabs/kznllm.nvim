@@ -48,12 +48,13 @@ local function NewBaseTask(config)
       }
 
       local curl_options = config.preset_builder:build(prompt_args)
+      vim.print(curl_options)
 
       if opts.debug then
         local scratch_buf_id = buffer_manager:create_scratch_buffer()
         local debug_data = utils.make_prompt_from_template {
           template_path = config.preset_builder.debug_template_path,
-          prompt_args = curl_options.data,
+          prompt_args = curl_options,
         }
 
         buffer_manager:write_content(debug_data, scratch_buf_id)
@@ -89,14 +90,14 @@ function M.switch_presets(preset_list)
 
   vim.ui.select(preset_list, {
     format_item = function(item)
-      return ('%-25s %40s'):format(item.id .. (item == selected_preset and ' *' or '  '), item.description)
+      return ('%-30s %40s'):format(item.id .. (item == selected_preset and ' *' or '  '), item.description)
     end,
   }, function(choice, idx)
     if choice then
       vim.g.PRESET_IDX = idx
       selected_preset = preset_list[idx]
     end
-    print(('%-25s %40s'):format(selected_preset.id, selected_preset.description))
+    print(('%-30s %40s'):format(selected_preset.id, selected_preset.description))
   end)
 end
 
@@ -107,49 +108,29 @@ function M.load_selected_preset(preset_list)
   return preset
 end
 
+local anthropic_system_template = utils.TEMPLATE_PATH / 'anthropic' / 'fill_mode_system_prompt.xml.jinja'
+local anthropic_user_template = utils.TEMPLATE_PATH / 'anthropic' / 'fill_mode_user_prompt.xml.jinja'
+
 local BasicAnthropicPreset =
     anthropic.AnthropicPresetBuilder:new()
-    :add_system_prompts({
-      {
-        type = 'text',
-        path = utils.TEMPLATE_PATH / 'anthropic' / 'fill_mode_system_prompt.xml.jinja',
-        cache_control = { type = 'ephemeral' },
-      },
-    })
-    :add_message_prompts({
-      {
-        type = "text",
-        role = 'user',
-        path = utils.TEMPLATE_PATH / 'anthropic' / 'fill_mode_user_prompt.xml.jinja',
-      },
-    })
+    :add_system_prompts({ { type = 'text', path = anthropic_system_template, cache_control = { type = 'ephemeral' } } })
+    :add_message_prompts({ { type = "text", role = 'user', path = anthropic_user_template } })
+
+local openai_system_template = utils.TEMPLATE_PATH / 'openai' / 'fill_mode_system_prompt.xml.jinja'
+local openai_user_template = utils.TEMPLATE_PATH / 'openai' / 'fill_mode_user_prompt.xml.jinja'
 
 local BasicOpenAIPreset =
     openai.OpenAIPresetBuilder:new()
-    :add_system_prompts({ {
-      type = 'text',
-      path = utils.TEMPLATE_PATH / 'openai' / 'fill_mode_system_prompt.xml.jinja',
-    } })
-    :add_message_prompts({ {
-      type = "text",
-      role = 'user',
-      path = utils.TEMPLATE_PATH / 'openai' / 'fill_mode_user_prompt.xml.jinja',
-    } })
+    :add_system_prompts({ { type = 'text', path = openai_system_template } })
+    :add_message_prompts({ { type = "text", role = 'user', path = openai_user_template } })
 
 --- doesn't support system prompt
 local BasicOpenAIReasoningPreset =
     openai.OpenAIPresetBuilder:new()
     :add_message_prompts({
-      {
-        type = 'text',
-        role = 'user',
-        path = utils.TEMPLATE_PATH / 'openai' / 'fill_mode_system_prompt.xml.jinja',
-      },
-      {
-        type = "text",
-        role = 'user',
-        path = utils.TEMPLATE_PATH / 'openai' / 'fill_mode_user_prompt.xml.jinja',
-      } })
+      { type = 'text', role = 'user', path = openai_system_template },
+      { type = "text", role = 'user', path = openai_user_template },
+    })
 
 -- Example task configurations
 M.options = {

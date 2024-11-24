@@ -156,7 +156,7 @@ M.AnthropicPresetBuilder = {}
 ---@return AnthropicPresetBuilder
 function M.AnthropicPresetBuilder:new(opts)
   local instance = {
-    debug_template_path = (opts and opts.debug_template_path) or utils.TEMPLATE_PATH / 'anthropic' / 'debug.xml.jinja',
+    debug_template_path = (opts and opts.debug_template_path) and opts.debug_template_path or utils.TEMPLATE_PATH / 'anthropic' / 'debug.xml.jinja',
     provider = (opts and opts.provider) and opts.provider or M.AnthropicProvider:new(),
     headers = (opts and opts.headers) and opts.headers or {
       endpoint = '/v1/messages',

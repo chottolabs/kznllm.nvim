@@ -12,9 +12,10 @@ M.OpenAIProvider = {}
 function M.OpenAIProvider:new(opts)
   -- Call parent constructor with base options
 
+  local o = opts or {}
   local instance = BaseProvider:new({
-    api_key_name = (opts and opts.api_key_name) and opts.api_key_name or 'OPENAI_API_KEY',
-    base_url = (opts and opts.base_url) and opts.base_url or 'https://api.openai.com',
+    api_key_name = o.api_key_name or 'OPENAI_API_KEY',
+    base_url = o.base_url or 'https://api.openai.com',
   })
 
   -- Set proper metatable for inheritance
@@ -75,13 +76,7 @@ function M.OpenAIProvider.handle_sse_stream(buf)
     -- if data and data:match '"delta":' then
     local json = vim.json.decode(data)
     -- sglang server returns the role as one of the events and it becomes `vim.NIL`, so we have to handle it here
-    if
-      json.choices
-      and json.choices[1]
-      and json.choices[1].delta
-      and json.choices[1].delta.content
-      and json.choices[1].delta.content ~= vim.NIL
-    then
+    if json.choices and json.choices[1] and json.choices[1].delta and json.choices[1].delta.content then
       content = content .. json.choices[1].delta.content
     else
       vim.print(data)
@@ -117,14 +112,11 @@ M.OpenAIPresetBuilder = {}
 ---@param opts? { provider: OpenAIProvider, headers: OpenAIHeaders, params: OpenAIParameters, debug_template_path: Path }
 ---@return OpenAIPresetBuilder
 function M.OpenAIPresetBuilder:new(opts)
+  local o = opts or {}
   local instance = {
-    provider = (opts and opts.provider) and opts.provider or M.OpenAIProvider:new(),
-    debug_template_path = (opts and opts.debug_template_path) and opts.debug_template_path
-      or utils.TEMPLATE_PATH / 'openai' / 'debug.xml.jinja',
-    headers = (opts and opts.headers) and opts.headers or {
-      endpoint = '/v1/chat/completions',
-      extra_headers = {},
-    },
+    provider = o.provider or M.OpenAIProvider:new(),
+    debug_template_path = o.debug_template_path or utils.TEMPLATE_PATH / 'openai' / 'debug.xml.jinja',
+    headers = o.headers or { endpoint = '/v1/chat/completions' },
     params = (opts and opts.params) and opts.params or {
       ['model'] = 'o1-mini',
       ['stream'] = true,
@@ -169,26 +161,20 @@ function M.OpenAIPresetBuilder:build(args)
   for _, template in ipairs(self.system_templates) do
     table.insert(messages, {
       role = 'system',
-      content = utils.make_prompt_from_template({
-        template_path = template.path,
-        prompt_args = args,
-      }),
+      content = utils.make_prompt_from_template({ template_path = template.path, prompt_args = args }),
     })
   end
 
   for _, template in ipairs(self.message_templates) do
     if template.type == 'text' then
+      local message_content = {
+        type = template.type,
+        text = utils.make_prompt_from_template({ template_path = template.path, prompt_args = args }),
+      }
+
       table.insert(messages, {
         role = template.role,
-        content = {
-          {
-            type = template.type,
-            text = utils.make_prompt_from_template({
-              template_path = template.path,
-              prompt_args = args,
-            }),
-          },
-        },
+        content = { message_content },
       })
     end
   end

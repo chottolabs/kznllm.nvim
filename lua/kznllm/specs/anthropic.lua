@@ -153,11 +153,11 @@ M.AnthropicPresetBuilder = {}
 ---@param opts? { provider?: AnthropicProvider, debug_template_path?: Path, headers?: AnthropicAPIHeaders, params?: AnthropicParameters }
 ---@return AnthropicPresetBuilder
 function M.AnthropicPresetBuilder:new(opts)
+  local o = opts or {}
   local instance = {
-    debug_template_path = (opts and opts.debug_template_path) and opts.debug_template_path
-      or utils.TEMPLATE_PATH / 'anthropic' / 'debug.xml.jinja',
-    provider = (opts and opts.provider) and opts.provider or M.AnthropicProvider:new(),
-    headers = (opts and opts.headers) and opts.headers or {
+    debug_template_path = o.debug_template_path or utils.TEMPLATE_PATH / 'anthropic' / 'debug.xml.jinja',
+    provider = o.provider or M.AnthropicProvider:new(),
+    headers = o.headers or {
       endpoint = '/v1/messages',
       auth_format = 'x-api-key: %s',
       extra_headers = {
@@ -165,7 +165,7 @@ function M.AnthropicPresetBuilder:new(opts)
         'anthropic-beta: prompt-caching-2024-07-31',
       },
     },
-    params = (opts and opts.params) and opts.params or {
+    params = o.params or {
       ['model'] = 'claude-3-5-sonnet-20241022',
       ['stream'] = true,
       ['max_tokens'] = 8192,
@@ -215,10 +215,7 @@ function M.AnthropicPresetBuilder:build(args)
     if template.type == 'text' then
       table.insert(system, {
         type = template.type,
-        text = utils.make_prompt_from_template({
-          template_path = template.path,
-          prompt_args = args,
-        }),
+        text = utils.make_prompt_from_template({ template_path = template.path, prompt_args = args }),
         cache_control = template.cache_control,
       })
     end
@@ -229,21 +226,15 @@ function M.AnthropicPresetBuilder:build(args)
 
   for _, template in ipairs(self.message_templates) do
     if template.type == 'text' then
-      ---@type AnthropicMessage
-      local message = {
-        role = template.role,
-        content = {
-          {
-            type = 'text',
-            text = utils.make_prompt_from_template({
-              template_path = template.path,
-              prompt_args = args,
-            }),
-            cache_control = template.cache_control,
-          },
-        },
+      local message_content = {
+        type = 'text',
+        text = utils.make_prompt_from_template({ template_path = template.path, prompt_args = args }),
+        cache_control = template.cache_control,
       }
-      table.insert(messages, message)
+      table.insert(messages, {
+        role = template.role,
+        content = { message_content },
+      })
     end
   end
 

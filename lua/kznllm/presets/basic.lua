@@ -48,7 +48,6 @@ local function NewBaseTask(config)
       }
 
       local curl_options = config.preset_builder:build(prompt_args)
-      vim.print(curl_options)
 
       if opts.debug then
         local scratch_buf_id = buffer_manager:create_scratch_buffer()

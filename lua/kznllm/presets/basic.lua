@@ -113,16 +113,24 @@ local anthropic_user_template = utils.TEMPLATE_PATH / 'anthropic' / 'fill_mode_u
 
 local BasicAnthropicPreset =
     anthropic.AnthropicPresetBuilder:new()
-    :add_system_prompts({ { type = 'text', path = anthropic_system_template, cache_control = { type = 'ephemeral' } } })
-    :add_message_prompts({ { type = "text", role = 'user', path = anthropic_user_template } })
+    :add_system_prompts({
+      { type = 'text', path = anthropic_system_template, cache_control = { type = 'ephemeral' } }
+    })
+    :add_message_prompts({
+      { type = "text", role = 'user', path = anthropic_user_template }
+    })
 
 local openai_system_template = utils.TEMPLATE_PATH / 'openai' / 'fill_mode_system_prompt.xml.jinja'
 local openai_user_template = utils.TEMPLATE_PATH / 'openai' / 'fill_mode_user_prompt.xml.jinja'
 
 local BasicOpenAIPreset =
     openai.OpenAIPresetBuilder:new()
-    :add_system_prompts({ { type = 'text', path = openai_system_template } })
-    :add_message_prompts({ { type = "text", role = 'user', path = openai_user_template } })
+    :add_system_prompts({
+      { type = 'text', path = openai_system_template }
+    })
+    :add_message_prompts({
+      { type = "text", role = 'user', path = openai_user_template }
+    })
 
 --- doesn't support system prompt
 local BasicOpenAIReasoningPreset =

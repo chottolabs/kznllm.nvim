@@ -28,23 +28,7 @@
 ---@field message_templates table[]
 ---@field headers BaseHeaders
 ---@field params BaseParameters
-local BasePresetBuilder = {}
-
-function BasePresetBuilder:add_system_templates(templates)
-  error('add_system_templates NOT IMPLEMENTED', 1)
-end
-
-function BasePresetBuilder:add_message_templates(templates)
-  error('add_message_templates NOT IMPLEMENTED', 1)
-end
-
-function BasePresetBuilder:with_opts(params)
-  error('with_params NOT IMPLEMENTED', 1)
-end
-
----@return BaseProviderCurlOptions
-function BasePresetBuilder:build(prompt_args)
-  error('build NOT IMPLEMENTED', 1)
-end
-
-return BasePresetBuilder
+---@field add_system_templates fun(self: BasePresetBuilder, templates: table)
+---@field add_message_templates fun(self: BasePresetBuilder, templates: table)
+---@field with_opts fun(self: BasePresetBuilder, params: table)
+---@field build fun(self: BasePresetBuilder, args: table)

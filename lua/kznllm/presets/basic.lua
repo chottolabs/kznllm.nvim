@@ -67,14 +67,19 @@ local function NewBaseTask(config)
       local state = { start = os.time(), last_updated = nil }
       p:report({ message = ("%s"):format(config.description) })
       local message_fn = opts.progress_message_fn and opts.progress_message_fn or function(s) return "yapped" end
+      local message = message_fn(state)
       local _ = buffer_manager:create_streaming_job(
         provider,
         args,
         function()
-          -- p:report({ message = ("yapped %ds"):format(os.time() - state.start) })
           local progress_message = message_fn(state)
           if progress_message ~= nil then
-            p:report({ message = progress_message:format(os.time() - state.start) })
+            message = progress_message
+          end
+
+          local elapsed = os.time() - state.start
+          if message:format(elapsed) ~= message then
+            p:report({ message = message:format(os.time() - state.start) })
           end
         end,
         function() p:finish() end

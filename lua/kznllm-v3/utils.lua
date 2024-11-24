@@ -124,14 +124,14 @@ function M.get_project_files(opts)
 end
 
 ---Creates a prompt from template
----@param opts { template_path: Path, filename: string, prompt_args: table }
+---@param opts { template_path: Path, prompt_args: table }
 ---@return string
 function M.make_prompt_from_template(opts)
   if vim.fn.executable 'minijinja-cli' ~= 1 then
     error("Can't find minijinja-cli, download it from https://github.com/mitsuhiko/minijinja or add it to $PATH", 1)
   end
 
-  local prompt_template_path = opts.template_path / opts.filename
+  local prompt_template_path = opts.template_path
 
   if not prompt_template_path:exists() then
     error(string.format('could not find template at %s', prompt_template_path), 1)

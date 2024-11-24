@@ -19,14 +19,6 @@ function BaseProvider:new(opts)
   return instance
 end
 
----@class BaseProviderHeaderOptions
----@field endpoint string
----@field auth_format? string
----@field extra_headers? string[]
-
----@class BaseProviderCurlOptions: BaseProviderHeaderOptions
----@field data table
-
 ---@param opts BaseProviderCurlOptions
 ---@return string[]
 function BaseProvider:make_curl_args(opts)

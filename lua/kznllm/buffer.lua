@@ -91,10 +91,8 @@ local function noop()
   api.nvim_buf_set_text(0, 0, 0, 0, 0, {})
 end
 
--- Add to providers/base.lua
----@param provider BaseProvider
 ---@param args table
-function BufferManager:create_streaming_job(provider, args, progress_fn, on_complete_fn)
+function BufferManager:create_streaming_job(args, handle_sse_stream_fn, progress_fn, on_complete_fn)
   local buf_id = api.nvim_get_current_buf()
   local state = self:get_or_add_buffer(buf_id)
 
@@ -111,7 +109,7 @@ function BufferManager:create_streaming_job(provider, args, progress_fn, on_comp
         if data == nil then return end
         progress_fn()
         captured_stdout = data
-        local content = provider:handle_sse_stream(data)
+        local content = handle_sse_stream_fn(data)
         if content then
           vim.schedule(function() self:write_content(content, buf_id) end)
         end

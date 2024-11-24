@@ -105,7 +105,7 @@ local current_event_state
 --- event types: `[message_start, content_block_start, content_block_delta, content_block_stop, message_delta, message_stop, error]`
 ---@param line string
 ---@return string?
-function M.AnthropicProvider:handle_sse_stream(line)
+function M.AnthropicProvider.handle_sse_stream(line)
   -- vim.print(("---\n%s"):format(line))
   local content = ''
   for event, data in line:gmatch('event: ([%w_]+)\ndata: ({.-})\n') do

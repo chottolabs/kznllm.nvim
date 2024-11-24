@@ -48,7 +48,7 @@ end
 
 ---@param line string
 ---@return string?
-function BaseProvider:handle_sse_stream(line)
+function BaseProvider.handle_sse_stream(line)
   error('handle_sse_stream NOT IMPLEMENTED', 1)
 end
 

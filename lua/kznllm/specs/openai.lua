@@ -69,7 +69,7 @@ end
 ---
 ---@param buf string
 ---@return string
-function M.OpenAIProvider:handle_sse_stream(buf)
+function M.OpenAIProvider.handle_sse_stream(buf)
   -- based on sse spec (OpenAI spec uses data-only server-sent events)
   local content = ''
 

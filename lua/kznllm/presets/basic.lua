@@ -69,8 +69,8 @@ local function NewBaseTask(config)
       local message_fn = opts.progress_message_fn and opts.progress_message_fn or function(s) return "yapped" end
       local message = message_fn(state)
       local _ = buffer_manager:create_streaming_job(
-        provider,
         args,
+        provider.handle_sse_stream,
         function()
           local progress_message = message_fn(state)
           if progress_message ~= nil then

@@ -36,43 +36,28 @@ full config w/ supported presets and a switch mechanism and provider-specific de
 ```lua
 {
   'chottolabs/kznllm.nvim',
-  -- dev = true,
-  -- dir = /path/to/your/fork,
   dependencies = {
-    { 'nvim-lua/plenary.nvim' }
+    { 'nvim-lua/plenary.nvim' },
+    { 'j-hui/fidget.nvim' },
   },
   config = function(self)
-    local presets = require 'kznllm.presets'
+    local presets = require 'kznllm.presets.basic'
 
-    -- bind a key to the preset switcher
-    vim.keymap.set({ 'n', 'v' }, '<leader>m', presets.switch_presets, { desc = 'switch between presets' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>m', function()
+      presets.switch_presets(presets.options)
+    end, { desc = 'switch between presets' })
 
-    local function llm_fill()
-      local spec, preset = presets.load()
-      presets.invoke_llm(
-        preset.make_data_fn,
-        spec.make_curl_args,
-        spec.make_job,
-        vim.tbl_extend('keep', preset.opts, {})
-      )
+    local function invoke_with_opts(opts)
+      return function()
+        local preset = presets.load_selected_preset(presets.options)
+        preset.invoke(opts)
+      end
     end
 
-    vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_fill, { desc = 'Send current selection to LLM llm_fill' })
-
-    -- optional for debugging purposes
-    local function debug()
-      local spec, preset = presets.load()
-      presets.invoke_llm(
-        preset.make_data_fn,
-        spec.make_curl_args,
-        spec.make_job,
-        vim.tbl_extend('keep', preset.opts, {
-          debug = true,
-        })
-      )
-    end
-
-    vim.keymap.set({ 'n', 'v' }, '<leader>d', debug, { desc = 'Send current selection to LLM debug' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>K', invoke_with_opts { debug = true },
+      { desc = 'Send current selection to LLM debug' })
+    vim.keymap.set({ 'n', 'v' }, '<leader>k', invoke_with_opts { debug = false },
+      { desc = 'Send current selection to LLM llm_fill' })
 
     vim.api.nvim_set_keymap('n', '<Esc>', '', {
       noremap = true,
@@ -81,7 +66,7 @@ full config w/ supported presets and a switch mechanism and provider-specific de
         vim.api.nvim_exec_autocmds('User', { pattern = 'LLM_Escape' })
       end,
     })
-  end
+  end,
 },
 ```
 
@@ -105,60 +90,3 @@ Originally based on [dingllm.nvim](https://github.com/yacineMTB/dingllm.nvim) - 
 - preset defaults + simple approach for overriding them
 - free cursor movement during generation
 - avoids "undojoin after undo" error
-
-## Alternative Configurations
-
-minimal configuration with custom `make_data_fn` and no preset switcher. As you can see, the `make_data_fn` is simply building the `data` portion of the API call and will accept anything supported by the associated provider.
-
-```lua
-local presets = require 'kznllm'
-local presets = require 'kznllm.presets'
-local Path = require 'plenary.path'
-
-local TEMPLATE_DIRECTORY = Path:new(vim.fn.expand(self.dir) .. '/templates')
-
----Example implementation of a `make_data_fn` compatible with `kznllm.invoke_llm` for groq spec
----@param prompt_args any
----@param opts { model: string, temperature: number, template_directory: Path, debug: boolean }
----@return table
----
-local function make_data_for_openai_chat(prompt_args, opts)
-  return {
-    messages = {
-      {
-        role = 'system',
-        content = kznllm.make_prompt_from_template(opts.template_directory / 'nous_research/fill_mode_system_prompt.xml.jinja', prompt_args),
-      },
-      {
-        role = 'user',
-        content = kznllm.make_prompt_from_template(opts.template_directory / 'nous_research/fill_mode_user_prompt.xml.jinja', prompt_args),
-      },
-    },
-    model = opts.model,
-    temperature = opts.temperature,
-    stream = true,
-  }
-end
-
--- set initial preset on load
-local spec = require('kznllm.specs.groq')
-
-local function llm_fill()
-  presets.invoke_llm(
-    make_data_for_openai_chat,
-    spec.make_curl_args,
-    spec.make_job,
-    {
-      model = 'llama-3.1-70b-versatile',
-      max_tokens = 8192,
-      temperature = 0.7,
-      base_url = 'https://api.groq.com',
-      endpoint = '/openai/v1/chat/completions',
-      template_directory = TEMPLATE_DIRECTORY,
-    })
-  )
-end
-
-vim.keymap.set({ 'n', 'v' }, '<leader>k', llm_fill, { desc = 'Send current selection to LLM llm_fill' })
-```
-

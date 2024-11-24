@@ -30,30 +30,18 @@
 ---@field params BaseParameters
 local BasePresetBuilder = {}
 
--- ---@param opts { provider: BaseProvider, config: BasePresetConfig }
--- ---@return BasePresetBuilder
--- function BasePresetBuilder:new(opts)
---   local instance = { provider = opts.provider, config = opts.config }
---   setmetatable(instance, { __index = self })
---   return instance
--- end
-
----@param templates table[]
 function BasePresetBuilder:add_system_templates(templates)
   error('add_system_templates NOT IMPLEMENTED', 1)
 end
 
----@param templates table[]
 function BasePresetBuilder:add_message_templates(templates)
   error('add_message_templates NOT IMPLEMENTED', 1)
 end
 
----@param params table
-function BasePresetBuilder:with_params(params)
+function BasePresetBuilder:with_opts(params)
   error('with_params NOT IMPLEMENTED', 1)
 end
 
----@param prompt_args table
 ---@return BaseProviderCurlOptions
 function BasePresetBuilder:build(prompt_args)
   error('build NOT IMPLEMENTED', 1)

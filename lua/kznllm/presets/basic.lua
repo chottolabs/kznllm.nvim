@@ -1,10 +1,10 @@
-local utils = require 'kznllm-v3.utils'
-local buffer_manager = (require 'kznllm-v3.buffer').buffer_manager
+local utils = require 'kznllm.utils'
+local buffer_manager = (require 'kznllm.buffer').buffer_manager
 local Path = require 'plenary.path'
 local api = vim.api
 
-local anthropic = require 'kznllm-v3.specs.anthropic'
-local openai = require 'kznllm-v3.specs.openai'
+local anthropic = require 'kznllm.specs.anthropic'
+local openai = require 'kznllm.specs.openai'
 
 local progress = require 'fidget.progress'
 
@@ -170,7 +170,6 @@ M.options = {
   NewBaseTask({
     id = 'haiku-3-5-chat',
     description = 'claude-3-5-haiku-20241022 | temp = 0.7',
-    -- preset_builder = BasicAnthropicPreset,
     preset_builder = BasicAnthropicPreset:with_opts(
       {
         params = {

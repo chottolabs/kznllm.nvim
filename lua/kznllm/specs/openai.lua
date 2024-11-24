@@ -1,102 +1,207 @@
+local BaseProvider = require 'kznllm.specs'
+local Path = require 'plenary.path'
+local utils = require 'kznllm.utils'
+
 local M = {}
 
-local API_KEY_NAME = 'OPENAI_API_KEY'
-local BASE_URL = 'https://api.openai.com'
+---@class OpenAIProvider : BaseProvider
+M.OpenAIProvider = {}
 
-local API_ERROR_MESSAGE = [[
-ERROR: api key is set to %s and is missing from your environment variables.
+---@param opts? BaseProviderOptions
+---@return OpenAIProvider
+function M.OpenAIProvider:new(opts)
+  -- Call parent constructor with base options
 
-Load somewhere safely from config `export %s=<api_key>`]]
+  local instance = BaseProvider:new({
+    api_key_name = (opts and opts.api_key_name) and opts.api_key_name or 'OPENAI_API_KEY',
+    base_url = (opts and opts.base_url) and opts.base_url or 'https://api.openai.com',
+  })
 
-local Job = require 'plenary.job'
+  -- Set proper metatable for inheritance
+  setmetatable(instance, { __index = self })
+  setmetatable(self, { __index = BaseProvider })
 
---- Constructs arguments for constructing an HTTP request to the OpenAI API
---- using cURL.
----
----@param data table
----@return string[]
-function M.make_curl_args(data, opts)
-  local url = (opts and opts.base_url or BASE_URL) .. (opts and opts.endpoint)
-  local api_key_name = opts and opts.api_key_name or API_KEY_NAME
-  local api_key = os.getenv(api_key_name)
-
-  if not api_key then
-    error(API_ERROR_MESSAGE:format(api_key_name, api_key_name), 1)
-  end
-
-  local args = {
-    '-s', --silent
-    '--fail-with-body',
-    '-N', --no buffer
-    '-X',
-    'POST',
-    '-H',
-    'Content-Type: application/json',
-    '-d',
-    vim.json.encode(data),
-    '-H',
-    'Authorization: Bearer ' .. api_key,
-    url,
-  }
-
-  return args
+  ---silence lsp warning
+  ---@type OpenAIProvider
+  return instance
 end
+
+---
+--- TYPE ANNOTATIONS
+---
+
+
+---@class OpenAICurlOptions : OpenAIHeaders
+---@field data OpenAIBody
+
+---@class OpenAIHeaders
+---@field endpoint string
+---@field auth_format? string
+---@field extra_headers? string[]
+
+---@class OpenAIBody : OpenAIParameters, OpenAIPromptContext
+
+---@class OpenAIPromptContext
+---@field messages OpenAIMessage[]
+
+---@class OpenAIParameters
+---@field model string
+---@field max_tokens? integer
+---@field max_completion_tokens? integer
+---@field temperature? number
+---@field top_p? number
+---@field frequency_penalty? number
+---@field presence_penalty? number
+
+---@alias OpenAIMessageRole "system" | "user" | "assistant"
+---@class OpenAIMessage
+---@field role OpenAIMessageRole
+---@field content string | OpenAIMessageContent[]
+
+---@alias OpenAIMessageContentType "text" | "image"
+---@class OpenAIMessageContent
+---@field type OpenAIMessageContentType
+---@field text string
+
 
 --- Process server-sent events based on OpenAI spec
 --- [See Documentation](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream)
 ---
----@param line string
+---@param buf string
 ---@return string
-local function handle_data(line)
+function M.OpenAIProvider:handle_sse_stream(buf)
   -- based on sse spec (OpenAI spec uses data-only server-sent events)
-  local data = line:match '^data: (.+)$'
-
   local content = ''
 
-  if data and data:match '"delta":' then
-    local json = vim.json.decode(data)
-    if json.choices and json.choices[1] and json.choices[1].delta and json.choices[1].delta.content then
-      content = json.choices[1].delta.content
-    else
-      vim.print(data)
+  for data in buf:gmatch('data: ({.-})\n') do
+    if data and data:match '"delta":' then
+      local json = vim.json.decode(data)
+      -- sglang server returns the role as one of the events and it becomes `vim.NIL`, so we have to handle it here
+      if json.choices and json.choices[1] and json.choices[1].delta and json.choices[1].delta.content and json.choices[1].delta.content ~= vim.NIL then
+        content = content .. json.choices[1].delta.content
+      else
+        vim.print(data)
+      end
     end
   end
 
   return content
 end
 
----@param args table
----@param writer_fn fun(content: string)
-function M.make_job(args, writer_fn, on_exit_fn)
-  local active_job = Job:new {
-    command = 'curl',
-    args = args,
-    enable_recording = true,
-    on_stdout = function(_, line)
-      local content = handle_data(line)
-      if content and content ~= nil then
-        vim.schedule(function()
-          writer_fn(content)
-        end)
-      end
-    end,
-    on_stderr = function(message, _)
-      error(message, 1)
-    end,
-    on_exit = function(job, exit_code)
-      local stdout_result = job:result()
-      local stdout_message = table.concat(stdout_result, '\n')
+---@class OpenAIPresetConfig
+---@field id string
+---@field description string
+---@field curl_options OpenAICurlOptions
 
-      vim.schedule(function()
-        if exit_code and exit_code ~= 0 then
-          vim.notify('[Curl] (exit code: ' .. exit_code .. ')\n' .. stdout_message, vim.log.levels.ERROR)
-        else
-          on_exit_fn()
-        end
-      end)
-    end,
+---@class OpenAIPresetSystemTemplate
+---@field path Path
+
+---@class OpenAIPresetMessageTemplate
+---@field type OpenAIMessageContentType
+---@field role OpenAIMessageRole
+---@field path Path
+
+---@class OpenAIPresetBuilder : BasePresetBuilder
+---@field provider OpenAIProvider
+---@field system_templates OpenAIPresetSystemTemplate[]
+---@field message_templates OpenAIPresetMessageTemplate[]
+---@field debug_template? Path
+---@field headers OpenAIHeaders
+---@field params OpenAIParameters
+M.OpenAIPresetBuilder = {}
+
+---@param opts? { provider: OpenAIProvider, headers: OpenAIHeaders, params: OpenAIParameters, debug_template_path: Path }
+---@return OpenAIPresetBuilder
+function M.OpenAIPresetBuilder:new(opts)
+  local instance = {
+    provider = (opts and opts.provider) and opts.provider or M.OpenAIProvider:new(),
+    debug_template_path = (opts and opts.debug_template_path) or utils.TEMPLATE_PATH / 'openai' / 'debug.xml.jinja',
+    headers = (opts and opts.headers) and opts.headers or {
+      endpoint = '/v1/chat/completions',
+      extra_headers = {},
+    },
+    params = (opts and opts.params) and opts.params or {
+      ['model'] = 'o1-mini',
+      ['stream'] = true,
+    },
+    system_templates = {},
+    message_templates = {}
   }
-  return active_job
+  setmetatable(instance, { __index = self })
+  return instance
+end
+
+---@param opts { params: OpenAIParameters, headers: OpenAIHeaders, provider: OpenAIProvider }
+function M.OpenAIPresetBuilder:with_opts(opts)
+  local cpy = vim.deepcopy(self)
+  for k, v in pairs(opts) do
+    cpy[k] = v
+  end
+  return cpy
+end
+
+---@param system_templates OpenAIPresetSystemTemplate[]
+function M.OpenAIPresetBuilder:add_system_prompts(system_templates)
+  for _, template in ipairs(system_templates) do
+    table.insert(self.system_templates, 1, template)
+  end
+  return self
+end
+
+---@param message_templates OpenAIPresetMessageTemplate[]
+function M.OpenAIPresetBuilder:add_message_prompts(message_templates)
+  for _, template in ipairs(message_templates) do
+    table.insert(self.message_templates, template)
+  end
+  return self
+end
+
+---@return OpenAICurlOptions
+function M.OpenAIPresetBuilder:build(args)
+  ---@type OpenAIMessage[]
+  local messages = {}
+
+  for _, template in ipairs(self.system_templates) do
+    table.insert(
+      messages,
+      {
+        role = "system",
+        content = utils.make_prompt_from_template {
+          template_path = template.path,
+          prompt_args = args,
+        }
+      })
+  end
+
+  for _, template in ipairs(self.message_templates) do
+    if template.type == "text" then
+      table.insert(
+        messages,
+        {
+          role = template.role,
+          content = {
+            {
+              type = template.type,
+              text = utils.make_prompt_from_template {
+                template_path = template.path,
+                prompt_args = args,
+              }
+            },
+          }
+        })
+    end
+  end
+
+  return vim.tbl_extend(
+    'keep',
+    self.headers,
+    {
+      data = vim.tbl_extend(
+        'keep',
+        self.params,
+        { messages = messages }
+      )
+    })
 end
 
 return M

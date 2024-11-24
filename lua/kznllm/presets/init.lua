@@ -30,13 +30,13 @@
 ---@field params BaseParameters
 local BasePresetBuilder = {}
 
----@param opts { provider: BaseProvider, config: BasePresetConfig }
----@return BasePresetBuilder
-function BasePresetBuilder:new(opts)
-  local instance = { provider = opts.provider, config = opts.config }
-  setmetatable(instance, { __index = self })
-  return instance
-end
+-- ---@param opts { provider: BaseProvider, config: BasePresetConfig }
+-- ---@return BasePresetBuilder
+-- function BasePresetBuilder:new(opts)
+--   local instance = { provider = opts.provider, config = opts.config }
+--   setmetatable(instance, { __index = self })
+--   return instance
+-- end
 
 ---@param templates table[]
 function BasePresetBuilder:add_system_templates(templates)

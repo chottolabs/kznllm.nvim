@@ -1,51 +1,86 @@
+local BaseProvider = require 'kznllm.specs'
+local utils = require 'kznllm.utils'
+
 local M = {}
 
-local API_KEY_NAME = 'ANTHROPIC_API_KEY'
-local BASE_URL = 'https://api.anthropic.com'
+---@class AnthropicProvider : BaseProvider
+M.AnthropicProvider = {}
 
-local API_ERROR_MESSAGE = [[
-ERROR: anthropic api key is set to %s and is missing from your environment variables.
+---@param opts? BaseProviderOptions
+---@return AnthropicProvider
+function M.AnthropicProvider:new(opts)
+  -- Call parent constructor with base options
+  local instance = BaseProvider:new({
+    api_key_name = (opts and opts.api_key_name) and opts.api_key_name or 'ANTHROPIC_API_KEY',
+    base_url = (opts and opts.base_url) and opts.base_url or 'https://api.anthropic.com',
+  })
 
-Load somewhere safely from config `export %s=<api_key>`]]
+  -- Set proper metatable for inheritance
+  setmetatable(instance, { __index = self })
+  setmetatable(self, { __index = BaseProvider })
 
-local Job = require 'plenary.job'
-local current_event_state = nil
-
---- Constructs arguments for constructing an HTTP request to the OpenAI API
---- using cURL.
----
----@param data table
----@return string[]
-function M.make_curl_args(data, opts)
-  local url = (opts and opts.base_url or BASE_URL) .. (opts and opts.endpoint)
-  local api_key_name = opts and opts.api_key_name or API_KEY_NAME
-  local api_key = os.getenv(api_key_name)
-
-  if not api_key then
-    error(API_ERROR_MESSAGE:format(api_key_name, api_key_name), 1)
-  end
-
-  local args = {
-    '-s', --silent
-    '--fail-with-body',
-    '-N', --no buffer
-    '-X',
-    'POST',
-    '-H',
-    'Content-Type: application/json',
-    '-d',
-    vim.json.encode(data),
-    '-H',
-    'x-api-key: ' .. api_key,
-    '-H',
-    'anthropic-version: 2023-06-01',
-    '-H',
-    'anthropic-beta: max-tokens-3-5-sonnet-2024-07-15',
-    url,
-  }
-
-  return args
+  ---silence lsp warning
+  ---@type AnthropicProvider
+  return instance
 end
+
+---
+--- TYPE ANNOTATIONS
+---
+
+---@class AnthropicCurlOptions : AnthropicAPIHeaders
+---@field data AnthropicAPIBody
+
+---@class AnthropicAPIHeaders
+---@field endpoint string
+---@field auth_format? string
+---@field extra_headers? string[]
+
+---@class AnthropicAPIBody : AnthropicParameters, AnthropicPromptContext
+
+---@class AnthropicPromptContext
+---@field system AnthropicSystemContext[]
+---@field messages AnthropicMessage[]
+
+---@class AnthropicParameters
+---@field model string | 'claude-3-5-sonnet-latest' | 'claude-3-5-haiku-latest'
+---@field stop_sequences? string[]
+---@field max_tokens? integer
+---@field temperature? number
+---@field top_k? integer
+---@field top_p? number
+---@field stream? boolean
+---@field tool_choice? table
+---@field tools? table[]
+
+---@class AnthropicSystemContext
+---@field type AnthropicSystemContentType
+---@field text string
+---@field cache_control? AnthropicCacheControl
+
+---@alias AnthropicSystemContentType "text"
+---@alias AnthropicMessageContentType "text" | "image" | "tool_use" | "tool_result" | "document"
+
+---@class AnthropicCacheControl
+---@field type "ephemeral"
+
+---@alias AnthropicMessageRole "user" | "assistant"
+
+---@class AnthropicMessageTextContent
+---@field type "text"
+---@field text string
+
+---@class AnthropicMessage
+---@field role AnthropicMessageRole
+---@field content string | AnthropicMessageTextContent[]
+
+
+
+---
+--- DATA HANDLERS
+---
+
+local current_event_state
 
 --- Anthropic SSE Specification
 --- [See Documentation](https://docs.anthropic.com/en/api/messages-streaming#event-types)
@@ -68,74 +103,163 @@ end
 --- 4. `message_stop` event
 ---
 --- event types: `[message_start, content_block_start, content_block_delta, content_block_stop, message_delta, message_stop, error]`
----@param data string
----@return string
-local function handle_data(data)
+---@param line string
+---@return string?
+function M.AnthropicProvider:handle_sse_stream(line)
+  -- vim.print(("---\n%s"):format(line))
   local content = ''
-  if data then
-    local json = vim.json.decode(data)
-
-    if json.delta and json.delta.text then
-      content = json.delta.text
+  for event, data in line:gmatch('event: ([%w_]+)\ndata: ({.-})\n') do
+    -- vim.print(("== %s -- %s"):format(event, data))
+    if event == 'content_block_delta' then
+      local json = vim.json.decode(data)
+      if json.delta and json.delta.text then
+        content = content .. json.delta.text
+      end
+    elseif event == 'content_block_start' then
+    elseif event == 'content_block_stop' then
+    elseif event == 'message_start' then
+      vim.print(data)
+    elseif event == 'message_stop' then
+    elseif event == 'message_delta' then
+    elseif event == 'ping' then
+    elseif event == 'error' then
+      vim.print(data)
+    else
+      vim.print(data)
     end
   end
 
   return content
 end
 
-function M.make_job(args, writer_fn, on_exit_fn)
-  local active_job = Job:new {
-    command = 'curl',
-    args = args,
-    enable_recording = true,
-    on_stdout = function(_, line)
-      if line == '' then
-        return
-      end
+---@class AnthropicPresetSystemTemplate
+---@field type AnthropicSystemContentType
+---@field path Path
+---@field cache_control? AnthropicCacheControl
 
-      -- based on sse spec (Anthropic spec has several distinct events)
-      -- Anthropic's sse spec requires you to manage the current event state
-      local event = line:match '^event: (.+)$'
+---@class AnthropicPresetMessageTemplate
+---@field role AnthropicMessageRole
+---@field type AnthropicMessageContentType
+---@field path Path
+---@field cache_control? AnthropicCacheControl
 
-      if event then
-        current_event_state = event
-        return
-      end
+---@class AnthropicPresetBuilder : BasePresetBuilder
+---@field provider AnthropicProvider
+---@field debug_template? Path
+---@field system_templates AnthropicPresetSystemTemplate[]
+---@field message_templates AnthropicPresetMessageTemplate[]
+---@field headers AnthropicAPIHeaders
+---@field params AnthropicParameters
+M.AnthropicPresetBuilder = {}
 
-      if current_event_state == 'content_block_delta' then
-        local data = line:match '^data: (.+)$'
-
-        local content = handle_data(data)
-        if content and content ~= nil then
-          vim.schedule(function()
-            writer_fn(content)
-          end)
-        end
-      elseif current_event_state == 'message_start' then
-        local data = line:match '^data: (.+)$'
-        vim.print(data)
-      elseif current_event_state == 'message_delta' then
-        local data = line:match '^data: (.+)$'
-        vim.print(data)
-      end
-    end,
-    on_stderr = function(message, _)
-      error(message, 1)
-    end,
-    on_exit = function(job, exit_code)
-      local stdout_result = job:result()
-      local stdout_message = table.concat(stdout_result, '\n')
-
-      vim.schedule(function()
-        if exit_code and exit_code ~= 0 then
-          vim.notify('[Curl] (exit code: ' .. exit_code .. ')\n' .. stdout_message, vim.log.levels.ERROR)
-        else
-          on_exit_fn()
-        end
-      end)
-    end,
+---@param opts? { provider?: AnthropicProvider, debug_template_path?: Path, headers?: AnthropicAPIHeaders, params?: AnthropicParameters }
+---@return AnthropicPresetBuilder
+function M.AnthropicPresetBuilder:new(opts)
+  local instance = {
+    debug_template_path = (opts and opts.debug_template_path) or utils.TEMPLATE_PATH / 'anthropic' / 'debug.xml.jinja',
+    provider = (opts and opts.provider) and opts.provider or M.AnthropicProvider:new(),
+    headers = (opts and opts.headers) and opts.headers or {
+      endpoint = '/v1/messages',
+      auth_format = 'x-api-key: %s',
+      extra_headers = {
+        'anthropic-version: 2023-06-01',
+        'anthropic-beta: prompt-caching-2024-07-31',
+      },
+    },
+    params = (opts and opts.params) and opts.params or {
+      ['model'] = 'claude-3-5-sonnet-20241022',
+      ['stream'] = true,
+      ['max_tokens'] = 8192,
+      ['temperature'] = 0.7,
+    },
+    system_templates = {},
+    message_templates = {}
   }
-  return active_job
+  setmetatable(instance, { __index = self })
+  return instance
+end
+
+---@param opts { params: AnthropicParameters, headers: AnthropicAPIHeaders, provider: AnthropicProvider }
+function M.AnthropicPresetBuilder:with_opts(opts)
+  local cpy = vim.deepcopy(self)
+  for k, v in pairs(opts) do
+    cpy[k] = v
+  end
+  return cpy
+end
+
+--- Mutates the builder's system templates
+---@param system_templates AnthropicPresetSystemTemplate[]
+function M.AnthropicPresetBuilder:add_system_prompts(system_templates)
+  for _, template in ipairs(system_templates) do
+    table.insert(self.system_templates, template)
+  end
+  return self
+end
+
+--- Mutates the builder's message templates
+---@param message_templates AnthropicPresetMessageTemplate[]
+function M.AnthropicPresetBuilder:add_message_prompts(message_templates)
+  for _, template in ipairs(message_templates) do
+    table.insert(self.message_templates, template)
+  end
+  return self
+end
+
+---Renders all templates and builds curl args in the correct format according to Anthropic API spec
+---@return AnthropicCurlOptions
+function M.AnthropicPresetBuilder:build(args)
+  ---@type AnthropicSystemContext[]
+  local system = {}
+
+  for _, template in ipairs(self.system_templates) do
+    if template.type == "text" then
+      table.insert(system,
+        {
+          type = template.type,
+          text = utils.make_prompt_from_template {
+            template_path = template.path,
+            prompt_args = args,
+          },
+          cache_control = template.cache_control,
+        }
+      )
+    end
+  end
+
+  ---@type AnthropicMessage[]
+  local messages = {}
+
+  for _, template in ipairs(self.message_templates) do
+    if template.type == "text" then
+      ---@type AnthropicMessage
+      local message = {
+        role = template.role,
+        content = {
+          {
+            type = "text",
+            text = utils.make_prompt_from_template {
+              template_path = template.path,
+              prompt_args = args,
+            },
+            cache_control = template.cache_control,
+          },
+        }
+      }
+      table.insert(messages, message)
+    end
+  end
+
+  return vim.tbl_extend(
+    'keep',
+    self.headers,
+    {
+      data = vim.tbl_extend(
+        'keep',
+        self.params,
+        { system = system, messages = messages }
+      )
+    })
 end
 
 return M

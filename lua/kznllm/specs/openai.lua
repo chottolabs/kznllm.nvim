@@ -109,7 +109,6 @@ end
 M.OpenAIPresetBuilder = {}
 
 local openai_template_path = utils.join_path({ utils.TEMPLATE_PATH, 'openai' })
-vim.print(openai_template_path)
 
 ---@param opts? { provider: OpenAIProvider, headers: OpenAIHeaders, params: OpenAIParameters, debug_template_path: string }
 ---@return OpenAIPresetBuilder

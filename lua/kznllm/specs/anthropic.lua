@@ -10,9 +10,10 @@ M.AnthropicProvider = {}
 ---@return AnthropicProvider
 function M.AnthropicProvider:new(opts)
   -- Call parent constructor with base options
+  local o = opts or {}
   local instance = BaseProvider:new({
-    api_key_name = (opts and opts.api_key_name) and opts.api_key_name or 'ANTHROPIC_API_KEY',
-    base_url = (opts and opts.base_url) and opts.base_url or 'https://api.anthropic.com',
+    api_key_name = o.api_key_name or 'ANTHROPIC_API_KEY',
+    base_url = o.base_url or 'https://api.anthropic.com',
   })
 
   -- Set proper metatable for inheritance
@@ -104,10 +105,8 @@ local current_event_state
 ---@param line string
 ---@return string?
 function M.AnthropicProvider.handle_sse_stream(line)
-  -- vim.print(("---\n%s"):format(line))
   local content = ''
   for event, data in line:gmatch('event: ([%w_]+)\ndata: ({.-})\n') do
-    -- vim.print(("== %s -- %s"):format(event, data))
     if event == 'content_block_delta' then
       local json = vim.json.decode(data)
       if json.delta and json.delta.text then

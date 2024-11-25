@@ -21,7 +21,7 @@
 ---@field extra_headers? string[]
 
 ---@class BasePresetBuilder
----@field debug_template_path? Path
+---@field debug_template_path? string
 ---@field provider BaseProvider
 ---@field config BasePresetConfig
 ---@field system_templates table[]

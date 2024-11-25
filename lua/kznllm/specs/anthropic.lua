@@ -132,30 +132,32 @@ end
 
 ---@class AnthropicPresetSystemTemplate
 ---@field type AnthropicSystemContentType
----@field path Path
+---@field path string
 ---@field cache_control? AnthropicCacheControl
 
 ---@class AnthropicPresetMessageTemplate
 ---@field role AnthropicMessageRole
 ---@field type AnthropicMessageContentType
----@field path Path
+---@field path string
 ---@field cache_control? AnthropicCacheControl
 
 ---@class AnthropicPresetBuilder : BasePresetBuilder
 ---@field provider AnthropicProvider
----@field debug_template? Path
+---@field debug_template? string
 ---@field system_templates AnthropicPresetSystemTemplate[]
 ---@field message_templates AnthropicPresetMessageTemplate[]
 ---@field headers AnthropicAPIHeaders
 ---@field params AnthropicParameters
 M.AnthropicPresetBuilder = {}
 
----@param opts? { provider?: AnthropicProvider, debug_template_path?: Path, headers?: AnthropicAPIHeaders, params?: AnthropicParameters }
+local anthropic_template_path = utils.join_path({ utils.TEMPLATE_PATH, 'anthropic' })
+
+---@param opts? { provider?: AnthropicProvider, debug_template_path?: string, headers?: AnthropicAPIHeaders, params?: AnthropicParameters }
 ---@return AnthropicPresetBuilder
 function M.AnthropicPresetBuilder:new(opts)
   local o = opts or {}
   local instance = {
-    debug_template_path = o.debug_template_path or utils.TEMPLATE_PATH / 'anthropic' / 'debug.xml.jinja',
+    debug_template_path = o.debug_template_path or utils.join_path({ anthropic_template_path, 'debug.xml.jinja' }),
     provider = o.provider or M.AnthropicProvider:new(),
     headers = o.headers or {
       endpoint = '/v1/messages',

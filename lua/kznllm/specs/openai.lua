@@ -1,5 +1,4 @@
 local BaseProvider = require('kznllm.specs')
-local Path = require('plenary.path')
 local utils = require('kznllm.utils')
 
 local M = {}
@@ -93,29 +92,32 @@ end
 ---@field curl_options OpenAICurlOptions
 
 ---@class OpenAIPresetSystemTemplate
----@field path Path
+---@field path string
 
 ---@class OpenAIPresetMessageTemplate
 ---@field type OpenAIMessageContentType
 ---@field role OpenAIMessageRole
----@field path Path
+---@field path string
 
 ---@class OpenAIPresetBuilder : BasePresetBuilder
 ---@field provider OpenAIProvider
 ---@field system_templates OpenAIPresetSystemTemplate[]
 ---@field message_templates OpenAIPresetMessageTemplate[]
----@field debug_template? Path
+---@field debug_template? string
 ---@field headers OpenAIHeaders
 ---@field params OpenAIParameters
 M.OpenAIPresetBuilder = {}
 
----@param opts? { provider: OpenAIProvider, headers: OpenAIHeaders, params: OpenAIParameters, debug_template_path: Path }
+local openai_template_path = utils.join_path({ utils.TEMPLATE_PATH, 'openai' })
+vim.print(openai_template_path)
+
+---@param opts? { provider: OpenAIProvider, headers: OpenAIHeaders, params: OpenAIParameters, debug_template_path: string }
 ---@return OpenAIPresetBuilder
 function M.OpenAIPresetBuilder:new(opts)
   local o = opts or {}
   local instance = {
     provider = o.provider or M.OpenAIProvider:new(),
-    debug_template_path = o.debug_template_path or utils.TEMPLATE_PATH / 'openai' / 'debug.xml.jinja',
+    debug_template_path = o.debug_template_path or utils.join_path({ openai_template_path, 'debug.xml.jinja' }),
     headers = o.headers or { endpoint = '/v1/chat/completions' },
     params = (opts and opts.params) and opts.params or {
       ['model'] = 'o1-mini',

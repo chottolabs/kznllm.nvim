@@ -1,6 +1,6 @@
 # kznllm.nvim
 
-The only main command is `leader + k`, it does nothing more than fill in some LLM completion into the text buffer. It has two main behaviors:
+Built for a single keybind `leader + k`, it does nothing more than fill in some LLM completion into the text buffer. It has two main behaviors:
 1. If you made a visual selection, it will attempt to replace your selection with a valid code fragment. 
 2. If you make no visual selection, it can yap freely (or do something else specified by a good template).
 
@@ -37,7 +37,6 @@ full config w/ supported presets and a switch mechanism and provider-specific de
 {
   'chottolabs/kznllm.nvim',
   dependencies = {
-    { 'nvim-lua/plenary.nvim' },
     { 'j-hui/fidget.nvim' },
   },
   config = function(self)

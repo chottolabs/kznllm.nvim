@@ -1,6 +1,5 @@
 local utils = require('kznllm.utils')
 local buffer_manager = require('kznllm.buffer').buffer_manager
-local Path = require('plenary.path')
 local api = vim.api
 
 local anthropic = require('kznllm.specs.anthropic')
@@ -41,10 +40,7 @@ local function NewBaseTask(config)
         visual_selection = selection,
         current_buffer_context = current_buffer_context,
         replace = replace,
-        context_files = utils.get_project_files({
-          stop_dir = Path:new(vim.fn.expand('~')),
-          context_dir_id = '.kzn',
-        }),
+        context_files = utils.get_project_files(),
       }
 
       local curl_options = config.preset_builder:build(prompt_args)
@@ -112,8 +108,9 @@ function M.load_selected_preset(preset_list)
   return preset
 end
 
-local anthropic_system_template = utils.TEMPLATE_PATH / 'anthropic' / 'fill_mode_system_prompt.xml.jinja'
-local anthropic_user_template = utils.TEMPLATE_PATH / 'anthropic' / 'fill_mode_user_prompt.xml.jinja'
+local anthropic_template_path = utils.join_path({ utils.TEMPLATE_PATH, 'anthropic' })
+local anthropic_system_template = utils.join_path({ anthropic_template_path, 'fill_mode_system_prompt.xml.jinja' })
+local anthropic_user_template = utils.join_path({ anthropic_template_path, 'fill_mode_user_prompt.xml.jinja' })
 
 local BasicAnthropicPreset = anthropic.AnthropicPresetBuilder
   :new()
@@ -128,8 +125,9 @@ local BasicAnthropicPreset = anthropic.AnthropicPresetBuilder
     { type = 'text', role = 'user', path = anthropic_user_template },
   })
 
-local openai_system_template = utils.TEMPLATE_PATH / 'openai' / 'fill_mode_system_prompt.xml.jinja'
-local openai_user_template = utils.TEMPLATE_PATH / 'openai' / 'fill_mode_user_prompt.xml.jinja'
+local openai_template_path = utils.join_path({ utils.TEMPLATE_PATH, 'openai' })
+local openai_system_template = utils.join_path({ openai_template_path, 'fill_mode_system_prompt.xml.jinja' })
+local openai_user_template = utils.join_path({ openai_template_path, 'fill_mode_user_prompt.xml.jinja' })
 
 local BasicOpenAIPreset = openai.OpenAIPresetBuilder
   :new()

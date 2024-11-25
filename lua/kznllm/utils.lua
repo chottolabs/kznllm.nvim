@@ -1,13 +1,34 @@
-local Path = require('plenary.path')
-local Scan = require('plenary.scandir')
 local api = vim.api
-local uv = vim.uv
 
 local M = {}
 
+M.OS_PATH_SEP = package.config:sub(1, 1)
+
+function M.join_path(paths)
+  return table.concat(paths, M.OS_PATH_SEP)
+end
+
+local function get_plugin_dir()
+  -- Get the current file's path from debug info
+  local source = debug.getinfo(1, 'S').source:sub(2)
+
+  -- Split path into components
+  local parts = {}
+  for part in string.gmatch(source, '[^' .. M.OS_PATH_SEP .. ']+') do
+    table.insert(parts, part)
+  end
+
+  -- Remove last 3 components to get plugin root
+  for _ = 1, 3 do
+    table.remove(parts)
+  end
+
+  return M.OS_PATH_SEP .. M.join_path(parts)
+end
+
 -- NOTE: this is a relative path meant to point at the template directory
-local plugin_dir = Path:new(debug.getinfo(1, 'S').source:sub(2)):parents()[3]
-M.TEMPLATE_PATH = Path:new(plugin_dir) / 'templates'
+local plugin_dir = get_plugin_dir()
+M.TEMPLATE_PATH = M.join_path({ plugin_dir, 'templates' })
 
 --
 -- [ CONTEXT BUILDING UTILITY FUNCTIONS ]
@@ -68,63 +89,35 @@ function M.get_visual_selection(opts)
   return visual_selection, replace_mode
 end
 
----Locates the path value for context directory
----
----@param opts { stop_dir: Path?, context_dir_id: string? } `stop_dir` - Path to stop traversing directories (default `$HOME`, `context_dir_id` - identifier that this function will scan for (default `.kzn`)
----@return Path? context_dir directory path
-function M.find_context_directory(opts)
-  local stop_dir = opts and opts.stop_dir or Path:new(vim.fn.expand('~'))
-  local context_dir_id = opts and opts.context_dir_id or '.kzn'
-
-  local context_dir = Path:new(vim.fn.getcwd())
-
-  while not (context_dir / context_dir_id):exists() and context_dir:is_dir() do
-    if context_dir:absolute() == stop_dir:absolute() then
-      return nil
-    end
-
-    context_dir = context_dir:parent()
-  end
-
-  return context_dir / context_dir_id
-end
-
 ---project scoped context
 ---
----Retrieves project files based on the context directory identifier and the current working directory.
+---Retrieves project files based on the context directory identifier in the current working directory.
 ---
----@param opts { stop_dir: Path, context_dir_id: string } values
 ---@return { path: string, content: string }? context_files list of files in the context directory
-function M.get_project_files(opts)
-  local context_dir = M.find_context_directory(opts)
-  if context_dir then
-    vim.print('using context at: ' .. context_dir:absolute())
-    local context = {}
-    local function scan_dir(dir)
-      Scan.scan_dir(dir, {
-        hidden = false,
-        on_insert = function(file, typ)
-          if typ == 'link' then
-            file = vim.fn.resolve(file)
-            if uv.fs_stat(file).type == 'directory' then
-              scan_dir(file)
-              return
-            end
-          end
-
-          local path = Path:new(file)
-          table.insert(context, { path = path:absolute(), content = path:read() })
-        end,
-      })
-    end
-    scan_dir(context_dir:absolute())
-
-    return context
+function M.get_project_files()
+  if vim.fn.executable('fd') ~= 1 then
+    -- only use project mode if `fd` is available
+    return
   end
+
+  local fd_dir_result = vim.system({ 'fd', '-td', '-HI', '.kzn', '-1' }):wait()
+  local context_dir = vim.trim(fd_dir_result.stdout)
+
+  -- do not respect `.gitignore`, look for hidden
+  local fd_files_result = vim.system({ 'fd', '-tf', '-L', '.', context_dir }):wait()
+  local files = {}
+  for file in vim.gsplit(fd_files_result.stdout, '\n', { plain = true, trimempty = true }) do
+    local content = vim.fn.readfile(file)
+    if #content > 0 then
+      table.insert(files, { path = file, content = table.concat(content, '\n') })
+    end
+  end
+
+  return files
 end
 
 ---Creates a prompt from template
----@param opts { template_path: Path, prompt_args: table }
+---@param opts { template_path: string, prompt_args: table }
 ---@return string
 function M.make_prompt_from_template(opts)
   if vim.fn.executable('minijinja-cli') ~= 1 then
@@ -132,16 +125,11 @@ function M.make_prompt_from_template(opts)
   end
 
   local prompt_template_path = opts.template_path
-
-  if not prompt_template_path:exists() then
-    error(string.format('could not find template at %s', prompt_template_path), 1)
-  end
-
   local json_data = vim.json.encode(opts.prompt_args)
 
   local active_job = vim
     .system(
-      { 'minijinja-cli', '-f', 'json', '--lstrip-blocks', '--trim-blocks', prompt_template_path:absolute(), '-' },
+      { 'minijinja-cli', '-f', 'json', '--lstrip-blocks', '--trim-blocks', prompt_template_path, '-' },
       { stdin = json_data }
     )
     :wait()

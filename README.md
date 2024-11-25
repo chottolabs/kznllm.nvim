@@ -5,7 +5,8 @@ Built for a single keybind `leader + k`, it does nothing more than fill in some 
 2. If you make no visual selection, it can yap freely (or do something else specified by a good template).
 
 > [!NOTE]
-> project-mode is also available when you have a directory named `.kzn`. It will use the folder closest to your current working directory and traverse backwards until it finds a `.kzn` directory or reaches your home directory and exits.
+> `kznllm.nvim` is compatible with Neovim 0.10.1 or later (uses `vim.system`)
+> project-mode is also available when you have `sharkdp/fd` installed and a directory named `.kzn`. It will check your current working directory for a `.kzn`.
 
 It's easy to hack on and implement customize behaviors without understanding much about nvim plugins. Try the default preset configuration provided below, but I recommend you fork the repo and using the preset as a reference for implementing your own features.
 

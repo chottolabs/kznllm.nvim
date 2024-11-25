@@ -27,8 +27,8 @@ local function get_plugin_dir()
 end
 
 -- NOTE: this is a relative path meant to point at the template directory
-local plugin_dir = get_plugin_dir()
-M.TEMPLATE_PATH = M.join_path({ plugin_dir, 'templates' })
+M.PLUGIN_PATH = get_plugin_dir()
+M.TEMPLATE_PATH = M.join_path({ M.PLUGIN_PATH, 'templates' })
 
 --
 -- [ CONTEXT BUILDING UTILITY FUNCTIONS ]

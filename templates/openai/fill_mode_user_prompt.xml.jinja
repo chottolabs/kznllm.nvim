@@ -1,25 +1,29 @@
-{% if current_buffer_context or context_files %}
+{% if current_buffer_context %}
+{% if current_buffer_context.text or context_files %}
 CONTEXT:
 {% endif %}
-{% if current_buffer_context.path %}
+{% if current_buffer_context.text %}
 Document:0
 Title: {{ current_buffer_context.path }}
 {% endif %}
-{% if current_buffer_context %}
+{% if current_buffer_context.text %}
 Content:
 ```{{ current_buffer_context.filetype }}
 {{ current_buffer_context.text }}
 ```
 {% endif %}
+{% endif %}
 {% if context_files %}
-  {% for file in context_files %}
-Document:{{ loop.index }}
-Title: {{ file.path }}
-Content:
-```
-{{ file.content }}
-```
-  {% endfor %}
+<related_documents>
+{% for file in context_files %}
+<document index="{{loop.index}}">
+<path>{{file.path}}</path>
+<content>
+{{file.content | trim}}
+</content>
+</document>
+{% endfor %}
+</related_documents>
 {% endif %}
 {% if visual_selection %}
 Code:
@@ -27,10 +31,8 @@ Code:
 {{ visual_selection }}
 ```
 
-  {% if prefill %}
-INSTRUCTION: Replace the code in the block given above. ONLY return the valid code fragment surrounded by a code fence with backticks.
-  {% else %}
+{% endif %}
+{% if replace %}
 INSTRUCTION: Replace the code in the block given above. ONLY return the code fragment that is requested in the code snippet WITHOUT backticks. DO NOT surround the code fragment in backticks.
-  {% endif %}
 {% endif %}
 QUERY: {{ user_query }}

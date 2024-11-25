@@ -1,0 +1,17 @@
+model: {{data.model}}
+
+{% for message in data.messages %}
+{{message.role}}:
+
+{% if message.content is iterable and (message.content is not string and message.content is not mapping) %}
+{% for content in message.content %}
+{{ content.text | trim }}
+{% endfor %}
+{% else %}
+{{ message.content | trim }}
+{% endif %}
+
+{% endfor %}
+---
+
+

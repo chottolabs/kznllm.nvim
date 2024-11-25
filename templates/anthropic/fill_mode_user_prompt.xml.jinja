@@ -1,67 +1,79 @@
-{% if current_buffer_context %}
-<source>{{current_buffer_path}}</source>
-<current_context>
-```{{current_buffer_filetype}}
-{{ current_buffer_context }}
-```
-</current_context>
+{% if current_buffer_context.text %}
+Let's establish the context of the current file:
 
-{% elif current_buffer_path %}
-<context>{{current_buffer_path}}</context>
+<current_file_context>
+<path>{{current_buffer_context.path}}</path>
+<filetype>{{current_buffer_context.filetype}}</filetype>
+<content>
+{{current_buffer_context.text | trim}}
+</content>
+</current_file_context>
 
 {% endif %}
-{% if context_files %}
-<documents>
-{% for file in context_files %}
-<document index="{{loop.index}}">
-<source>{{file.path}}</source>
-<document_content>
-{{ file.content }}
-</document_content>
-</document>
-{% endfor %}
-</documents>
+{% if visual_selection %}
+Now, here's the specific code snippet you need to work on:
+
+<code_snippet>
+<language>{{current_buffer_context.filetype}}</language>
+<selected_code>
+{{visual_selection | trim}}
+</selected_code>
+</code_snippet>
 
 {% endif %}
 {% if replace %}
-<query>{{user_query}}</query>
-
-You will be given a code snippet with comments. Your task is to fix any errors in the code and implement any unfinished functionality indicated in the comments. Only output valid code fragment in the provided language.
-
-Here is the code snippet:
-
-<code_snippet>
-```{{current_buffer_filetype}}
-{{visual_selection}}
-```
-</code_snippet>
-
-Follow these steps to complete the task:
-
-1. Carefully read through the entire code snippet, including all comments.
-
-2. Identify any syntax errors, logical errors, or unimplemented functionality mentioned in the comments.
-
-3. Fix all errors you've identified. This may include:
-   - Correcting syntax mistakes
-   - Addressing logical errors
-   - Implementing missing functionality as described in the comments
-
-4. Ensure that your changes maintain the original intent of the code while improving its functionality and correctness.
-
-5. If there are multiple ways to implement a feature or fix an error, choose the most efficient and clear approach.
-
-6. Do not add any new features or functionality beyond what is explicitly mentioned in the code or comments.
-
-7. Maintain the original code style and formatting as much as possible, unless it directly contributes to the errors.
-
-8. Keep any comments that were used to make changes.
-
-9. If you make any significant changes or implementations, add brief comments on a separate line explaining your modifications.
-
-Output your corrected and implemented code. Ensure that the code fragment you output is valid, and ready to run in the language of the original snippet.
-
-Remember, only output valid code without any backticks. Do not include any explanations, notes, or anything other than the corrected code itself.
+Here's the user's specific query or instruction:
+<user_query>
+{{user_query | trim}}
+</user_query>
 {% else %}
-{{user_query}}
+Here's the user's specific query or instruction:
+<user_query>
+{{user_query | trim}}
+</user_query>
+
+<instructions>
+Your task is to improve this code snippet by following these steps:
+
+1. Analyze the code:
+   a. Identify and list syntax errors
+   b. Identify and list logical errors
+   c. Identify and list unimplemented functionality
+   d. Consider and note potential edge cases or unintended consequences
+   e. Identify and list bad coding practices that need correction
+   f. Focus on the selected code and its immediate context
+   g. Consider how changes will affect the broader context of the file
+
+2. Plan your changes:
+   - Determine the most efficient approach to fix errors and implement missing features
+   - Ensure your planned changes maintain the original intent and the user's unique coding style
+   - Consider how your changes might affect performance and readability
+   - Avoid introducing unnecessary dependencies or complexity
+   - Explicitly consider the performance implications of planned changes
+
+3. Implement the improvements:
+   - Fix all identified errors
+   - Implement any missing functionality described in the comments
+   - Maintain the original code style and formatting unless it directly contributes to the errors
+   - Keep relevant comments, including those used to guide your changes
+   - If you make significant changes, add brief, clear comments explaining your modifications
+
+4. Review and finalize:
+   - Ensure your changes have addressed all issues and requirements
+   - Verify that the final code is valid and ready to run in the specified language
+   - Check that your changes don't introduce new problems or unintended side effects
+   - Consider how your changes might affect the broader context of the file
+
+Wrap your analysis inside <code_review> tags, showing your thought process before implementing the changes. Then, wrap the corrected and implemented code inside <corrected_code> tags.
+
+Remember:
+- Only output valid code without any backticks or surrounding markdown
+- Do not add features or functionality beyond what is explicitly mentioned in the code or comments
+- Focus on substituting the user's selection with a valid code fragment, considering the given context
+- Provide thoughtful but brief and direct feedback
+- Speak as an expert in low-level concepts, identifying and correcting bad practices while preserving the user's unique style
+</instructions>
+
+Now, please proceed with your analysis and code correction.
 {% endif %}
+

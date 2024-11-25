@@ -1,0 +1,26 @@
+model: {{data.model}}
+
+system:
+{% for context in data.system %}
+{{ context.text | trim }}
+
+cache_control: {{context.cache_control}}
+
+---
+
+{% endfor %}
+{% for message in data.messages %}
+{{message.role}}:
+
+{% if message.content is iterable and (message.content is not string and message.content is not mapping) %}
+{% for content in message.content %}
+{{ content.text | trim }}
+{% endfor %}
+{% else %}
+{{ message.content | trim }}
+{% endif %}
+
+{% endfor %}
+---
+
+

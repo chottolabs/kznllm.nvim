@@ -2,32 +2,13 @@ local api = vim.api
 
 local M = {}
 
-M.OS_PATH_SEP = package.config:sub(1, 1)
-
-function M.join_path(paths)
-  return table.concat(paths, M.OS_PATH_SEP)
-end
-
-local function get_plugin_dir()
-  -- Get the current file's path from debug info
-  local source = debug.getinfo(1, 'S').source:sub(2)
-
-  -- Split path into components
-  local parts = {}
-  for part in string.gmatch(source, '[^' .. M.OS_PATH_SEP .. ']+') do
-    table.insert(parts, part)
-  end
-
-  -- Remove last 3 components to get plugin root
-  for _ = 1, 3 do
-    table.remove(parts)
-  end
-
-  return M.OS_PATH_SEP .. M.join_path(parts)
+function M.join_path(paths, path_sep)
+  path_sep = path_sep or '/'
+  return table.concat(paths, path_sep)
 end
 
 -- NOTE: this is a relative path meant to point at the template directory
-M.PLUGIN_PATH = get_plugin_dir()
+M.PLUGIN_PATH = vim.fn.fnamemodify(debug.getinfo(1, 'S').source:sub(2), ':h:h:h')
 M.TEMPLATE_PATH = M.join_path({ M.PLUGIN_PATH, 'templates' })
 
 --

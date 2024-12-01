@@ -85,7 +85,7 @@ end
 
 ---@param preset_list BaseTask[]
 function M.switch_presets(preset_list)
-  local preset_idx = math.min(vim.g.PRESET_IDX, #preset_list) or 1
+  local preset_idx = vim.g.PRESET_IDX and math.min(vim.g.PRESET_IDX, #preset_list) or 1
   local selected_preset = preset_list[preset_idx]
 
   vim.ui.select(preset_list, {

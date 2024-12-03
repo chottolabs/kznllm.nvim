@@ -4,6 +4,7 @@ local utils = require('kznllm.utils')
 local M = {}
 
 ---@class OpenAIProvider : BaseProvider
+---@field make_curl_args fun(self, opts: OpenAICurlOptions)
 M.OpenAIProvider = {}
 
 ---@param opts? BaseProviderOptions

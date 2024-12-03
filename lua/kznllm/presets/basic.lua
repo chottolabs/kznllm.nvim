@@ -14,7 +14,7 @@ local M = {}
 ---@field description string
 ---@field invoke fun(opts: { debug: boolean, progress_fn: fun(state) })
 
----@param config { id: string, description: string, preset_builder: BasePresetBuilder }
+---@param config { id: string, description: string, preset_builder: OpenAIPresetBuilder | AnthropicPresetBuilder }
 local function NewBaseTask(config)
   return {
     id = config.id,

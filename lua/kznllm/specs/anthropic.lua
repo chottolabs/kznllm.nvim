@@ -4,6 +4,7 @@ local utils = require('kznllm.utils')
 local M = {}
 
 ---@class AnthropicProvider : BaseProvider
+---@field make_curl_args fun(self, opts: AnthropicCurlOptions)
 M.AnthropicProvider = {}
 
 ---@param opts? BaseProviderOptions

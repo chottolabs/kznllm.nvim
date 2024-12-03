@@ -83,12 +83,12 @@ See [CONTRIBUTING](CONTRIBUTING.md) to understand the typical development workfl
 ## Custom Progress Updates for your Amusement
 
 `init.lua`
-```
+```lua
 local function yap_generator()
   math.randomseed(os.time())
   local yap_cycle = {
     "yapped for %ds",
-    ...
+    "...",
   }
 
   local idx = math.random(1, #yap_cycle)

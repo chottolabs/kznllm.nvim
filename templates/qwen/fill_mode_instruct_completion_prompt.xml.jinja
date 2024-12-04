@@ -1,0 +1,71 @@
+{%- if suffix %}
+<|fim_prefix|>{{ prompt }}<|fim_suffix|>{{ suffix }}<|fim_middle|>
+{%- else %}
+{%- if messages %}
+{%- if system or tools %}
+<|im_start|>system
+{%- if system %}
+{{ system }}
+{%- endif %}
+{%- if tools %}
+# Tools
+You may call one or more functions to assist with the user query.
+You are provided with function signatures within <tools></tools> XML tags:
+<tools>
+{%- for tool in tools %}
+{"type": "function", "function": {{ tool | tojson }}}
+{%- endfor %}
+</tools>
+
+For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{"name": <function-name>, "arguments": <args-json-object>}
+</tool_call>
+{%- endif %}
+<|im_end|>
+{%- endif %}
+
+{%- for message in messages %}
+{%- set is_last = loop.last %}
+{%- if message.role == "user" %}
+<|im_start|>user
+{{ message.content }}
+RESPOND WITH RAW CODE ONLY - NO BACKTICKS - NO MARKDOWN - NO CODE BLOCK FORMATTING<|im_end|>
+{%- elif message.role == "assistant" %}
+<|im_start|>assistant
+{%- if message.content %}
+{{ message.content }}
+{%- endif %}
+{%- if message.tool_calls %}
+<tool_call>
+{%- for tool_call in message.tool_calls %}
+{"name": "{{ tool_call.function.name }}", "arguments": {{ tool_call.function.arguments }}}
+{%- endfor %}
+</tool_call>
+{%- endif %}
+{%- if not is_last %}<|im_end|>{%- endif %}
+{%- elif message.role == "tool" %}
+<|im_start|>user
+<tool_response>
+{{ message.content }}
+</tool_response><|im_end|>
+{%- endif %}
+{%- if not message.role == "assistant" and is_last %}
+<|im_start|>assistant
+{%- endif %}
+{%- endfor %}
+
+{%- else %}
+{%- if system %}
+<|im_start|>system
+{{ system }}<|im_end|>
+{%- endif %}
+{%- if prompt %}
+<|im_start|>user
+{{ prompt }}
+RESPOND WITH RAW CODE ONLY - NO BACKTICKS - NO MARKDOWN - NO CODE BLOCK FORMATTING<|im_end|>
+<|im_start|>assistant
+{%- endif %}
+{%- endif %}
+{{ response }}
+{%- if response %}<|im_end|>{%- endif %}

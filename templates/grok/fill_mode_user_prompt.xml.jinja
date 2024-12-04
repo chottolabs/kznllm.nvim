@@ -1,0 +1,47 @@
+<|im_start|>user
+{% if current_buffer_context or context_files %}
+<|repo_name|>{{ current_buffer_context.path|default("current_file") if current_buffer_context else "workspace" }}
+
+{% if current_buffer_context %}
+<|file_sep|>{{ current_buffer_context.path }}
+{{ current_buffer_context.text }}
+{% endif %}
+
+{% if context_files %}
+{% for file in context_files %}
+<|file_sep|>{{ file.path }}
+{{ file.content }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if visual_selection %}
+{% if prefill %}
+<|fim_prefix|>{{ visual_selection }}<|fim_suffix|>
+PROVIDE CODE EXACTLY AS IT WOULD APPEAR IN A CODE EDITOR:
+- NO backticks (`)
+- NO code blocks (```)
+- NO markdown
+- NO formatting
+- NO explanations
+<|fim_middle|>
+{% else %}
+Selected Code:
+{{ visual_selection }}
+
+PROVIDE CODE EXACTLY AS IT WOULD APPEAR IN A CODE EDITOR:
+- NO backticks (`)
+- NO code blocks (```)
+- NO markdown
+- NO formatting
+- NO explanations
+{% endif %}
+{% endif %}
+
+Query: {{ user_query }}
+
+IMPORTANT: Output the code exactly as it would appear in a code editor - no backticks, no code blocks, no markdown, no explanations.
+<|im_end|>
+<|im_start|>assistant
+I understand. I will provide raw code only, exactly as it would appear in a code editor, without any backticks, code blocks, markdown formatting, or explanations.
+<|im_end|>

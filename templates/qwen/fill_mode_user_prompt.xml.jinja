@@ -1,0 +1,33 @@
+<|im_start|>user
+{% if current_buffer_context or context_files %}
+<|repo_name|>{{ current_buffer_context.path|default("current_file") if current_buffer_context else "workspace" }}
+
+{% if current_buffer_context %}
+<|file_sep|>{{ current_buffer_context.path }}
+{{ current_buffer_context.text }}
+{% endif %}
+
+{% if context_files %}
+{% for file in context_files %}
+<|file_sep|>{{ file.path }}
+{{ file.content }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if visual_selection %}
+{% if prefill %}
+<|fim_prefix|>{{ visual_selection }}<|fim_suffix|>
+RESPOND WITH RAW CODE ONLY - NO BACKTICKS - NO MARKDOWN - NO CODE BLOCK FORMATTING
+<|fim_middle|>
+{% else %}
+Selected Code:
+{{ visual_selection }}
+
+RESPOND WITH RAW CODE ONLY - NO BACKTICKS - NO MARKDOWN - NO CODE BLOCK FORMATTING
+{% endif %}
+{% endif %}
+
+Query: {{ user_query }}
+RESPOND WITH RAW CODE ONLY - NO BACKTICKS - NO MARKDOWN - NO CODE BLOCK FORMATTING
+<|im_end|>

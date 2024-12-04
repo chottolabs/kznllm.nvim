@@ -8,9 +8,7 @@ Title: {{ current_buffer_context.path }}
 {% endif %}
 {% if current_buffer_context.text %}
 Content:
-```{{ current_buffer_context.filetype }}
 {{ current_buffer_context.text }}
-```
 {% endif %}
 {% endif %}
 {% if context_files %}
@@ -27,12 +25,11 @@ Content:
 {% endif %}
 {% if visual_selection %}
 Code:
-```{{ current_buffer_filetype }}
 {{ visual_selection }}
-```
 
 {% endif %}
 {% if replace %}
 INSTRUCTION: Replace the code in the block given above. ONLY return the code fragment that is requested in the code snippet WITHOUT backticks. DO NOT surround the code fragment in backticks.
 {% endif %}
 QUERY: {{ user_query }}
+

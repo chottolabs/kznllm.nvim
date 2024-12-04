@@ -39,7 +39,7 @@
 local BaseProvider = {}
 
 ---@class BaseProviderOptions
----@field api_key_name string
+---@field api_key_name? string
 ---@field base_url string
 
 ---@param opts BaseProviderOptions

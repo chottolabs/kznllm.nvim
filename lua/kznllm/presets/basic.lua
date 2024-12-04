@@ -193,19 +193,40 @@ M.options = {
     }),
   }),
   NewBaseTask({
-    id = 'Qwen2.5-Coder-32B-Instruct',
-    description = 'Qwen2.5-Coder-32B-Instruct | temp = 0.7',
+    id = 'llama3.2:1b',
+    description = 'llama3.2:1b | temp = 0.7',
     preset_builder = BasicOpenAIPreset:with_opts({
       provider = openai.OpenAIProvider:new({
-        api_key_name = 'VLLM_API_KEY',
-        base_url = 'http://research.local:8000',
+        base_url = 'http://localhost:11434',
       }),
+      headers = {
+        ['endpoint'] = '/v1/chat/completions',
+      },
       params = {
-        ['model'] = 'Qwen/Qwen2.5-Coder-32B-Instruct',
+        ['model'] = 'llama3.2:1b',
         ['stream'] = true,
         ['temperature'] = 0.7,
-        ['top_p'] = 0.8,
-        ['repetition_penalty'] = 1.05,
+        ['top_p'] = 1,
+        ['max_tokens'] = 32768,
+      },
+    }),
+  }),
+  NewBaseTask({
+    id = 'llama3.1',
+    description = 'llama3.1 | temp = 0.7',
+    preset_builder = BasicOpenAIPreset:with_opts({
+      provider = openai.OpenAIProvider:new({
+        base_url = 'http://localhost:11434',
+      }),
+      headers = {
+        ['endpoint'] = '/v1/chat/completions',
+      },
+      params = {
+        ['model'] = 'llama3.1',
+        ['stream'] = true,
+        ['temperature'] = 0.7,
+        ['top_p'] = 1,
+        ['max_tokens'] = 8192,
       },
     }),
   }),
@@ -243,6 +264,23 @@ M.options = {
         ['stream'] = true,
         ['max_completion_tokens'] = 8192,
         ['temperature'] = 0,
+      },
+    }),
+  }),
+  NewBaseTask({
+    id = 'Qwen2.5-Coder-32B-Instruct',
+    description = 'Qwen2.5-Coder-32B-Instruct | temp = 0.7',
+    preset_builder = BasicOpenAIPreset:with_opts({
+      provider = openai.OpenAIProvider:new({
+        api_key_name = 'VLLM_API_KEY',
+        base_url = 'http://research.local:8000',
+      }),
+      params = {
+        ['model'] = 'Qwen/Qwen2.5-Coder-32B-Instruct',
+        ['stream'] = true,
+        ['temperature'] = 0.7,
+        ['top_p'] = 0.8,
+        ['repetition_penalty'] = 1.05,
       },
     }),
   }),

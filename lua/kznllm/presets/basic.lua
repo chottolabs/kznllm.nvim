@@ -20,64 +20,61 @@ local function NewBaseTask(config)
     id = config.id,
     description = config.description,
     invoke = function(opts)
-      local user_query = utils.get_user_input()
-      if user_query == nil then
-        return
-      end
+      vim.ui.input({ prompt = 'prompt: ' }, function(user_query)
+        local selection, replace = utils.get_visual_selection(opts)
 
-      local selection, replace = utils.get_visual_selection(opts)
+        local current_buf_id = api.nvim_get_current_buf()
+        local current_buffer_context = buffer_manager:get_buffer_context(current_buf_id)
 
-      local current_buf_id = api.nvim_get_current_buf()
-      local current_buffer_context = buffer_manager:get_buffer_context(current_buf_id)
-
-      local p = progress.handle.create({
-        title = ('[%s]'):format(replace and 'replacing' or 'yapping'),
-        lsp_client = { name = 'kznllm' },
-      })
-
-      local prompt_args = {
-        user_query = user_query,
-        visual_selection = selection,
-        current_buffer_context = current_buffer_context,
-        replace = replace,
-        context_files = utils.get_project_files(),
-      }
-
-      local curl_options = config.preset_builder:build(prompt_args)
-
-      if opts.debug then
-        local scratch_buf_id = buffer_manager:create_scratch_buffer()
-        local debug_data = utils.make_prompt_from_template({
-          template_path = config.preset_builder.debug_template_path,
-          prompt_args = curl_options,
+        local p = progress.handle.create({
+          title = ('[%s]'):format(replace and 'replacing' or 'yapping'),
+          lsp_client = { name = 'kznllm' },
         })
 
-        buffer_manager:write_content(debug_data, scratch_buf_id)
-        vim.cmd('normal! Gzz')
-      end
+        local prompt_args = {
+          user_query = user_query,
+          visual_selection = selection,
+          current_buffer_context = current_buffer_context,
+          replace = replace,
+          context_files = utils.get_project_files(),
+        }
 
-      local provider = config.preset_builder.provider
-      local args = provider:make_curl_args(curl_options)
+        local curl_options = config.preset_builder:build(prompt_args)
 
-      local state = { start = os.time(), last_updated = nil }
-      p:report({ message = ('%s'):format(config.description) })
-      local message_fn = opts.progress_message_fn and opts.progress_message_fn
-        or function(s)
-          return 'yapped'
-        end
-      local message = message_fn(state)
-      local _ = buffer_manager:create_streaming_job(args, provider.handle_sse_stream, function()
-        local progress_message = message_fn(state)
-        if progress_message ~= nil then
-          message = progress_message
+        if opts.debug then
+          local scratch_buf_id = buffer_manager:create_scratch_buffer()
+          local debug_data = utils.make_prompt_from_template({
+            template_path = config.preset_builder.debug_template_path,
+            prompt_args = curl_options,
+          })
+
+          buffer_manager:write_content(debug_data, scratch_buf_id)
+          vim.cmd('normal! Gzz')
         end
 
-        local elapsed = os.time() - state.start
-        if message:format(elapsed) ~= message then
-          p:report({ message = message:format(os.time() - state.start) })
-        end
-      end, function()
-        p:finish()
+        local provider = config.preset_builder.provider
+        local args = provider:make_curl_args(curl_options)
+
+        local state = { start = os.time(), last_updated = nil }
+        p:report({ message = ('%s'):format(config.description) })
+        local message_fn = opts.progress_message_fn and opts.progress_message_fn
+            or function(s)
+              return 'yapped'
+            end
+        local message = message_fn(state)
+        local _ = buffer_manager:create_streaming_job(args, provider.handle_sse_stream, function()
+          local progress_message = message_fn(state)
+          if progress_message ~= nil then
+            message = progress_message
+          end
+
+          local elapsed = os.time() - state.start
+          if message:format(elapsed) ~= message then
+            p:report({ message = message:format(os.time() - state.start) })
+          end
+        end, function()
+          p:finish()
+        end)
       end)
     end,
   }
@@ -113,30 +110,30 @@ local anthropic_system_template = utils.join_path({ anthropic_template_path, 'fi
 local anthropic_user_template = utils.join_path({ anthropic_template_path, 'fill_mode_user_prompt.xml.jinja' })
 
 local BasicAnthropicPreset = anthropic.AnthropicPresetBuilder
-  :new()
-  :add_system_prompts({
-    {
-      type = 'text',
-      path = anthropic_system_template,
-      cache_control = { type = 'ephemeral' },
-    },
-  })
-  :add_message_prompts({
-    { type = 'text', role = 'user', path = anthropic_user_template },
-  })
+    :new()
+    :add_system_prompts({
+      {
+        type = 'text',
+        path = anthropic_system_template,
+        cache_control = { type = 'ephemeral' },
+      },
+    })
+    :add_message_prompts({
+      { type = 'text', role = 'user', path = anthropic_user_template },
+    })
 
 local openai_template_path = utils.join_path({ utils.TEMPLATE_PATH, 'openai' })
 local openai_system_template = utils.join_path({ openai_template_path, 'fill_mode_system_prompt.xml.jinja' })
 local openai_user_template = utils.join_path({ openai_template_path, 'fill_mode_user_prompt.xml.jinja' })
 
 local BasicOpenAIPreset = openai.OpenAIPresetBuilder
-  :new()
-  :add_system_prompts({
-    { type = 'text', path = openai_system_template },
-  })
-  :add_message_prompts({
-    { type = 'text', role = 'user', path = openai_user_template },
-  })
+    :new()
+    :add_system_prompts({
+      { type = 'text', path = openai_system_template },
+    })
+    :add_message_prompts({
+      { type = 'text', role = 'user', path = openai_user_template },
+    })
 
 --- doesn't support system prompt
 local BasicOpenAIReasoningPreset = openai.OpenAIPresetBuilder:new():add_message_prompts({

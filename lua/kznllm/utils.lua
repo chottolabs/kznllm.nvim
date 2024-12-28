@@ -15,14 +15,6 @@ M.TEMPLATE_PATH = M.join_path({ M.PLUGIN_PATH, 'templates' })
 -- [ CONTEXT BUILDING UTILITY FUNCTIONS ]
 --
 
-function M.get_user_input()
-  local value
-  vim.ui.input({ prompt = 'prompt: ' }, function(input)
-    value = input
-  end)
-  return value
-end
-
 ---Handles visual selection depending on the specified mode and some expected states of the user's current buffer.
 --- Returns the selection and whether or not text was replaced
 ---
@@ -109,11 +101,11 @@ function M.make_prompt_from_template(opts)
   local json_data = vim.json.encode(opts.prompt_args)
 
   local active_job = vim
-    .system(
-      { 'minijinja-cli', '-f', 'json', '--lstrip-blocks', '--trim-blocks', prompt_template_path, '-' },
-      { stdin = json_data }
-    )
-    :wait()
+      .system(
+        { 'minijinja-cli', '-f', 'json', '--lstrip-blocks', '--trim-blocks', prompt_template_path, '-' },
+        { stdin = json_data }
+      )
+      :wait()
 
   if active_job.code ~= 0 then
     error('[minijinja-cli] (exit code: ' .. active_job.code .. ')\n' .. active_job.stderr, vim.log.levels.ERROR)

@@ -21,6 +21,10 @@ local function NewBaseTask(config)
     description = config.description,
     invoke = function(opts)
       vim.ui.input({ prompt = 'prompt: ' }, function(user_query)
+        if user_query == nil then
+          return
+        end
+
         local selection, replace = utils.get_visual_selection(opts)
 
         local current_buf_id = api.nvim_get_current_buf()

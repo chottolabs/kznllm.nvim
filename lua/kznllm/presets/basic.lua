@@ -4,6 +4,7 @@ local api = vim.api
 
 local anthropic = require('kznllm.specs.anthropic')
 local openai = require('kznllm.specs.openai')
+local deepseek = require('kznllm.specs.deepseek')
 
 local progress = require('fidget.progress')
 
@@ -14,7 +15,7 @@ local M = {}
 ---@field description string
 ---@field invoke fun(opts: { debug: boolean, progress_fn: fun(state) })
 
----@param config { id: string, description: string, preset_builder: OpenAIPresetBuilder | AnthropicPresetBuilder }
+---@param config { id: string, description: string, preset_builder: OpenAIPresetBuilder | AnthropicPresetBuilder | DeepSeekPresetBuilder }
 local function NewBaseTask(config)
   return {
     id = config.id,
@@ -145,6 +146,16 @@ local BasicOpenAIReasoningPreset = openai.OpenAIPresetBuilder:new():add_message_
   { type = 'text', role = 'user', path = openai_user_template },
 })
 
+local BasicDeepSeekPreset = deepseek.DeepSeekPresetBuilder
+    :new()
+    :add_system_prompts({
+      { type = 'text', path = openai_system_template },
+    })
+    :add_message_prompts({
+      { type = 'text', role = 'user', path = openai_user_template },
+    })
+
+
 -- Example task configurations
 M.options = {
   NewBaseTask({
@@ -228,15 +239,35 @@ M.options = {
     }),
   }),
   NewBaseTask({
-    id = 'deepseek-chat',
-    description = 'deepseek-chat | temp = 0.0',
-    preset_builder = BasicOpenAIPreset:with_opts({
-      provider = openai.OpenAIProvider:new({
+    id = 'deepseek-reasoner',
+    description = 'deepseek-reasoner | temp = 0.0',
+    preset_builder = BasicDeepSeekPreset:with_opts({
+      provider = deepseek.DeepSeekProvider:new({
         api_key_name = 'DEEPSEEK_API_KEY',
         base_url = 'https://api.deepseek.com',
       }),
       headers = {
-        endpoint = '/beta/v1/chat/completions',
+        endpoint = '/v1/chat/completions',
+        extra_headers = {},
+      },
+      params = {
+        ['model'] = 'deepseek-reasoner',
+        ['stream'] = true,
+        ['max_completion_tokens'] = 8192,
+        ['temperature'] = 0,
+      },
+    }),
+  }),
+  NewBaseTask({
+    id = 'deepseek-chat',
+    description = 'deepseek-chat | temp = 0.0',
+    preset_builder = BasicDeepSeekPreset:with_opts({
+      provider = deepseek.DeepSeekProvider:new({
+        api_key_name = 'DEEPSEEK_API_KEY',
+        base_url = 'https://api.deepseek.com',
+      }),
+      headers = {
+        endpoint = '/v1/chat/completions',
         extra_headers = {},
       },
       params = {

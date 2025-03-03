@@ -140,7 +140,6 @@ function M.AnthropicProvider.handle_sse_stream(line, progress)
       end
       if progress and json.delta and json.delta.thinking then
         progress:report({ message = wrap_text((progress.message or "") .. json.delta.thinking, 60) })
-        vim.print(json.delta.thinking)
       end
     elseif event == 'content_block_start' then
     elseif event == 'content_block_stop' then

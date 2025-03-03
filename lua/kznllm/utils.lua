@@ -116,7 +116,7 @@ end
 
 function M.wrap_text(text, width)
   local words = {}
-  width = width or 60
+  width = width or 80
   for word in text:gmatch("%S+") do
     table.insert(words, word)
   end

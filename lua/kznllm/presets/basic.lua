@@ -159,14 +159,17 @@ local BasicDeepSeekPreset = deepseek.DeepSeekPresetBuilder
 -- Example task configurations
 M.options = {
   NewBaseTask({
-    id = 'sonnet-3-5-chat',
-    description = 'claude-3-5-sonnet-20241022 | temp = 0.7',
+    id = 'sonnet-3-7-chat',
+    description = 'claude-3-7-sonnet-20241022 | temp = 0.7',
     preset_builder = BasicAnthropicPreset:with_opts({
       params = {
-        ['model'] = 'claude-3-5-sonnet-20241022',
+        ['model'] = 'claude-3-7-sonnet-latest',
         ['stream'] = true,
-        ['max_tokens'] = 8192,
-        ['temperature'] = 0.7,
+        ['max_tokens'] = 64000,
+        ['thinking'] = {
+          type = "enabled",
+          budget_tokens = 16000
+        },
       },
     }),
   }),
@@ -195,29 +198,29 @@ M.options = {
     }),
   }),
   NewBaseTask({
-    id = 'o1-mini',
-    description = 'o1-mini | temp = ?',
+    id = 'o3-mini',
+    description = 'o3-mini | temp = ?',
     preset_builder = BasicOpenAIReasoningPreset:with_opts({
       params = {
-        ['model'] = 'o1-mini',
+        ['model'] = 'o3-mini',
         ['stream'] = true,
       },
     }),
   }),
   NewBaseTask({
-    id = 'Qwen2.5-Coder-32B-Instruct',
-    description = 'Qwen2.5-Coder-32B-Instruct | temp = 0.7',
+    id = 'vllm',
+    description = 'DeepSeek-R1-Distill | temp = 0.6',
     preset_builder = BasicOpenAIPreset:with_opts({
       provider = openai.OpenAIProvider:new({
         api_key_name = 'VLLM_API_KEY',
-        base_url = 'http://research.local:8000',
+        base_url = 'http://research:8000',
       }),
       params = {
-        ['model'] = 'Qwen/Qwen2.5-Coder-32B-Instruct',
+        ['model'] = 'deepseek-ai/DeepSeek-R1-Distill',
         ['stream'] = true,
-        ['temperature'] = 0.7,
-        ['top_p'] = 0.8,
-        ['repetition_penalty'] = 1.05,
+        ['temperature'] = 0.6,
+        ['top_p'] = 0.95,
+        -- ['repetition_penalty'] = 1.05,
       },
     }),
   }),
@@ -254,7 +257,7 @@ M.options = {
         ['model'] = 'deepseek-reasoner',
         ['stream'] = true,
         ['max_completion_tokens'] = 8192,
-        ['temperature'] = 0,
+        ['temperature'] = 0.7,
       },
     }),
   }),

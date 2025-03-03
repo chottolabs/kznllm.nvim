@@ -72,6 +72,7 @@ function M.DeepSeekProvider.handle_sse_stream(buf)
   -- based on sse spec (DeepSeek spec uses data-only server-sent events)
   local content = ''
 
+  vim.print(buf)
   for data in buf:gmatch('data: ({.-})\n') do
     -- if data and data:match '"delta":' then
     local json = vim.json.decode(data)

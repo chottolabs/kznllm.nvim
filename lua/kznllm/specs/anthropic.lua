@@ -105,13 +105,16 @@ local current_event_state
 --- event types: `[message_start, content_block_start, content_block_delta, content_block_stop, message_delta, message_stop, error]`
 ---@param line string
 ---@return string?
-function M.AnthropicProvider.handle_sse_stream(line)
+function M.AnthropicProvider.handle_sse_stream(line, progress)
   local content = ''
   for event, data in line:gmatch('event: ([%w_]+)\ndata: ({.-})\n') do
     if event == 'content_block_delta' then
       local json = vim.json.decode(data)
       if json.delta and json.delta.text then
         content = content .. json.delta.text
+      end
+      if progress and json.delta and json.delta.thinking then
+        progress:report({ message = utils.wrap_text((progress.message or "") .. json.delta.thinking) })
       end
     elseif event == 'content_block_start' then
     elseif event == 'content_block_stop' then

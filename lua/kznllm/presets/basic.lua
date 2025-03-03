@@ -4,6 +4,7 @@ local api = vim.api
 
 local anthropic = require('kznllm.specs.anthropic')
 local openai = require('kznllm.specs.openai')
+local deepseek = require('kznllm.specs.deepseek')
 
 local progress = require('fidget.progress')
 
@@ -14,7 +15,7 @@ local M = {}
 ---@field description string
 ---@field invoke fun(opts: { debug: boolean, progress_fn: fun(state) })
 
----@param config { id: string, description: string, preset_builder: OpenAIPresetBuilder | AnthropicPresetBuilder }
+---@param config { id: string, description: string, preset_builder: OpenAIPresetBuilder | AnthropicPresetBuilder | DeepSeekPresetBuilder }
 local function NewBaseTask(config)
   return {
     id = config.id,
@@ -145,17 +146,30 @@ local BasicOpenAIReasoningPreset = openai.OpenAIPresetBuilder:new():add_message_
   { type = 'text', role = 'user', path = openai_user_template },
 })
 
+local BasicDeepSeekPreset = deepseek.DeepSeekPresetBuilder
+    :new()
+    :add_system_prompts({
+      { type = 'text', path = openai_system_template },
+    })
+    :add_message_prompts({
+      { type = 'text', role = 'user', path = openai_user_template },
+    })
+
+
 -- Example task configurations
 M.options = {
   NewBaseTask({
-    id = 'sonnet-3-5-chat',
-    description = 'claude-3-5-sonnet-20241022 | temp = 0.7',
+    id = 'sonnet-3-7-chat',
+    description = 'claude-3-7-sonnet-20241022 | temp = 0.7',
     preset_builder = BasicAnthropicPreset:with_opts({
       params = {
-        ['model'] = 'claude-3-5-sonnet-20241022',
+        ['model'] = 'claude-3-7-sonnet-latest',
         ['stream'] = true,
-        ['max_tokens'] = 8192,
-        ['temperature'] = 0.7,
+        ['max_tokens'] = 64000,
+        ['thinking'] = {
+          type = "enabled",
+          budget_tokens = 16000
+        },
       },
     }),
   }),
@@ -184,29 +198,29 @@ M.options = {
     }),
   }),
   NewBaseTask({
-    id = 'o1-mini',
-    description = 'o1-mini | temp = ?',
+    id = 'o3-mini',
+    description = 'o3-mini | temp = ?',
     preset_builder = BasicOpenAIReasoningPreset:with_opts({
       params = {
-        ['model'] = 'o1-mini',
+        ['model'] = 'o3-mini',
         ['stream'] = true,
       },
     }),
   }),
   NewBaseTask({
-    id = 'Qwen2.5-Coder-32B-Instruct',
-    description = 'Qwen2.5-Coder-32B-Instruct | temp = 0.7',
+    id = 'vllm',
+    description = 'DeepSeek-R1-Distill | temp = 0.6',
     preset_builder = BasicOpenAIPreset:with_opts({
       provider = openai.OpenAIProvider:new({
         api_key_name = 'VLLM_API_KEY',
-        base_url = 'http://research.local:8000',
+        base_url = 'http://research:8000',
       }),
       params = {
-        ['model'] = 'Qwen/Qwen2.5-Coder-32B-Instruct',
+        ['model'] = 'deepseek-ai/DeepSeek-R1-Distill',
         ['stream'] = true,
-        ['temperature'] = 0.7,
-        ['top_p'] = 0.8,
-        ['repetition_penalty'] = 1.05,
+        ['temperature'] = 0.6,
+        ['top_p'] = 0.95,
+        -- ['repetition_penalty'] = 1.05,
       },
     }),
   }),
@@ -228,15 +242,35 @@ M.options = {
     }),
   }),
   NewBaseTask({
-    id = 'deepseek-chat',
-    description = 'deepseek-chat | temp = 0.0',
-    preset_builder = BasicOpenAIPreset:with_opts({
-      provider = openai.OpenAIProvider:new({
+    id = 'deepseek-reasoner',
+    description = 'deepseek-reasoner | temp = 0.0',
+    preset_builder = BasicDeepSeekPreset:with_opts({
+      provider = deepseek.DeepSeekProvider:new({
         api_key_name = 'DEEPSEEK_API_KEY',
         base_url = 'https://api.deepseek.com',
       }),
       headers = {
-        endpoint = '/beta/v1/chat/completions',
+        endpoint = '/v1/chat/completions',
+        extra_headers = {},
+      },
+      params = {
+        ['model'] = 'deepseek-reasoner',
+        ['stream'] = true,
+        ['max_completion_tokens'] = 8192,
+        ['temperature'] = 0.7,
+      },
+    }),
+  }),
+  NewBaseTask({
+    id = 'deepseek-chat',
+    description = 'deepseek-chat | temp = 0.0',
+    preset_builder = BasicDeepSeekPreset:with_opts({
+      provider = deepseek.DeepSeekProvider:new({
+        api_key_name = 'DEEPSEEK_API_KEY',
+        base_url = 'https://api.deepseek.com',
+      }),
+      headers = {
+        endpoint = '/v1/chat/completions',
         extra_headers = {},
       },
       params = {

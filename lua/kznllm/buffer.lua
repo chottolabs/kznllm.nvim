@@ -1,3 +1,5 @@
+local progress = require('fidget.progress')
+
 -- Buffer management singleton
 local BufferManager = {}
 local api = vim.api
@@ -99,9 +101,14 @@ function BufferManager:create_streaming_job(args, handle_sse_stream_fn, progress
   --- should be safe to do this before any jobs
   noop()
 
-  local captured_stdout = ''
+  local p = progress.handle.create({
+    title = '[thinking]',
+    lsp_client = { name = 'kznllm' },
+  })
+
   --- NOTE: vim.system can flush multiple consecutive lines into the same stdout buffer
   --- (different from how plenary jobs handles it)
+  local captured_stdout = ''
   local job = vim.system(vim.list_extend({ 'curl' }, args), {
     stdout = function(err, data)
       if data == nil then
@@ -109,7 +116,7 @@ function BufferManager:create_streaming_job(args, handle_sse_stream_fn, progress
       end
       progress_fn()
       captured_stdout = data
-      local content = handle_sse_stream_fn(data)
+      local content = handle_sse_stream_fn(data, p)
       if content then
         vim.schedule(function()
           self:write_content(content, buf_id)
@@ -128,6 +135,7 @@ function BufferManager:create_streaming_job(args, handle_sse_stream_fn, progress
           state.extmark_id = nil
         end
       end
+      p:finish()
     end)
   end)
 

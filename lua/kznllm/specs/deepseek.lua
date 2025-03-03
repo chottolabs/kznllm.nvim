@@ -68,7 +68,7 @@ end
 ---
 ---@param buf string
 ---@return string
-function M.DeepSeekProvider.handle_sse_stream(buf)
+function M.DeepSeekProvider.handle_sse_stream(buf, progress)
   -- based on sse spec (DeepSeek spec uses data-only server-sent events)
   local content = ''
 
@@ -79,8 +79,8 @@ function M.DeepSeekProvider.handle_sse_stream(buf)
     -- reasoning returns null for content which turns into `vim.NIL`, so we have to handle it here
     if json.choices[1].delta.content and json.choices[1].delta.content ~= vim.NIL then
       content = content .. json.choices[1].delta.content
-    elseif json.choices[1].delta.reasoning_content and json.choices[1].delta.reasoning_content ~= vim.NIL then
-      content = content .. json.choices[1].delta.reasoning_content
+    elseif progress and json.choices[1].delta.reasoning_content and json.choices[1].delta.reasoning_content ~= vim.NIL then
+      progress:report({ message = utils.wrap_text((progress.message or "") .. json.choices[1].delta.reasoning_content) })
     else
       vim.print(data)
     end

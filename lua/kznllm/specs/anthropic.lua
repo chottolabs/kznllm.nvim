@@ -3,31 +3,6 @@ local utils = require('kznllm.utils')
 
 local M = {}
 
-local function wrap_text(text, width)
-  local words = {}
-  for word in text:gmatch("%S+") do
-    table.insert(words, word)
-  end
-  local lines = {}
-  local current_line = ""
-  for _, word in ipairs(words) do
-    if #current_line + #word + 1 > width then
-      table.insert(lines, current_line)
-      current_line = word
-    else
-      if current_line ~= "" then
-        current_line = current_line .. " " .. word
-      else
-        current_line = word
-      end
-    end
-  end
-  if current_line ~= "" then
-    table.insert(lines, current_line)
-  end
-  return table.concat(lines, "\n")
-end
-
 ---@class AnthropicProvider : BaseProvider
 ---@field make_curl_args fun(self, opts: AnthropicCurlOptions)
 M.AnthropicProvider = {}
@@ -139,7 +114,7 @@ function M.AnthropicProvider.handle_sse_stream(line, progress)
         content = content .. json.delta.text
       end
       if progress and json.delta and json.delta.thinking then
-        progress:report({ message = wrap_text((progress.message or "") .. json.delta.thinking, 60) })
+        progress:report({ message = utils.wrap_text((progress.message or "") .. json.delta.thinking) })
       end
     elseif event == 'content_block_start' then
     elseif event == 'content_block_stop' then

@@ -114,4 +114,30 @@ function M.make_prompt_from_template(opts)
   return active_job.stdout
 end
 
+function M.wrap_text(text, width)
+  local words = {}
+  width = width or 60
+  for word in text:gmatch("%S+") do
+    table.insert(words, word)
+  end
+  local lines = {}
+  local current_line = ""
+  for _, word in ipairs(words) do
+    if #current_line + #word + 1 > width then
+      table.insert(lines, current_line)
+      current_line = word
+    else
+      if current_line ~= "" then
+        current_line = current_line .. " " .. word
+      else
+        current_line = word
+      end
+    end
+  end
+  if current_line ~= "" then
+    table.insert(lines, current_line)
+  end
+  return table.concat(lines, "\n")
+end
+
 return M

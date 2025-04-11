@@ -119,14 +119,11 @@ function M.AnthropicProvider.handle_sse_stream(line, progress)
     elseif event == 'content_block_start' then
     elseif event == 'content_block_stop' then
     elseif event == 'message_start' then
-      vim.print(data)
     elseif event == 'message_stop' then
     elseif event == 'message_delta' then
     elseif event == 'ping' then
     elseif event == 'error' then
-      vim.print(data)
     else
-      vim.print(data)
     end
   end
 
